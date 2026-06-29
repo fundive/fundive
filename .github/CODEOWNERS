@@ -1,0 +1,7 @@
+# Code owners are automatically requested for review on pull requests.
+# Anyone can open a PR; only owners listed here can approve/merge into main.
+#
+# Replace <your-github-username> with your GitHub handle (keep the leading @).
+# Add more maintainers separated by spaces as the project grows.
+
+*       @ericodle
