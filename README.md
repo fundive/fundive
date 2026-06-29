@@ -11,9 +11,10 @@ and your customers' data, with no per-seat fee.
 > a dive shop in Taipei, Taiwan. This repository is the open-source platform
 > behind it, being prepared for general self-hosting.
 
-> **Status: early.** The platform is in active development and the public
-> codebase is still being generalized from its first deployment. Expect rough
-> edges and breaking changes. Issues and PRs welcome — see
+> **Status: v0.0.1 — in active development. ⚠️ Not ready for production use.**
+> The platform is still being generalized from its first deployment. Expect
+> incomplete features, rough edges, and breaking changes; do not rely on it to
+> run a real business yet. Issues and PRs welcome — see
 > [Contributing](#contributing).
 
 ## Features
