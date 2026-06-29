@@ -108,9 +108,12 @@ required environment variables and the full deploy flow.
 
 ## Documentation
 
-In-depth docs live under [`docs/`](docs/): architecture, data model,
-authentication, bookings, payments, admin, push notifications, testing, and
-deployment.
+In-depth docs live under [`docs/`](docs/). Start with
+[architecture.md](docs/architecture.md) — it explains the **platform vs.
+deployment** model: this repo is the authoritative codebase, and each dive
+center runs it from a small deployment repo holding only their branding,
+credentials, and catalog data. More docs (data model, auth, payments,
+deployment) land as the code is ported.
 
 ## Contributing
 
