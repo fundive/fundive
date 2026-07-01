@@ -84,16 +84,16 @@ describe('AdminEventDetailPage', () => {
     }]
     const payments: unknown[] = []
     const addons = [
-      { _id: '11111111-1111-4111-8111-111111111111', display_title: 'SMB Rental', admin_title: 'SMB' },
-      { _id: '22222222-2222-4222-8222-222222222222', display_title: 'Camera Rental (1 Dive)', admin_title: 'Cam' },
+      { id: '11111111-1111-4111-8111-111111111111', display_title: 'SMB Rental', admin_title: 'SMB' },
+      { id: '22222222-2222-4222-8222-222222222222', display_title: 'Camera Rental (1 Dive)', admin_title: 'Cam' },
     ]
 
     from.mockImplementation((table: string) => {
       if (table === 'bookings')     return mockQueryBuilder({ data: bookings })
       if (table === 'profiles')     return mockQueryBuilder({ data: profiles })
       if (table === 'payments')     return mockQueryBuilder({ data: payments })
-      if (table === 'Other_Addons') return mockQueryBuilder({ data: addons })
-      if (table === 'EO_rooms')     return mockQueryBuilder({ data: [] })
+      if (table === 'addons') return mockQueryBuilder({ data: addons })
+      if (table === 'rooms')     return mockQueryBuilder({ data: [] })
       return mockQueryBuilder({ data: [] })
     })
 
@@ -200,15 +200,15 @@ describe('AdminEventDetailPage', () => {
       contact_method: null, contact_id: null,
     }]
     const addons = [
-      { _id: '11111111-1111-4111-8111-111111111111', display_title: 'SMB Rental', admin_title: 'SMB' },
+      { id: '11111111-1111-4111-8111-111111111111', display_title: 'SMB Rental', admin_title: 'SMB' },
     ]
 
     from.mockImplementation((table: string) => {
       if (table === 'bookings')     return mockQueryBuilder({ data: bookings })
       if (table === 'profiles')     return mockQueryBuilder({ data: profiles })
       if (table === 'payments')     return mockQueryBuilder({ data: [] })
-      if (table === 'Other_Addons') return mockQueryBuilder({ data: addons })
-      if (table === 'EO_rooms')     return mockQueryBuilder({ data: [] })
+      if (table === 'addons') return mockQueryBuilder({ data: addons })
+      if (table === 'rooms')     return mockQueryBuilder({ data: [] })
       return mockQueryBuilder({ data: [] })
     })
 

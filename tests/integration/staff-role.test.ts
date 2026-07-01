@@ -10,8 +10,8 @@ import {
 //   - Staff can SELECT events, bookings, payments, profiles, admin_notes,
 //     and their own duty rows.
 //   - Staff CANNOT write to any catalog/admin table (events,
-//     EO_rooms, Other_Addons, EO_prices, cert_levels,
-//     DiveTravel, cancellation_policies, event_addons).
+//     rooms, addons, prices, cert_levels,
+//     dive_travel, cancellation_policies, event_addons).
 //   - Staff CANNOT write to bookings, payments, profiles (other than self),
 //     duties, or update/delete admin_notes.
 //   - Staff CAN insert admin_notes attributed to themselves.
@@ -108,19 +108,19 @@ describe('staff role: blocked writes on catalog tables', () => {
     expect(data).not.toBeNull()
   })
 
-  it('cannot INSERT into Other_Addons', async () => {
+  it('cannot INSERT into addons', async () => {
     const sb = await userClient(staff.email, staff.password)
     const id = crypto.randomUUID()
-    const { error } = await sb.from('Other_Addons' as never).insert({
-      _id: id, display_title: 'staff-tried', admin_title: 'x',
+    const { error } = await sb.from('addons' as never).insert({
+      id: id, display_title: 'staff-tried', admin_title: 'x',
     } as never)
     expect(error).not.toBeNull()
   })
 
-  it('cannot INSERT into EO_rooms', async () => {
+  it('cannot INSERT into rooms', async () => {
     const sb = await userClient(staff.email, staff.password)
     const id = crypto.randomUUID()
-    const { error } = await sb.from('EO_rooms' as never).insert({ _id: id, display_title: 'no' } as never)
+    const { error } = await sb.from('rooms' as never).insert({ id: id, display_title: 'no' } as never)
     expect(error).not.toBeNull()
   })
 

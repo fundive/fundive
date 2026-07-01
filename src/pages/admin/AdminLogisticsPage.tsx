@@ -157,11 +157,11 @@ export function AdminLogisticsPage() {
         bookings.flatMap(b => (b.details as BookingDetails | undefined)?.add_ons ?? []),
       )]
       const addonsRes = addonIds.length
-        ? await supabase.from('Other_Addons').select('_id, display_title, admin_title').in('_id', addonIds)
-        : { data: [] as Array<{ _id: string; display_title: string | null; admin_title: string | null }> }
+        ? await supabase.from('addons').select('id, display_title, admin_title').in('id', addonIds)
+        : { data: [] as Array<{ id: string; display_title: string | null; admin_title: string | null }> }
       if (cancelled) return
       setAddonTitles(new Map(
-        (addonsRes.data ?? []).map(a => [a._id, a.display_title || a.admin_title || a._id]),
+        (addonsRes.data ?? []).map(a => [a.id, a.display_title || a.admin_title || a.id]),
       ))
 
       const userIds = [...new Set([

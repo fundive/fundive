@@ -22,9 +22,9 @@ function fakeCatalog() {
   // The page fetches three catalog tables on mount before submit is enabled.
   // Hand each lookup a tiny fixture so the FK pickers actually render rows.
   from.mockImplementation((table: string) => {
-    if (table === 'EO_prices') return mockQueryBuilder({ data: [{ _id: 'price-1', title: 'Standard',  starting_at: 5000 }] })
-    if (table === 'EO_rooms')  return mockQueryBuilder({ data: [{ _id: 'room-1',  display_title: 'Twin', admin_title: 'Twin' }] })
-    if (table === 'Other_Addons') return mockQueryBuilder({ data: [{ _id: 'addon-1', display_title: 'Nitrox', admin_title: 'Nitrox' }] })
+    if (table === 'prices') return mockQueryBuilder({ data: [{ id: 'price-1', title: 'Standard',  starting_at: 5000 }] })
+    if (table === 'rooms')  return mockQueryBuilder({ data: [{ id: 'room-1',  display_title: 'Twin', admin_title: 'Twin' }] })
+    if (table === 'addons') return mockQueryBuilder({ data: [{ id: 'addon-1', display_title: 'Nitrox', admin_title: 'Nitrox' }] })
     return mockQueryBuilder({ data: [] })
   })
 }
@@ -89,9 +89,9 @@ describe('AdminNewEventPage', () => {
       price: 'price-1',
     }
     from.mockImplementation((table: string) => {
-      if (table === 'EO_prices')    return mockQueryBuilder({ data: [{ _id: 'price-1', title: 'Standard' }] })
-      if (table === 'EO_rooms')     return mockQueryBuilder({ data: [] })
-      if (table === 'Other_Addons') return mockQueryBuilder({ data: [] })
+      if (table === 'prices')    return mockQueryBuilder({ data: [{ id: 'price-1', title: 'Standard' }] })
+      if (table === 'rooms')     return mockQueryBuilder({ data: [] })
+      if (table === 'addons') return mockQueryBuilder({ data: [] })
       // Dives + courses are one `events` table now, queried twice by kind; the
       // course-kind read maps the same row but drops it (no course_days).
       if (table === 'events')       return mockQueryBuilder({ data: [pastDive] })
@@ -114,13 +114,13 @@ describe('AdminNewEventPage', () => {
       then: (cb: (r: { error: null }) => void) => Promise.resolve({ error: null }).then(cb),
     })
     from.mockImplementation((table: string) => {
-      if (table === 'EO_prices') {
+      if (table === 'prices') {
         const b = mockQueryBuilder({ data: [] }) as Record<string, unknown>
         b.insert = priceInsert
         return b
       }
-      if (table === 'EO_rooms')     return mockQueryBuilder({ data: [{ _id: 'room-1', display_title: 'Twin', admin_title: 'Twin' }] })
-      if (table === 'Other_Addons') return mockQueryBuilder({ data: [] })
+      if (table === 'rooms')     return mockQueryBuilder({ data: [{ id: 'room-1', display_title: 'Twin', admin_title: 'Twin' }] })
+      if (table === 'addons') return mockQueryBuilder({ data: [] })
       return mockQueryBuilder({ data: [] })
     })
     const user = userEvent.setup()
@@ -137,7 +137,7 @@ describe('AdminNewEventPage', () => {
     // Newly created tier becomes the selected option in the price dropdown.
     await waitFor(() => {
       const select = screen.getByLabelText(/price tier/i) as HTMLSelectElement
-      expect(select.value).toBe(payload._id as string)
+      expect(select.value).toBe(payload.id as string)
       expect(select.options[select.selectedIndex].textContent).toMatch(/Premium/)
     })
   })
@@ -147,13 +147,13 @@ describe('AdminNewEventPage', () => {
       then: (cb: (r: { error: null }) => void) => Promise.resolve({ error: null }).then(cb),
     })
     from.mockImplementation((table: string) => {
-      if (table === 'EO_rooms') {
+      if (table === 'rooms') {
         const b = mockQueryBuilder({ data: [] }) as Record<string, unknown>
         b.insert = roomInsert
         return b
       }
-      if (table === 'EO_prices')    return mockQueryBuilder({ data: [] })
-      if (table === 'Other_Addons') return mockQueryBuilder({ data: [] })
+      if (table === 'prices')    return mockQueryBuilder({ data: [] })
+      if (table === 'addons') return mockQueryBuilder({ data: [] })
       return mockQueryBuilder({ data: [] })
     })
     const user = userEvent.setup()
@@ -184,13 +184,13 @@ describe('AdminNewEventPage', () => {
       then: (cb: (r: { error: null }) => void) => Promise.resolve({ error: null }).then(cb),
     })
     from.mockImplementation((table: string) => {
-      if (table === 'Other_Addons') {
+      if (table === 'addons') {
         const b = mockQueryBuilder({ data: [] }) as Record<string, unknown>
         b.insert = addonInsert
         return b
       }
-      if (table === 'EO_prices') return mockQueryBuilder({ data: [] })
-      if (table === 'EO_rooms')  return mockQueryBuilder({ data: [] })
+      if (table === 'prices') return mockQueryBuilder({ data: [] })
+      if (table === 'rooms')  return mockQueryBuilder({ data: [] })
       return mockQueryBuilder({ data: [] })
     })
     const user = userEvent.setup()
@@ -219,14 +219,14 @@ describe('AdminNewEventPage', () => {
       then: (cb: (r: { error: null }) => void) => Promise.resolve({ error: null }).then(cb),
     })
     from.mockImplementation((table: string) => {
-      if (table === 'DiveTravel') {
+      if (table === 'dive_travel') {
         const b = mockQueryBuilder({ data: [] }) as Record<string, unknown>
         b.insert = travelInsert
         return b
       }
-      if (table === 'EO_prices')    return mockQueryBuilder({ data: [] })
-      if (table === 'EO_rooms')     return mockQueryBuilder({ data: [] })
-      if (table === 'Other_Addons') return mockQueryBuilder({ data: [] })
+      if (table === 'prices')    return mockQueryBuilder({ data: [] })
+      if (table === 'rooms')     return mockQueryBuilder({ data: [] })
+      if (table === 'addons') return mockQueryBuilder({ data: [] })
       return mockQueryBuilder({ data: [] })
     })
     const user = userEvent.setup()
@@ -243,20 +243,20 @@ describe('AdminNewEventPage', () => {
     expect(payload.admin_title).toBe('Green Island')
     expect(payload.included).toBe('Tanks, weights, transport')
 
-    // Newly created entry becomes the selected option in the DiveTravel dropdown.
+    // Newly created entry becomes the selected option in the dive_travel dropdown.
     await waitFor(() => {
       const select = screen.getByLabelText(/DiveTravel reference/i) as HTMLSelectElement
-      expect(select.value).toBe(payload._id as string)
+      expect(select.value).toBe(payload.id as string)
       expect(select.options[select.selectedIndex].textContent).toMatch(/Green Island/)
     })
   })
 
-  it('writes selected TravelDestinations to the junctions via set_event_relations', async () => {
+  it('writes selected travel_destinations to the junctions via set_event_relations', async () => {
     const insert = vi.fn().mockReturnValue({ then: (cb: (r: { error: null }) => void) => Promise.resolve({ error: null }).then(cb) })
     from.mockImplementation((table: string) => {
-      if (table === 'TravelDestinations') return mockQueryBuilder({ data: [
-        { _id: 'dest-1', admin_title: 'Green Island',  country: 'Taiwan',          sort_order: 1 },
-        { _id: 'dest-2', admin_title: 'Puerto Galera', country: 'The Philippines', sort_order: 2 },
+      if (table === 'travel_destinations') return mockQueryBuilder({ data: [
+        { id: 'dest-1', admin_title: 'Green Island',  country: 'Taiwan',          sort_order: 1 },
+        { id: 'dest-2', admin_title: 'Puerto Galera', country: 'The Philippines', sort_order: 2 },
       ] })
       if (table === 'events') {
         const b = mockQueryBuilder({ data: [] }) as Record<string, unknown>
@@ -289,9 +289,9 @@ describe('AdminNewEventPage', () => {
   it('inserts a dive with minimum required fields and navigates to its detail page', async () => {
     const insert = vi.fn().mockReturnValue({ then: (cb: (r: { error: null }) => void) => Promise.resolve({ error: null }).then(cb) })
     from.mockImplementation((table: string) => {
-      if (table === 'EO_prices')    return mockQueryBuilder({ data: [] })
-      if (table === 'EO_rooms')     return mockQueryBuilder({ data: [] })
-      if (table === 'Other_Addons') return mockQueryBuilder({ data: [] })
+      if (table === 'prices')    return mockQueryBuilder({ data: [] })
+      if (table === 'rooms')     return mockQueryBuilder({ data: [] })
+      if (table === 'addons') return mockQueryBuilder({ data: [] })
       if (table === 'events') {
         // Hybrid: select() chain (past-event fetch) returns empty,
         // insert() routes through the spy so we can assert payload.

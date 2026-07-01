@@ -89,16 +89,16 @@ const sampleProfile: Profile = {
 }
 
 const sampleRooms: EORoom[] = [
-  { _id: 'room-a', admin_title: 'kenting_double', display_title: 'Kenting Double', added_price: 1700, currency: 'NTD' },
+  { id: 'room-a', admin_title: 'kenting_double', display_title: 'Kenting Double', added_price: 1700, currency: 'NTD' },
 ]
 const sampleAddons: EOAddon[] = [
-  { _id: 'addon-a', admin_title: 'SMB 1 Day', display_title: null, price: 100, currency: 'NTD' },
+  { id: 'addon-a', admin_title: 'SMB 1 Day', display_title: null, price: 100, currency: 'NTD' },
 ]
 
 function setupFrom(updated: unknown = { id: 'b-existing' }) {
   from.mockImplementation((table: string) => {
-    if (table === 'EO_rooms')     return mockQueryBuilder({ data: sampleRooms })
-    if (table === 'Other_Addons') return mockQueryBuilder({ data: sampleAddons })
+    if (table === 'rooms')     return mockQueryBuilder({ data: sampleRooms })
+    if (table === 'addons') return mockQueryBuilder({ data: sampleAddons })
     if (table === 'bookings') {
       // New bookings now go through the create-registration edge function;
       // only the admin-edit path still hits bookings.update directly.
@@ -273,8 +273,8 @@ describe('RegisterForm', () => {
       created_at: new Date().toISOString(), settled_at: null, settled_note: null,
     }
     from.mockImplementation((table: string) => {
-      if (table === 'EO_rooms')     return mockQueryBuilder({ data: sampleRooms })
-      if (table === 'Other_Addons') return mockQueryBuilder({ data: sampleAddons })
+      if (table === 'rooms')     return mockQueryBuilder({ data: sampleRooms })
+      if (table === 'addons') return mockQueryBuilder({ data: sampleAddons })
       if (table === 'credits')      return mockQueryBuilder({ data: [openCredit] })
       return mockQueryBuilder()
     })
@@ -321,8 +321,8 @@ describe('RegisterForm', () => {
       created_at: new Date().toISOString(), settled_at: null, settled_note: null,
     }
     from.mockImplementation((table: string) => {
-      if (table === 'EO_rooms')     return mockQueryBuilder({ data: sampleRooms })
-      if (table === 'Other_Addons') return mockQueryBuilder({ data: sampleAddons })
+      if (table === 'rooms')     return mockQueryBuilder({ data: sampleRooms })
+      if (table === 'addons') return mockQueryBuilder({ data: sampleAddons })
       if (table === 'credits')      return mockQueryBuilder({ data: [openCredit] })
       if (table === 'profiles')     return mockQueryBuilder({ data: [child] })
       return mockQueryBuilder()
@@ -966,13 +966,13 @@ describe('RegisterForm', () => {
   it('renders the cancellation policy + ack checkbox when the event has one, and gates submit on the checkbox', async () => {
     // Route cancellation_policies through the mock so the form's lookup resolves.
     const policyRow = {
-      _id: 'pol-1',
+      id: 'pol-1',
       title: 'Local Multi-day Trip',
-      cancelation_policy: 'Deposit non-refundable. 14 days notice for partial refund.',
+      cancellation_policy: 'Deposit non-refundable. 14 days notice for partial refund.',
     }
     from.mockImplementation((table: string) => {
-      if (table === 'EO_rooms')              return mockQueryBuilder({ data: sampleRooms })
-      if (table === 'Other_Addons')          return mockQueryBuilder({ data: sampleAddons })
+      if (table === 'rooms')              return mockQueryBuilder({ data: sampleRooms })
+      if (table === 'addons')          return mockQueryBuilder({ data: sampleAddons })
       if (table === 'cancellation_policies') return mockQueryBuilder({ data: policyRow })
       return mockQueryBuilder()
     })
@@ -1309,8 +1309,8 @@ describe('RegisterForm', () => {
 
     function setupFromWithChildren(children: Profile[]) {
       from.mockImplementation((table: string) => {
-        if (table === 'EO_rooms')     return mockQueryBuilder({ data: sampleRooms })
-        if (table === 'Other_Addons') return mockQueryBuilder({ data: sampleAddons })
+        if (table === 'rooms')     return mockQueryBuilder({ data: sampleRooms })
+        if (table === 'addons') return mockQueryBuilder({ data: sampleAddons })
         if (table === 'profiles')     return mockQueryBuilder({ data: children })
         return mockQueryBuilder()
       })

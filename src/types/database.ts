@@ -952,9 +952,9 @@ export interface Database {
         }
         Relationships: []
       }
-      EO_prices: {
+      prices: {
         Row: {
-          _id: string
+          id: string
           admin_title: string
           starting_at: number | null
           deposit_amount: number | null
@@ -963,54 +963,54 @@ export interface Database {
           transport: number | null
         }
         Insert: {
-          _id: string
+          id: string
           admin_title: string
           starting_at?: number | null
           deposit_amount?: number | null
           transport?: number | null
         }
-        Update: Partial<Database['public']['Tables']['EO_prices']['Insert']>
+        Update: Partial<Database['public']['Tables']['prices']['Insert']>
         Relationships: []
       }
-      EO_rooms: {
+      rooms: {
         Row: {
-          _id: string
+          id: string
           admin_title: string | null
           display_title: string | null
           added_price: number | null
           currency: string | null
         }
         Insert: {
-          _id: string
+          id: string
           admin_title?: string | null
           display_title?: string | null
           added_price?: number | null
           currency?: string | null
         }
-        Update: Partial<Database['public']['Tables']['EO_rooms']['Insert']>
+        Update: Partial<Database['public']['Tables']['rooms']['Insert']>
         Relationships: []
       }
-      Other_Addons: {
+      addons: {
         Row: {
-          _id: string
+          id: string
           admin_title: string | null
           display_title: string | null
           price: number | null
           currency: string | null
         }
         Insert: {
-          _id: string
+          id: string
           admin_title?: string | null
           display_title?: string | null
           price?: number | null
           currency?: string | null
         }
-        Update: Partial<Database['public']['Tables']['Other_Addons']['Insert']>
+        Update: Partial<Database['public']['Tables']['addons']['Insert']>
         Relationships: []
       }
-      DiveTravel: {
+      dive_travel: {
         Row: {
-          _id: string
+          id: string
           admin_title: string | null
           included: string | null
           not_included: string | null
@@ -1020,7 +1020,7 @@ export interface Database {
           tagline_text: string | null
         }
         Insert: {
-          _id: string
+          id: string
           admin_title?: string | null
           included?: string | null
           not_included?: string | null
@@ -1029,27 +1029,26 @@ export interface Database {
           prerequisites?: string | null
           tagline_text?: string | null
         }
-        Update: Partial<Database['public']['Tables']['DiveTravel']['Insert']>
+        Update: Partial<Database['public']['Tables']['dive_travel']['Insert']>
         Relationships: []
       }
       cancellation_policies: {
-        // 'cancelation_policy' (single l) preserved from the Wix CSV import.
         Row: {
-          _id: string
+          id: string
           title: string | null
-          cancelation_policy: string | null
+          cancellation_policy: string | null
         }
         Insert: {
-          _id: string
+          id: string
           title?: string | null
-          cancelation_policy?: string | null
+          cancellation_policy?: string | null
         }
         Update: Partial<Database['public']['Tables']['cancellation_policies']['Insert']>
         Relationships: []
       }
-      TravelDestinations: {
+      travel_destinations: {
         Row: {
-          _id: string
+          id: string
           admin_title: string | null
           slug: string | null
           tagline: string | null
@@ -1065,7 +1064,7 @@ export interface Database {
           diver_requirements: string | null
         }
         Insert: {
-          _id: string
+          id: string
           admin_title?: string | null
           slug?: string | null
           tagline?: string | null
@@ -1080,7 +1079,7 @@ export interface Database {
           background_picture?: string | null
           diver_requirements?: string | null
         }
-        Update: Partial<Database['public']['Tables']['TravelDestinations']['Insert']>
+        Update: Partial<Database['public']['Tables']['travel_destinations']['Insert']>
         Relationships: []
       }
       event_addons: {
@@ -1298,11 +1297,11 @@ export type BookingAmendment = Database['public']['Tables']['booking_amendments'
 export type Credit = Database['public']['Tables']['credits']['Row']
 export type CreditInsert = Database['public']['Tables']['credits']['Insert']
 export type EventRow = Database['public']['Tables']['events']['Row']
-export type EOPrice = Database['public']['Tables']['EO_prices']['Row']
-export type EORoom = Database['public']['Tables']['EO_rooms']['Row']
-export type EOAddon = Database['public']['Tables']['Other_Addons']['Row']
-export type DiveTravelEntry = Database['public']['Tables']['DiveTravel']['Row']
-export type TravelDestination = Database['public']['Tables']['TravelDestinations']['Row']
+export type EOPrice = Database['public']['Tables']['prices']['Row']
+export type EORoom = Database['public']['Tables']['rooms']['Row']
+export type EOAddon = Database['public']['Tables']['addons']['Row']
+export type DiveTravelEntry = Database['public']['Tables']['dive_travel']['Row']
+export type TravelDestination = Database['public']['Tables']['travel_destinations']['Row']
 export type CancellationPolicy = Database['public']['Tables']['cancellation_policies']['Row']
 export type CertLevel = Database['public']['Tables']['cert_levels']['Row']
 export type AdminNote = Database['public']['Tables']['admin_notes']['Row']

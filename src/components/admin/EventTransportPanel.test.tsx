@@ -20,7 +20,7 @@ beforeEach(() => {
     if (table === 'events') return mockQueryBuilder({ data: { divetravel_id: 'T1', start_date: '2031-05-01' } })
     if (table === 'vehicles') return mockQueryBuilder({ data: vehicleRows })
     if (table === 'event_vehicles') return mockQueryBuilder({ data: allocationRows })
-    return mockQueryBuilder({ data: [] }) // bookings update, DiveTravel update
+    return mockQueryBuilder({ data: [] }) // bookings update, dive_travel update
   })
 })
 

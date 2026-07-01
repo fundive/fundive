@@ -94,8 +94,8 @@ Clicking an event in the calendar opens `RegisterForm`
 total = base_price
       + gear_cost       (0 if included; otherwise à-la-carte only:
                          ∑ per-item × days for the chosen items)
-      + room_cost       (selected EO_rooms.added_price)
-      + addons_cost     (∑ Other_Addons.price for selected ids)
+      + room_cost       (selected rooms.added_price)
+      + addons_cost     (∑ addons.price for selected ids)
       + transport_cost  (event.transport_price if surcharge>0 and ticked;
                          else 0 — surcharge=0 means transport is bundled
                          and we render "Included with base price")
@@ -108,7 +108,7 @@ Gear prices (`GEAR_ALACARTE_PRICES`) live in `src/lib/gear.ts`;
 register forms and the display-time recompute). Gear is à-la-carte only —
 there is no full-set package. **Transport** moved out of the constants in
 migration `20260430030000_eo_prices_transport_int.sql`: it's now a
-per-event integer on the linked `EO_prices.transport` row, surfaced
+per-event integer on the linked `prices.transport` row, surfaced
 on `AppEvent` as `transport_price`.
 
 `buildCharges()` in `src/lib/booking-charges.ts` turns these into an

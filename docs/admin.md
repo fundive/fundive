@@ -26,10 +26,10 @@ Write/manage routes — gated by `AdminRoute` (admin only):
 | `/admin/new`                            | `AdminManagePage`       | Catalog landing — links to event/room/addon/travel/price editors |
 | `/admin/new/event`                      | `AdminNewEventPage`     | Create a new dive or course |
 | `/admin/events/:type/:id/edit`          | `AdminEditEventPage`    | Edit event details |
-| `/admin/rooms`                          | `AdminRoomsPage`        | Manage `EO_rooms` rows |
-| `/admin/addons`                         | `AdminAddonsPage`       | Manage `Other_Addons` rows |
-| `/admin/travel`                         | `AdminTravelPage`       | Manage `DiveTravel` rows |
-| `/admin/prices`                         | `AdminPricesPage`       | Manage `EO_prices` rows |
+| `/admin/rooms`                          | `AdminRoomsPage`        | Manage `rooms` rows |
+| `/admin/addons`                         | `AdminAddonsPage`       | Manage `addons` rows |
+| `/admin/travel`                         | `AdminTravelPage`       | Manage `dive_travel` rows |
+| `/admin/prices`                         | `AdminPricesPage`       | Manage `prices` rows |
 | `/admin/users`                          | `AdminUsersPage`        | Searchable diver directory with full profile cards |
 | `/admin/duty`                           | `AdminDutyPage`         | Assign staff/admin to events; fires push to assignee |
 | `/admin/notifications`                  | `AdminNotificationsPage` | Compose + send a one-off Web-Push broadcast to all subscribed devices |

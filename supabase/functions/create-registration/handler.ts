@@ -405,9 +405,9 @@ export async function handleRegistration(req: Request, deps: Deps): Promise<Resp
   let roomBoard: string | null = null
   if (roomDetail?.option_id) {
     const { data: r } = await admin
-      .from("EO_rooms")
+      .from("rooms")
       .select("admin_title, display_title, added_price")
-      .eq("_id", roomDetail.option_id)
+      .eq("id", roomDetail.option_id)
       .maybeSingle()
     if (r) {
       const label = (r.display_title ?? r.admin_title ?? "Room") as string
@@ -418,9 +418,9 @@ export async function handleRegistration(req: Request, deps: Deps): Promise<Resp
   let otherAddons: string[] = []
   if (addOnIds.length) {
     const { data: as } = await admin
-      .from("Other_Addons")
-      .select("_id, admin_title, display_title")
-      .in("_id", addOnIds)
+      .from("addons")
+      .select("id, admin_title, display_title")
+      .in("id", addOnIds)
     otherAddons = (as ?? [])
       .map((a: { admin_title?: string | null; display_title?: string | null }) =>
         (a.display_title ?? a.admin_title ?? "") as string)
@@ -449,12 +449,12 @@ export async function handleRegistration(req: Request, deps: Deps): Promise<Resp
   if (policyId) {
     const { data: pol } = await admin
       .from("cancellation_policies")
-      .select("title, cancelation_policy")
-      .eq("_id", policyId)
+      .select("title, cancellation_policy")
+      .eq("id", policyId)
       .maybeSingle()
     if (pol) {
       cancellationPolicyTitle = (pol.title ?? null) as string | null
-      cancellationPolicyText  = (pol.cancelation_policy ?? null) as string | null
+      cancellationPolicyText  = (pol.cancellation_policy ?? null) as string | null
     }
   }
   const cancelDate = (event?.cancel_date as string | null) ?? null
@@ -464,9 +464,9 @@ export async function handleRegistration(req: Request, deps: Deps): Promise<Resp
   const priceId = event?.price as string | null | undefined
   if (priceId) {
     const { data: pr } = await admin
-      .from("EO_prices")
+      .from("prices")
       .select("transport")
-      .eq("_id", priceId)
+      .eq("id", priceId)
       .maybeSingle()
     const transport = pr?.transport as number | null | undefined
     transportIncluded = transport == null || transport <= 0

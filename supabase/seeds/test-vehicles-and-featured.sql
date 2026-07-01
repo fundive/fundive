@@ -19,9 +19,9 @@ insert into public.vehicles (id, name, passenger_seats, active) values
 on conflict (id) do nothing;
 
 -- Price row shared by the featured test dives ----------------------------
-insert into public."EO_prices" ("_id", "admin_title", "price", "starting_at", "deposit_amount", "transport")
+insert into public.prices ("id", "admin_title", "price", "starting_at", "deposit_amount", "transport")
 values ('fee00000-0000-4000-8000-000000000001', 'Featured Test Dive', 'NTD 2,800', 2800, 1000, 1300)
-on conflict ("_id") do nothing;
+on conflict ("id") do nothing;
 
 -- Featured upcoming dives ------------------------------------------------
 -- Three variants so the panel and calendar show range: a single-day trip, a

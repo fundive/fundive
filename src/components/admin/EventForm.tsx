@@ -34,14 +34,14 @@ function priceOptionLabel(p: EOPrice): string {
   return parts.length ? `${p.admin_title} (${parts.join(' / ')})` : p.admin_title
 }
 
-// Sub-form state for creating a brand-new EO_prices row inline (so admins
+// Sub-form state for creating a brand-new prices row inline (so admins
 // don't have to leave the form just to define a price tier).
 interface PriceFormState {
   admin_title: string
   price: string             // human label, e.g. "NT$10,000"
   starting_at: string       // bigint or empty
   deposit_amount: string    // bigint or empty
-  // Per-event room options live in the event_rooms junction table. EO_prices
+  // Per-event room options live in the event_rooms junction table. prices
   // no longer carries a room_options column.
   transport: string
 }
@@ -50,7 +50,7 @@ const EMPTY_PRICE_FORM: PriceFormState = {
   admin_title: '', price: '', starting_at: '', deposit_amount: '', transport: '',
 }
 
-// Sub-form state for inline EO_rooms / Other_Addons / DiveTravel inserts.
+// Sub-form state for inline rooms / addons / dive_travel inserts.
 // Only the most-used fields — admins can edit the rest from the Manage page.
 interface RoomFormState   { admin_title: string; display_title: string; added_price: string }
 interface AddonFormState  { admin_title: string; display_title: string; price: string }
@@ -122,9 +122,9 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
       // Skip the past-event lookup in edit mode — preloading from a
       // different past event would clobber the row being edited.
       const settled = await Promise.allSettled([
-        supabase.from('EO_prices').select('*').order('admin_title'),
-        supabase.from('EO_rooms').select('*').order('admin_title'),
-        supabase.from('Other_Addons').select('*').order('admin_title'),
+        supabase.from('prices').select('*').order('admin_title'),
+        supabase.from('rooms').select('*').order('admin_title'),
+        supabase.from('addons').select('*').order('admin_title'),
         mode === 'create'
           ? supabase.from('events').select('*').eq('kind', 'dive').lt('start_date', todayStr).order('start_date', { ascending: false }).limit(50)
           : Promise.resolve({ data: [] as EventRow[] }),
@@ -135,8 +135,8 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
           : Promise.resolve({ data: [] as EventRow[] }),
         supabase.from('cert_levels').select('*').order('rank'),
         supabase.from('cancellation_policies').select('*').order('title'),
-        supabase.from('DiveTravel').select('*').order('admin_title'),
-        supabase.from('TravelDestinations').select('*').order('sort_order', { nullsFirst: false }),
+        supabase.from('dive_travel').select('*').order('admin_title'),
+        supabase.from('travel_destinations').select('*').order('sort_order', { nullsFirst: false }),
       ])
       if (cancelled) return
       const dataOf = <T,>(i: number): T[] => {
@@ -183,8 +183,8 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
   function sanitizeStaleRefs(f: FormState): FormState {
     const next = { ...f }
     if (certLevels.length && next.prereq_cert_id && !certLevels.some(c => c.id === next.prereq_cert_id)) next.prereq_cert_id = ''
-    if (prices.length && next.price && !prices.some(p => p._id === next.price)) next.price = ''
-    if (cancelPolicies.length && next.cancel_policy && !cancelPolicies.some(p => p._id === next.cancel_policy)) next.cancel_policy = ''
+    if (prices.length && next.price && !prices.some(p => p.id === next.price)) next.price = ''
+    if (cancelPolicies.length && next.cancel_policy && !cancelPolicies.some(p => p.id === next.cancel_policy)) next.cancel_policy = ''
     return next
   }
 
@@ -242,14 +242,14 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
     try {
       const id = crypto.randomUUID()
       const payload = {
-        _id: id,
+        id,
         admin_title: priceForm.admin_title.trim(),
         price: priceForm.price || null,
         starting_at: priceForm.starting_at ? Number(priceForm.starting_at) : null,
         deposit_amount: priceForm.deposit_amount ? Number(priceForm.deposit_amount) : null,
         transport: priceForm.transport ? Number(priceForm.transport) : null,
       }
-      const { error: insErr } = await supabase.from('EO_prices').insert(payload as never)
+      const { error: insErr } = await supabase.from('prices').insert(payload as never)
       if (insErr) throw insErr
       // Optimistically inject so the user can pick the new tier immediately.
       const newRow = {
@@ -275,12 +275,12 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
     try {
       const id = crypto.randomUUID()
       const payload = {
-        _id: id,
+        id,
         admin_title: roomForm.admin_title.trim(),
         display_title: roomForm.display_title.trim() || null,
         added_price: roomForm.added_price ? Number(roomForm.added_price) : null,
       }
-      const { error: insErr } = await supabase.from('EO_rooms').insert(payload as never)
+      const { error: insErr } = await supabase.from('rooms').insert(payload as never)
       if (insErr) throw insErr
       setRooms(rs => [...rs, payload as unknown as EORoom].sort(
         (a, b) => (a.admin_title ?? a.display_title ?? '').localeCompare(b.admin_title ?? b.display_title ?? '')
@@ -303,12 +303,12 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
     try {
       const id = crypto.randomUUID()
       const payload = {
-        _id: id,
+        id,
         admin_title: addonForm.admin_title.trim(),
         display_title: addonForm.display_title.trim() || null,
         price: addonForm.price ? Number(addonForm.price) : null,
       }
-      const { error: insErr } = await supabase.from('Other_Addons').insert(payload as never)
+      const { error: insErr } = await supabase.from('addons').insert(payload as never)
       if (insErr) throw insErr
       setAddons(as => [...as, payload as unknown as EOAddon].sort(
         (a, b) => (a.admin_title ?? a.display_title ?? '').localeCompare(b.admin_title ?? b.display_title ?? '')
@@ -330,13 +330,13 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
     try {
       const id = crypto.randomUUID()
       const payload = {
-        _id: id,
+        id,
         admin_title: travelForm.admin_title.trim(),
         included: travelForm.included || null,
         not_included: travelForm.not_included || null,
         transportation: travelForm.transportation || null,
       }
-      const { error: insErr } = await supabase.from('DiveTravel').insert(payload as never)
+      const { error: insErr } = await supabase.from('dive_travel').insert(payload as never)
       if (insErr) throw insErr
       setDiveTravels(ts => [...ts, payload as unknown as DiveTravelEntry].sort(
         (a, b) => (a.admin_title ?? '').localeCompare(b.admin_title ?? '')
@@ -480,7 +480,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
           <Select value={form.price} onChange={v => set('price', v)}>
             <option value="">— None —</option>
             {prices.map(p => (
-              <option key={p._id} value={p._id}>{priceOptionLabel(p)}</option>
+              <option key={p.id} value={p.id}>{priceOptionLabel(p)}</option>
             ))}
           </Select>
         </Field>
@@ -590,10 +590,10 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
                 <div className="space-y-1 max-h-56 overflow-y-auto bg-white/70 backdrop-blur-md border border-surface-200 rounded-md p-2">
                   {destinations.map(d => (
                     <Checkbox
-                      key={d._id}
-                      checked={form.destinationIds.includes(d._id)}
-                      onChange={() => toggleId('destinationIds', d._id)}
-                      label={d.country ? `${d.admin_title ?? d._id} — ${d.country}` : (d.admin_title ?? d._id)}
+                      key={d.id}
+                      checked={form.destinationIds.includes(d.id)}
+                      onChange={() => toggleId('destinationIds', d.id)}
+                      label={d.country ? `${d.admin_title ?? d.id} — ${d.country}` : (d.admin_title ?? d.id)}
                     />
                   ))}
                 </div>
@@ -603,7 +603,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
               <Select value={form.divetravel_reference} onChange={v => set('divetravel_reference', v)}>
                 <option value="">— None —</option>
                 {diveTravels.map(t => (
-                  <option key={t._id} value={t._id}>{t.admin_title ?? t._id}</option>
+                  <option key={t.id} value={t.id}>{t.admin_title ?? t.id}</option>
                 ))}
               </Select>
             </Field>
@@ -659,10 +659,10 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
               <div className="space-y-1 max-h-48 overflow-y-auto bg-white/70 backdrop-blur-md border border-surface-200 rounded-md p-2">
                 {rooms.map(r => (
                   <Checkbox
-                    key={r._id}
-                    checked={form.roomIds.includes(r._id)}
-                    onChange={() => toggleId('roomIds', r._id)}
-                    label={r.admin_title || r.display_title || r._id}
+                    key={r.id}
+                    checked={form.roomIds.includes(r.id)}
+                    onChange={() => toggleId('roomIds', r.id)}
+                    label={r.admin_title || r.display_title || r.id}
                   />
                 ))}
               </div>
@@ -741,7 +741,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
             <Select value={form.cancel_policy} onChange={v => set('cancel_policy', v)}>
               <option value="">— None —</option>
               {cancelPolicies.map(p => (
-                <option key={p._id} value={p._id}>{p.title ?? p._id}</option>
+                <option key={p.id} value={p.id}>{p.title ?? p.id}</option>
               ))}
             </Select>
           </Field>
@@ -765,10 +765,10 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
           <div className="space-y-1 max-h-56 overflow-y-auto bg-white/70 backdrop-blur-md border border-surface-200 rounded-md p-2">
             {addons.map(a => (
               <Checkbox
-                key={a._id}
-                checked={form.addonIds.includes(a._id)}
-                onChange={() => toggleId('addonIds', a._id)}
-                label={a.admin_title || a.display_title || a._id}
+                key={a.id}
+                checked={form.addonIds.includes(a.id)}
+                onChange={() => toggleId('addonIds', a.id)}
+                label={a.admin_title || a.display_title || a.id}
               />
             ))}
           </div>

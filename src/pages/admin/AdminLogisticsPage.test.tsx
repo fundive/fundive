@@ -246,13 +246,13 @@ describe('AdminLogisticsPage', () => {
         details: { transportation: false, gear: { rent: false }, add_ons: ['light2', 'smb'] } },
     ]
     const addons = [
-      { _id: 'light2', display_title: 'Light Rental (2 Days)', admin_title: 'Light 2' },
-      { _id: 'smb',    display_title: 'SMB Rental',            admin_title: 'SMB' },
+      { id: 'light2', display_title: 'Light Rental (2 Days)', admin_title: 'Light 2' },
+      { id: 'smb',    display_title: 'SMB Rental',            admin_title: 'SMB' },
     ]
     from.mockImplementation((table: string) => {
       if (table === 'bookings') return mockQueryBuilder({ data: careBookings })
       if (table === 'profiles') return mockQueryBuilder({ data: profiles })
-      if (table === 'Other_Addons') return mockQueryBuilder({ data: addons })
+      if (table === 'addons') return mockQueryBuilder({ data: addons })
       return mockQueryBuilder({ data: [] })
     })
 
