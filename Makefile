@@ -1,5 +1,9 @@
 .PHONY: help dev studio mail start stop status reset diff link pull push dump-data verify test lint lint-fix typecheck check deploy deploy-app deploy-push deploy-functions
 
+# The local Supabase stack names its Docker containers supabase_<svc>_<project_id>,
+# so derive the prefix from config.toml — a fork only changes project_id there.
+PROJECT_ID := $(shell sed -n 's/^project_id = "\(.*\)"/\1/p' supabase/config.toml)
+
 help:
 	@echo "Local dev:"
 	@echo "  make dev         — start Vite against the local supabase stack"
@@ -28,7 +32,7 @@ help:
 	@echo ""
 	@echo "Deploy:"
 	@echo "  make deploy            — deploy both workers (SPA + push cron)"
-	@echo "  make deploy-app        — deploy just the SPA (app-fundiverstw)"
+	@echo "  make deploy-app        — deploy just the SPA (fundive-app)"
 	@echo "  make deploy-push       — deploy just the push cron (fundivers-push)"
 	@echo "  make deploy-functions  — deploy all supabase edge functions in supabase/functions/"
 
@@ -42,7 +46,7 @@ reset:
 	@# stack is usable on the next command, then propagate the CLI's exit
 	@# code so genuine migration failures still surface.
 	@npm run db:reset; status=$$?; \
-	  docker restart supabase_rest_app-fundivers supabase_kong_app-fundivers >/dev/null 2>&1 || true; \
+	  docker restart supabase_rest_$(PROJECT_ID) supabase_kong_$(PROJECT_ID) >/dev/null 2>&1 || true; \
 	  exit $$status
 diff:       ; @npm run db:diff
 link:       ; @npm run db:link
@@ -71,7 +75,7 @@ deploy-push:
 deploy-functions: ; @npm run functions:deploy
 
 dev:
-	@if ! docker ps --format '{{.Names}}' | grep -q supabase_db_app-fundivers; then \
+	@if ! docker ps --format '{{.Names}}' | grep -q supabase_db_$(PROJECT_ID); then \
 	  echo "Local supabase stack not running — starting it first…"; \
 	  npm run db:start; \
 	fi

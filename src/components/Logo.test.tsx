@@ -10,13 +10,13 @@ describe('Logo', () => {
     expect(img).toHaveClass('h-9')
   })
 
-  it('shows the beta badge by default', () => {
+  it('hides the beta badge by default', () => {
     render(<Logo size="sm" />)
-    expect(screen.getByText(/beta/i)).toBeInTheDocument()
+    expect(screen.queryByText(/beta/i)).not.toBeInTheDocument()
   })
 
-  it('hides the beta badge when beta is false', () => {
-    render(<Logo size="sm" beta={false} />)
-    expect(screen.queryByText(/beta/i)).not.toBeInTheDocument()
+  it('shows the beta badge when beta is true', () => {
+    render(<Logo size="sm" beta />)
+    expect(screen.getByText(/beta/i)).toBeInTheDocument()
   })
 })

@@ -7,10 +7,8 @@ import { siteConfig } from '../config/site'
 //
 // Sizes (height in px): xs 24, sm 36, md 56, lg 88, xl 128.
 //
-// The `beta` badge defaults on so it rides along on every surface the
-// logo appears — the authed shells, the auth pages, and the guest
-// registration page divers reach from Wix. When the app leaves beta,
-// flip the default here (one place) rather than hunting call sites.
+// The `beta` badge is off by default so a fork carries no permanent
+// "BETA" mark; a surface that wants it opts in by passing `beta`.
 
 const SIZE_CLASS: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', string> = {
   xs: 'h-6',
@@ -23,7 +21,7 @@ const SIZE_CLASS: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', string> = {
 export function Logo({
   size = 'md',
   className = '',
-  beta = true,
+  beta = false,
 }: {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   className?: string

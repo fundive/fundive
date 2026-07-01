@@ -707,7 +707,7 @@ export async function runDailyReminders(env: Env): Promise<{ sent: number; skipp
     auth: { persistSession: false },
   })
 
-  const today = todayInZone(Date.now(), env.TIMEZONE ?? 'Asia/Taipei')
+  const today = todayInZone(Date.now(), env.TIMEZONE ?? 'UTC')
   const WINDOWS = [1, 3, 7, 14, 21]
   const targetDates = WINDOWS.map((d) => addDays(today, d))
 
@@ -770,7 +770,7 @@ export async function runDailyReminders(env: Env): Promise<{ sent: number; skipp
     sentMap.set(key, set)
   }
 
-  const inputs = buildReminderInputs({ events: [...dives, ...courses], bookings, paidByBooking, sentMap, currency: env.CURRENCY ?? 'TWD' })
+  const inputs = buildReminderInputs({ events: [...dives, ...courses], bookings, paidByBooking, sentMap, currency: env.CURRENCY ?? 'USD' })
   const reminders = selectReminders(today, inputs)
   if (!reminders.length) return { sent: 0, skipped: 0 }
 
@@ -927,7 +927,7 @@ export async function processWaitlistOffers(env: Env): Promise<{ sent: number; e
       eventTitle = (data?.display_title ?? data?.admin_title ?? eventTitle) as string
     }
 
-    const tz = env.TIMEZONE ?? 'Asia/Taipei'
+    const tz = env.TIMEZONE ?? 'UTC'
     const expiresLabel = new Intl.DateTimeFormat('en-GB', {
       timeZone: tz,
       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
