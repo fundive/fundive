@@ -1,8 +1,18 @@
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fundive, loadSiteConfig, configPathFor } from './src/vite'
+
+// The platform ships index.html + src; a deployment supplies only config, brand
+// assets, and env. So the Vite `root` is the platform (where this config lives),
+// while `public` / env / `dist` come from the cwd the build runs in — the
+// deployment's repo. When run inside the platform repo itself, cwd === root, so
+// these all collapse to the normal defaults.
+const platformDir = path.dirname(fileURLToPath(import.meta.url))
+const deploymentDir = process.cwd()
 
 // The deployment's config, read + validated from the cwd where the build runs.
 // `fundive()` bakes values into index.html; here we also need them eagerly for
@@ -43,6 +53,10 @@ export default defineConfig(({ command, mode }) => {
   }
 
   return {
+    root: platformDir,
+    publicDir: path.join(deploymentDir, 'public'),
+    envDir: deploymentDir,
+    build: { outDir: path.join(deploymentDir, 'dist'), emptyOutDir: true },
     resolve: { alias: configAlias },
     plugins: [
     react(),
