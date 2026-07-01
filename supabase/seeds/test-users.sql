@@ -42,7 +42,7 @@ begin
     ) values (
       '00000000-0000-0000-0000-000000000000', rec.id,
       'authenticated', 'authenticated', rec.email,
-      crypt(rec.password, gen_salt('bf')),
+      extensions.crypt(rec.password, extensions.gen_salt('bf')),
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
       now(), now(), false,
@@ -133,7 +133,7 @@ begin
       ('d0000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
       'authenticated', 'authenticated',
       'diver' || lpad(i::text, 2, '0') || '@test.dev',
-      crypt('diverdiver', gen_salt('bf')),
+      extensions.crypt('diverdiver', extensions.gen_salt('bf')),
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
       now(), now(), false, '', '', '', ''
