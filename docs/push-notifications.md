@@ -34,11 +34,11 @@ npx web-push generate-vapid-keys
 You get a public + private key. The **public** key ships with the
 client and is *also* set on the worker — it appears under two names:
 
-- `VITE_VAPID_PUBLIC_KEY` — in `.env.local`, `.env.production`, and the
-  GitHub Actions secret of the same name. The `VITE_` prefix is what
-  exposes it to the browser bundle.
+- `VITE_VAPID_PUBLIC_KEY` — in `.env.local` and the GitHub Actions secret
+  of the same name. The `VITE_` prefix is what exposes it to the browser
+  bundle.
 - `VAPID_PUBLIC_KEY` — same value, set on the push worker via
-  `wrangler secret put` (and kept in `.env.push` as a paste-buffer).
+  `wrangler secret put`.
 
 The **private** key (`VAPID_PRIVATE_KEY`) lives only on the push worker
 — never in the SPA, never in GitHub.
@@ -99,7 +99,7 @@ Once deployed, you can run the cron on demand:
 
 ```sh
 curl -H "Authorization: Bearer $ADMIN_TRIGGER_SECRET" \
-     https://fundivers-push.<your-subdomain>.workers.dev/run
+     https://fundive-push.<your-subdomain>.workers.dev/run
 # → {"sent":3,"skipped":0}
 ```
 

@@ -11,7 +11,7 @@ set -a; . ./.env.local; set +a
 : "${SUPABASE_DB_PASSWORD:?missing in .env.local}"
 : "${SUPABASE_POOLER_HOST:?missing in .env.local}"
 
-CONTAINER=supabase_db_app-fundivers
+CONTAINER="supabase_db_$(sed -n 's/^project_id = "\(.*\)"/\1/p' supabase/config.toml)"
 if ! docker ps --format '{{.Names}}' | grep -qx "$CONTAINER"; then
   echo "ERROR: local stack not running ($CONTAINER). Run: make start"; exit 1
 fi

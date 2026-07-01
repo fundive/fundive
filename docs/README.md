@@ -8,6 +8,7 @@ dive into source.
 | Doc | What it covers |
 | --- | --- |
 | [architecture.md](./architecture.md)                   | Platform-as-dependency model, `defineConfig` + `.env` surface, the `fundive` CLI, runtime boundaries, versioning contract |
+| [forking.md](./forking.md)                             | Forking for a new shop: `fundive.config.ts` fields, branding assets in `public/`, `terms.tsx`, env vars, fork-to-deploy |
 | [data-model.md](./data-model.md)                       | Every table, the unified `events` model, catalog reference tables |
 | [authentication.md](./authentication.md)               | Sign-up trigger, `useAuth`, role gating, `ProtectedRoute` / `AdminRoute` |
 | [events-and-bookings.md](./events-and-bookings.md)     | Calendar rendering, register-form wizard, `bookings.details` JSONB shape |
@@ -24,21 +25,34 @@ dive into source.
   public contract — add a forward migration, never edit an applied one. See
   [architecture.md](./architecture.md#versioning--the-upgrade-contract) and
   [data-model.md](./data-model.md#migrations).
-- **Config over forking.** Shop-specific values live in a deployment's
-  `fundive.config.ts` / `.env` / `brand/`, never in platform source. See
+- **Config over source edits.** Shop-specific values live in
+  `fundive.config.ts`, `.env.local`, and the branding assets under `public/` —
+  never hardcoded in `src/`. See [forking.md](./forking.md) and
   [architecture.md](./architecture.md#the-customization-boundary).
 - **No i18n.** The platform is English-only.
 - **Unified `events` table.** Dives and courses are one `events` table with a
   `kind` discriminator; bookings/duties/admin_notes/vehicles/waivers reference it
   by a single `event_id → events(id)`.
 
-## Commands (via the `fundive` CLI, run from a deployment repo)
+## Commands
+
+Run these from the repo root; they read your `.env.local`. See the
+[Makefile](../Makefile) for the full list.
 
 ```sh
-npx fundive dev            # dev server against a local Supabase stack
-npx fundive build          # production build with your branding baked in
-npx fundive deploy         # deploy the SPA worker to your Cloudflare
-npx fundive db push        # apply the platform migrations to your Supabase
-npx fundive db verify      # confirm your schema matches the pinned version
-npx fundive functions deploy
+make start     # boot the local Supabase stack (Docker)
+make dev       # dev server against the local stack
+make test      # unit + integration + security suites
+make push      # apply migrations to your linked Supabase project
+make verify    # confirm your cloud schema matches the migrations
+make deploy    # deploy both Cloudflare Workers (SPA + push cron)
 ```
+
+Deployment normally runs through GitHub Actions
+(`.github/workflows/deploy.yml`); `make deploy` is the local equivalent. See
+[deployment.md](./deployment.md).
+
+> An experimental `fundive` CLI (`npx fundive …`, wired via `package.json`
+> `bin`) mirrors these commands for the future "thin deployment repo" model
+> described in [architecture.md](./architecture.md). It's a skeleton today — the
+> `make` targets above are the supported path.

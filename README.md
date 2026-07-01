@@ -11,10 +11,10 @@ and your customers' data, with no per-seat fee.
 > a dive shop in Taipei, Taiwan. This repository is the open-source platform
 > behind it, being prepared for general self-hosting.
 
-> **Status: v0.0.1 — in active development. ⚠️ Not ready for production use.**
-> The platform is still being generalized from its first deployment. Expect
-> incomplete features, rough edges, and breaking changes; do not rely on it to
-> run a real business yet. Issues and PRs welcome — see
+> **Status: v0.1.0 — first public release.** This is the initial fork-and-deploy
+> release: clone it, point it at your own Supabase + Cloudflare, brand it, and run
+> it. It's pre-1.0, so anything may change between minor versions — treat every
+> upgrade as potentially breaking until 1.0. Issues and PRs welcome — see
 > [Contributing](#contributing).
 
 ## Features
@@ -70,41 +70,75 @@ architecture notes (in the deployment repo).
 
 ## Getting started
 
-> These steps reflect the platform's architecture. Because the public code is
-> still being generalized, exact commands may change — check back as the
-> repository fills out, and open an issue if something doesn't work.
-
 **Prerequisites**
 
 - [Node.js](https://nodejs.org) (LTS) and npm
 - [Docker](https://www.docker.com) (for the local Supabase stack)
-- [Supabase CLI](https://supabase.com/docs/guides/cli)
+- A [Supabase](https://supabase.com) project (for the hosted backend)
 - A [Cloudflare](https://cloudflare.com) account (for deployment)
 
-**Local development**
+The Supabase CLI ships as a dev dependency, so `npm install` provides it — no
+global install needed.
+
+**1. Clone and install**
 
 ```sh
 git clone https://github.com/fundive/fundive.git
 cd fundive
 npm install
+```
 
-cp .env.local.example .env.local   # then fill in the values
+**2. Configure your environment**
 
-npm run db:start    # boot the local Supabase stack (Docker)
-npm run dev         # start Vite against the local stack
+```sh
+cp .env.example .env.local   # then fill in the values
+```
+
+`.env.local` is what the `make`/`npm` scripts read. The build fails loudly if
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, or `VITE_TURNSTILE_SITE_KEY` are
+missing. See [`docs/deployment.md`](docs/deployment.md) for what each variable is
+and where it belongs.
+
+**3. Run it locally**
+
+```sh
+make start    # boot the local Supabase stack (Docker)
+make dev      # start Vite against the local stack
 ```
 
 **Testing**
 
 ```sh
-npm run test:all    # unit + integration (integration needs the local stack up)
+make test     # unit + integration + security (integration needs the local stack up)
 ```
 
-**Deployment**
+## Make it yours
 
-FunDive deploys to Cloudflare Workers (SPA + push worker) with a Supabase
-project as the backend. See [`docs/deployment.md`](docs/deployment.md) for the
-required environment variables and the full deploy flow.
+FunDive is built to be forked per shop. Two things make a clone *yours*:
+
+1. **Edit [`fundive.config.ts`](fundive.config.ts)** — shop name, contact info,
+   URLs, timezone, currency, theme colors, feature toggles, and gear list. It's
+   pure data read by the app, the service worker, the build, and the edge
+   functions. (`fundive.config.example.ts` is a blank template.)
+2. **Replace the branding assets in [`public/`](public/)** — logo, favicons, app
+   icons, and social/OG image. A straight clone otherwise renders the reference
+   shop's marks. The asset paths are listed under `assets` in `fundive.config.ts`.
+
+See [`docs/forking.md`](docs/forking.md) for the field-by-field walkthrough.
+
+## Deployment
+
+FunDive deploys to Cloudflare Workers (an SPA worker + a push-cron worker) with a
+Supabase project as the backend. First, point the app at **your own** Supabase
+project — apply the baseline migration with `make push` — and your own Cloudflare
+account.
+
+The **recommended** deploy path is the GitHub Actions workflow
+(`.github/workflows/deploy.yml`), which builds and ships both workers using
+`CLOUDFLARE_*` + `VITE_*` repository secrets. To deploy from your machine
+instead, run `make deploy`. Either way, see
+[`docs/deployment.md`](docs/deployment.md) for the required environment variables
+and the full flow.
 
 ## Documentation
 
