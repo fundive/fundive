@@ -1,8 +1,15 @@
 {
   "name": "fundive",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
+  "bin": {
+    "fundive": "cli/index.js"
+  },
+  "exports": {
+    "./config": "./src/config/site.ts",
+    "./vite": "./src/vite/index.ts"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
