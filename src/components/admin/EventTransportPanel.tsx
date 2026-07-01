@@ -177,8 +177,8 @@ function TransportTextEditor({ event, isAdmin }: { event: AppEvent; isAdmin: boo
     let cancelled = false
     ;(async () => {
       const { data } = await supabase
-        .from('EO_dives').select('DiveTravel_reference').eq('_id', event.id).maybeSingle()
-      if (!cancelled) setRef((data as { DiveTravel_reference: string | null } | null)?.DiveTravel_reference ?? null)
+        .from('events').select('divetravel_id').eq('id', event.id).maybeSingle()
+      if (!cancelled) setRef((data as { divetravel_id: string | null } | null)?.divetravel_id ?? null)
     })()
     return () => { cancelled = true }
   }, [event.id])

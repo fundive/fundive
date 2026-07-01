@@ -53,8 +53,7 @@ interface BookingRow {
   user_id: string
   status: string
   details: Record<string, unknown>
-  eo_dive_id: string | null
-  eo_course_id: string | null
+  event_id: string | null
   group_id: string | null
   payer_id: string | null
   created_at: string
@@ -93,7 +92,7 @@ export async function handleGroupSummary(req: Request, deps: Deps): Promise<Resp
   const admin = deps.admin
   const { data: bookingsData, error: bErr } = await admin
     .from("bookings")
-    .select("id, user_id, status, details, eo_dive_id, eo_course_id, group_id, payer_id, created_at")
+    .select("id, user_id, status, details, event_id, group_id, payer_id, created_at")
     .eq("group_id", body.group_id)
     .order("created_at", { ascending: true })
   if (bErr) return json(safeError(bErr, "could not load group"), 500)
@@ -118,14 +117,13 @@ export async function handleGroupSummary(req: Request, deps: Deps): Promise<Resp
       .eq("id", b.user_id)
       .maybeSingle()
 
-    const isDive = !!b.eo_dive_id
-    const table = isDive ? "EO_dives" : "EO_courses"
-    const eventId = (b.eo_dive_id ?? b.eo_course_id) as string
+    const eventId = b.event_id as string
     const { data: event } = await admin
-      .from(table)
-      .select("display_title, admin_title, calendar_title, start_date, end_date, course_days")
-      .eq("_id", eventId)
+      .from("events")
+      .select("kind, display_title, admin_title, calendar_title, start_date, end_date, course_days")
+      .eq("id", eventId)
       .maybeSingle()
+    const isDive = event?.kind === "dive"
 
     const eventTitle =
       (event?.display_title as string | null) ||

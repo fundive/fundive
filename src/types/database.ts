@@ -84,10 +84,7 @@ export interface Database {
       // an offer expires). Returns the new offer's uuid, or null when
       // there's no eligible waitlister.
       offer_next_waitlist_spot: {
-        Args: {
-          p_event_id:   string
-          p_event_type: 'dive' | 'course'
-        }
+        Args: { p_event_id: string }
         Returns: string | null
       }
       // Defined in 20260507000000_waitlist_offers.sql; security-definer.
@@ -101,28 +98,21 @@ export interface Database {
       // Returns one row per event with at least one confirmed booking.
       // Lets divers see real aggregate capacity numbers past their RLS.
       event_confirmed_counts: {
-        Args: {
-          p_dive_ids:   string[]
-          p_course_ids: string[]
-        }
-        Returns: Array<{ event_id: string; event_type: 'dive' | 'course'; n: number }>
+        Args: { p_event_ids: string[] }
+        Returns: Array<{ event_id: string; n: number }>
       }
       // Defined in 20260628000000_event_ride_seats.sql. Ride-seat tally for an
       // event: capacity (sum of passenger_seats over the distinct assigned
       // vehicles) and claimed (non-cancelled bookings with transportation=true).
       // SECURITY DEFINER so the registration form can read it as a plain diver.
       event_ride_seats: {
-        Args: {
-          p_dive_id:   string | null
-          p_course_id: string | null
-        }
+        Args: { p_event_id: string }
         Returns: Array<{ capacity: number; claimed: number }>
       }
       // Defined in 20260701020000_set_event_relations_rpc.sql. Reconciles an
       // event's junction rows (rooms / add-ons / destinations) in one call.
       set_event_relations: {
         Args: {
-          p_event_type:       string
           p_event_id:         string
           p_room_ids?:        string[]
           p_addon_ids?:       string[]
@@ -196,15 +186,14 @@ export interface Database {
       // Records a waiver e-signature for the caller: server-stamps
       // signed_at = now() and diver_id = auth.uid() so the client can't
       // backdate or forge (same non-repudiation fix as accept_current_terms).
-      // p_dive_id / p_course_id are set only for per-event waivers; annual
-      // waivers pass neither. Returns the new signature's id.
+      // p_event_id is set only for per-event waivers; annual waivers pass
+      // none. Returns the new signature's id.
       sign_waiver: {
         Args: {
           p_code:        string
           p_version:     number
           p_signed_name: string
-          p_dive_id?:    string | null
-          p_course_id?:  string | null
+          p_event_id?:   string | null
         }
         Returns: string
       }
@@ -422,8 +411,7 @@ export interface Database {
           id: string
           created_at: string
           user_id: string
-          eo_dive_id: string | null
-          eo_course_id: string | null
+          event_id: string | null
           status: 'pending' | 'confirmed' | 'cancelled' | 'waitlisted'
           notes: string | null
           details: BookingDetails
@@ -444,8 +432,7 @@ export interface Database {
           id?: string
           created_at?: string
           user_id: string
-          eo_dive_id?: string | null
-          eo_course_id?: string | null
+          event_id?: string | null
           status?: 'pending' | 'confirmed' | 'cancelled' | 'waitlisted'
           notes?: string | null
           details?: BookingDetails
@@ -456,8 +443,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
-          eo_dive_id?: string | null
-          eo_course_id?: string | null
+          event_id?: string | null
           status?: 'pending' | 'confirmed' | 'cancelled' | 'waitlisted'
           notes?: string | null
           details?: BookingDetails
@@ -627,8 +613,7 @@ export interface Database {
           created_by: string | null
           vehicle_id: string
           event_date: string
-          eo_dive_id: string | null
-          eo_course_id: string | null
+          event_id: string | null
           notes: string | null
         }
         Insert: {
@@ -637,8 +622,7 @@ export interface Database {
           created_by?: string | null
           vehicle_id: string
           event_date: string
-          eo_dive_id?: string | null
-          eo_course_id?: string | null
+          event_id?: string | null
           notes?: string | null
         }
         Update: Partial<Database['public']['Tables']['event_vehicles']['Insert']>
@@ -653,8 +637,7 @@ export interface Database {
           waiver_version: number
           signed_name: string
           signed_at: string
-          eo_dive_id: string | null
-          eo_course_id: string | null
+          event_id: string | null
         }
         // Divers never insert directly — sign_waiver() is the only write path.
         // Insert here covers the admin-correction policy.
@@ -666,8 +649,7 @@ export interface Database {
           waiver_version: number
           signed_name: string
           signed_at?: string
-          eo_dive_id?: string | null
-          eo_course_id?: string | null
+          event_id?: string | null
         }
         Update: Partial<Database['public']['Tables']['waiver_signatures']['Insert']>
         Relationships: []
@@ -677,8 +659,7 @@ export interface Database {
           id: string
           created_at: string
           created_by: string | null
-          eo_dive_id: string | null
-          eo_course_id: string | null
+          event_id: string | null
           waiver_code: string
           mode: 'require' | 'exempt'
         }
@@ -686,8 +667,7 @@ export interface Database {
           id?: string
           created_at?: string
           created_by?: string | null
-          eo_dive_id?: string | null
-          eo_course_id?: string | null
+          event_id?: string | null
           waiver_code: string
           mode: 'require' | 'exempt'
         }
@@ -771,104 +751,76 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['trip_referrals']['Insert']>
         Relationships: []
       }
-      EO_dives: {
+      events: {
         Row: {
-          _id: string
+          id: string
+          kind: 'dive' | 'course'
           admin_title: string | null
           display_title: string | null
           calendar_title: string | null
-          start_date: string | null
-          time: string | null
-          end_date: string | null
-          featured: boolean | null
-          fully_booked: boolean | null
           price: string | null
-          gear_rental: string | null
-          nitrox_required: boolean | null
           dive_days: number | null
-          // Read by /admin/new's preload-from-past picker.
-          featured_image: string | null
-          second_image: string | null
-          prereqs: string | null
-          req_dives: number | null
-          notes: string | null
+          prereq_cert_id: string | null
           cancel_date: string | null
           cancel_policy: string | null
-          DiveTravel_reference: string | null
-          prereq_cert_id: string | null
-          cancelled_at: string | null
-          full_payment_deadline: string | null
+          fully_booked: boolean
           capacity: number | null
-          is_private: boolean | null
-        }
-        Insert: {
-          _id: string
-          admin_title?: string | null
-          display_title?: string | null
-          calendar_title?: string | null
-          start_date?: string | null
-          time?: string | null
-          end_date?: string | null
-          featured?: boolean | null
-          fully_booked?: boolean | null
-          price?: string | null
-          notes?: string | null
-          gear_rental?: string | null
-          nitrox_required?: boolean | null
-          dive_days?: number | null
-          cancelled_at?: string | null
-          full_payment_deadline?: string | null
-          capacity?: number | null
-          is_private?: boolean | null
-        }
-        Update: Partial<Database['public']['Tables']['EO_dives']['Insert']>
-        Relationships: []
-      }
-      EO_courses: {
-        Row: {
-          _id: string
-          admin_title: string | null
-          display_title: string | null
-          calendar_title: string | null
-          start_time: string | null
-          price: string | null
-          dive_days: number | null
-          // Sole source of truth for the days a course runs on (max 4).
-          // Replaced the old start_date/end_date envelope.
-          course_days: string[] | null
-          // Read by /admin/new's preload-from-past picker.
-          course_name: string | null
+          full_payment_deadline: string | null
+          cancelled_at: string | null
           featured_image: string | null
           prereqs: string | null
-          req_dives: string | null
+          featured: boolean
+          req_dives: number | null
+          start_date: string | null
+          end_date: string | null
+          start_time: string | null
+          course_days: string[] | null
+          is_private: boolean
+          nitrox_required: boolean
+          second_image: string | null
+          gear_rental: string | null
+          notes: string | null
+          divetravel_id: string | null
+          course_name: string | null
           included: string | null
           schedule: string | null
           starting_at: number | null
-          prereq_cert_id: string | null
-          cancelled_at: string | null
-          full_payment_deadline: string | null
-          cancel_date: string | null
-          cancel_policy: string | null
-          fully_booked: boolean | null
-          capacity: number | null
         }
         Insert: {
-          _id: string
+          id?: string
+          kind: 'dive' | 'course'
           admin_title?: string | null
           display_title?: string | null
           calendar_title?: string | null
-          start_time?: string | null
           price?: string | null
           dive_days?: number | null
-          course_days?: string[] | null
-          cancelled_at?: string | null
-          full_payment_deadline?: string | null
+          prereq_cert_id?: string | null
           cancel_date?: string | null
           cancel_policy?: string | null
-          fully_booked?: boolean | null
+          fully_booked?: boolean
           capacity?: number | null
+          full_payment_deadline?: string | null
+          cancelled_at?: string | null
+          featured_image?: string | null
+          prereqs?: string | null
+          featured?: boolean
+          req_dives?: number | null
+          start_date?: string | null
+          end_date?: string | null
+          start_time?: string | null
+          course_days?: string[] | null
+          is_private?: boolean
+          nitrox_required?: boolean
+          second_image?: string | null
+          gear_rental?: string | null
+          notes?: string | null
+          divetravel_id?: string | null
+          course_name?: string | null
+          included?: string | null
+          schedule?: string | null
+          starting_at?: number | null
         }
-        Update: Partial<Database['public']['Tables']['EO_courses']['Insert']>
+        Update: Partial<Database['public']['Tables']['events']['Insert']>
         Relationships: []
       }
       cert_levels: {
@@ -909,8 +861,7 @@ export interface Database {
           role: 'instructor' | 'guide' | 'support'
           start_date: string
           end_date: string | null
-          eo_dive_id: string | null
-          eo_course_id: string | null
+          event_id: string | null
           notes: string | null
         }
         Insert: {
@@ -921,8 +872,7 @@ export interface Database {
           role: 'instructor' | 'guide' | 'support'
           start_date: string
           end_date?: string | null
-          eo_dive_id?: string | null
-          eo_course_id?: string | null
+          event_id?: string | null
           notes?: string | null
         }
         Update: {
@@ -932,8 +882,7 @@ export interface Database {
           role?: 'instructor' | 'guide' | 'support'
           start_date?: string
           end_date?: string | null
-          eo_dive_id?: string | null
-          eo_course_id?: string | null
+          event_id?: string | null
           notes?: string | null
         }
         Relationships: []
@@ -943,8 +892,7 @@ export interface Database {
           id: string
           created_at: string
           created_by: string
-          eo_dive_id: string | null
-          eo_course_id: string | null
+          event_id: string | null
           booking_id: string | null
           tag: 'urgent' | 'payment' | 'gear' | 'logistics' | 'cert' | 'medical' | 'note' | 'general'
           content: string
@@ -956,8 +904,7 @@ export interface Database {
           id?: string
           created_at?: string
           created_by: string
-          eo_dive_id?: string | null
-          eo_course_id?: string | null
+          event_id?: string | null
           booking_id?: string | null
           tag: 'urgent' | 'payment' | 'gear' | 'logistics' | 'cert' | 'medical' | 'note' | 'general'
           content: string
@@ -968,8 +915,7 @@ export interface Database {
         Update: {
           id?: string
           created_by?: string
-          eo_dive_id?: string | null
-          eo_course_id?: string | null
+          event_id?: string | null
           booking_id?: string | null
           tag?: 'urgent' | 'payment' | 'gear' | 'logistics' | 'cert' | 'medical' | 'note' | 'general'
           content?: string
@@ -1137,28 +1083,22 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['TravelDestinations']['Insert']>
         Relationships: []
       }
-      eo_dive_addons: {
-        Row: { eo_dive_id: string; addon_id: string }
-        Insert: { eo_dive_id: string; addon_id: string }
-        Update: Partial<{ eo_dive_id: string; addon_id: string }>
+      event_addons: {
+        Row: { event_id: string; addon_id: string }
+        Insert: { event_id: string; addon_id: string }
+        Update: Partial<{ event_id: string; addon_id: string }>
         Relationships: []
       }
-      eo_dive_destinations: {
-        Row: { eo_dive_id: string; destination_id: string }
-        Insert: { eo_dive_id: string; destination_id: string }
-        Update: Partial<{ eo_dive_id: string; destination_id: string }>
+      event_destinations: {
+        Row: { event_id: string; destination_id: string }
+        Insert: { event_id: string; destination_id: string }
+        Update: Partial<{ event_id: string; destination_id: string }>
         Relationships: []
       }
-      eo_dive_rooms: {
-        Row: { eo_dive_id: string; room_id: string }
-        Insert: { eo_dive_id: string; room_id: string }
-        Update: Partial<{ eo_dive_id: string; room_id: string }>
-        Relationships: []
-      }
-      eo_course_addons: {
-        Row: { eo_course_id: string; addon_id: string }
-        Insert: { eo_course_id: string; addon_id: string }
-        Update: Partial<{ eo_course_id: string; addon_id: string }>
+      event_rooms: {
+        Row: { event_id: string; room_id: string }
+        Insert: { event_id: string; room_id: string }
+        Update: Partial<{ event_id: string; room_id: string }>
         Relationships: []
       }
       push_subscriptions: {
@@ -1357,8 +1297,7 @@ export type Payment = Database['public']['Tables']['payments']['Row']
 export type BookingAmendment = Database['public']['Tables']['booking_amendments']['Row']
 export type Credit = Database['public']['Tables']['credits']['Row']
 export type CreditInsert = Database['public']['Tables']['credits']['Insert']
-export type EODive = Database['public']['Tables']['EO_dives']['Row']
-export type EOCourse = Database['public']['Tables']['EO_courses']['Row']
+export type EventRow = Database['public']['Tables']['events']['Row']
 export type EOPrice = Database['public']['Tables']['EO_prices']['Row']
 export type EORoom = Database['public']['Tables']['EO_rooms']['Row']
 export type EOAddon = Database['public']['Tables']['Other_Addons']['Row']

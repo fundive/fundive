@@ -173,7 +173,7 @@ describe('issueCancellationCredits', () => {
     await expect(issueCancellationCredits({ event, createdBy: 'admin1' })).rejects.toEqual({ message: 'boom' })
   })
 
-  it('targets eo_course_id for course events', async () => {
+  it('filters bookings by event_id for course events', async () => {
     const eqSpy = vi.fn()
     from.mockImplementation((table: string) => {
       if (table === 'bookings') {
@@ -191,7 +191,7 @@ describe('issueCancellationCredits', () => {
     const courseEvent = { ...event, type: 'course', id: 'crs9' } as unknown as AppEvent
     const { issueCancellationCredits } = await import('./credits')
     await issueCancellationCredits({ event: courseEvent, createdBy: 'admin1' })
-    expect(eqSpy).toHaveBeenCalledWith('eo_course_id', 'crs9')
+    expect(eqSpy).toHaveBeenCalledWith('event_id', 'crs9')
   })
 })
 

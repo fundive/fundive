@@ -3,11 +3,10 @@ import { supabase } from '../../lib/supabase'
 import { errorMessage } from '../../lib/errors'
 import { fetchEventRelations } from '../../lib/event-relations'
 import { siteConfig } from '../../config/site'
-import type { CancellationPolicy, CertLevel, DiveTravelEntry, EOAddon, EOCourse, EODive, EOPrice, EORoom, TravelDestination } from '../../types/database'
+import type { CancellationPolicy, CertLevel, DiveTravelEntry, EOAddon, EventRow, EOPrice, EORoom, TravelDestination } from '../../types/database'
 import {
   EMPTY_FORM,
-  formStateFromCourse,
-  formStateFromDive,
+  formStateFromEvent,
   type FormState,
 } from './event-form-state'
 import { DateField } from '../DateField'
@@ -19,11 +18,9 @@ import { ERROR_NOTE } from '../../styles/tokens'
 // AdminEditEventPage) is responsible for the actual DB write + post-
 // submit navigation; the form just hands back the validated FormState.
 
-// Discriminated union so the picker can drive both the type pill and the
-// row → form mapping from a single selection.
-type PastEvent =
-  | { kind: 'dive';   id: string; startDate: string; title: string; row: EODive }
-  | { kind: 'course'; id: string; startDate: string; title: string; row: EOCourse }
+// The picker drives both the type pill and the row → form mapping from a
+// single selection; the events row carries its own `kind`.
+type PastEvent = { kind: 'dive' | 'course'; id: string; startDate: string; title: string; row: EventRow }
 
 const CUR = siteConfig.locale.currencyLabel
 
@@ -44,9 +41,8 @@ interface PriceFormState {
   price: string             // human label, e.g. "NT$10,000"
   starting_at: string       // bigint or empty
   deposit_amount: string    // bigint or empty
-  // Per-event room options now live solely on EO_dives.room_types — see
-  // 20260430040000_eo_dive_rooms_junction.sql. EO_prices no longer carries
-  // a room_options column.
+  // Per-event room options live in the event_rooms junction table. EO_prices
+  // no longer carries a room_options column.
   transport: string
 }
 
@@ -130,13 +126,13 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
         supabase.from('EO_rooms').select('*').order('admin_title'),
         supabase.from('Other_Addons').select('*').order('admin_title'),
         mode === 'create'
-          ? supabase.from('EO_dives').select('*').lt('start_date', todayStr).order('start_date', { ascending: false }).limit(50)
-          : Promise.resolve({ data: [] as EODive[] }),
+          ? supabase.from('events').select('*').eq('kind', 'dive').lt('start_date', todayStr).order('start_date', { ascending: false }).limit(50)
+          : Promise.resolve({ data: [] as EventRow[] }),
         // Courses have no scalar date column to filter/order on — fetch a
         // bounded set and narrow to "past" client-side via course_days.
         mode === 'create'
-          ? supabase.from('EO_courses').select('*').limit(200)
-          : Promise.resolve({ data: [] as EOCourse[] }),
+          ? supabase.from('events').select('*').eq('kind', 'course').limit(200)
+          : Promise.resolve({ data: [] as EventRow[] }),
         supabase.from('cert_levels').select('*').order('rank'),
         supabase.from('cancellation_policies').select('*').order('title'),
         supabase.from('DiveTravel').select('*').order('admin_title'),
@@ -157,13 +153,13 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
       setDiveTravels(dataOf<DiveTravelEntry>(7))
       setDestinations(dataOf<TravelDestination>(8))
 
-      const pastDives = dataOf<EODive>(3).map<PastEvent>(d => ({
-        kind: 'dive', id: d._id, startDate: d.start_date ?? '', title: d.display_title ?? d.admin_title ?? '(untitled dive)', row: d,
+      const pastDives = dataOf<EventRow>(3).map<PastEvent>(d => ({
+        kind: 'dive', id: d.id, startDate: d.start_date ?? '', title: d.display_title ?? d.admin_title ?? '(untitled dive)', row: d,
       }))
-      const pastCourses = dataOf<EOCourse>(4)
+      const pastCourses = dataOf<EventRow>(4)
         .map<PastEvent>(c => ({
           kind: 'course',
-          id: c._id,
+          id: c.id,
           startDate: [...(c.course_days ?? [])].filter(Boolean).sort()[0] ?? '',
           title: c.display_title ?? c.admin_title ?? '(untitled course)',
           row: c,
@@ -197,10 +193,8 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
   async function applyPreload(p: PastEvent) {
     // Rooms/add-ons/destinations live in the junction tables, so fetch them
     // for the picked event to clone the full config.
-    const rels = await fetchEventRelations(p.kind, p.id)
-    setForm(p.kind === 'dive'
-      ? formStateFromDive(p.row, rels)
-      : formStateFromCourse(p.row, rels))
+    const rels = await fetchEventRelations(p.id)
+    setForm(formStateFromEvent(p.row, rels))
   }
 
   function handlePreload(id: string) {

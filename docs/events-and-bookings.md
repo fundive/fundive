@@ -2,21 +2,20 @@
 
 ## Event data flow
 
-Two catalog tables drive everything shown on the calendar:
+One `events` table drives everything shown on the calendar, discriminated by
+`kind`:
 
-- `EO_dives` — single-session dives.
-- `EO_courses` — courses that run on an explicit list of days
-  (see [#course_days](#course_days)).
+- `kind = 'dive'` — single-session dives (scalar `start_date`/`end_date`/`start_time`).
+- `kind = 'course'` — courses that run on an explicit list of days
+  (`course_days`; see [#course_days](#course_days)).
 
-Both use **text** `_id`, `start_date`, `end_date`, and time columns.
-Normalization into a uniform `AppEvent` type happens in
-`src/lib/events.ts`:
+Normalization into a uniform `AppEvent` type happens in `src/lib/events.ts`:
 
 - `fetchEventsInRange(fromDate, toDate)` — calendar month views.
-- `fetchEventsForBookings(diveIds, courseIds)` — bookings / payments
-  pages that need to show event info alongside a booking row.
+- `fetchEventsForBookings(eventIds)` — bookings / payments pages that need to
+  show event info alongside a booking row.
 
-Every UI surface reads `AppEvent`, not raw `EO_*` rows.
+Every UI surface reads `AppEvent`, not raw `events` rows.
 
 ### `AppEvent` shape (abbreviated)
 
@@ -58,8 +57,8 @@ Every UI surface reads `AppEvent`, not raw `EO_*` rows.
 
 ### `course_days`
 
-A course runs on an explicit list of dates: `EO_courses.course_days`
-(a `date[]`, max 4 — DB CHECK `eo_courses_course_days_len`). Admins
+A course runs on an explicit list of dates: `events.course_days`
+(a `date[]`, max 4 — DB CHECK `events_course_has_days`). Admins
 enter each day in the event form. `courseToEvents()` in
 `src/lib/events.ts` sorts + dedupes the list, groups **consecutive**
 calendar days into one continuous segment, and emits one `AppEvent`
@@ -130,7 +129,7 @@ The form does **not** write to `bookings` directly. It invokes the
 3. Inserts one row into `public.bookings` (under service-role, so RLS
    doesn't apply at this stage):
    - `user_id`, `status: 'pending'`
-   - `eo_dive_id` XOR `eo_course_id` set from the event type
+   - `event_id` → `events(id)`
    - `notes` — free-text field from the form
    - `details` JSONB — see
      [data-model.md § BookingDetails](./data-model.md#bookingdetails-jsonb-shape)
@@ -176,9 +175,10 @@ a *group total* (per-diver figure × diver count) when the lead pays for
 everyone: each sibling booking carries the same per-diver `total`, so
 what the lead owes is the sum.
 
-The unique indexes `bookings_user_dive_uniq` /
-`bookings_user_course_uniq` prevent a diver from double-booking the
-same event — Supabase returns a conflict and the form shows an error.
+The partial-unique index `bookings_one_active_per_user_idx`
+(`(user_id, event_id) WHERE event_id IS NOT NULL AND status <> 'cancelled'`)
+prevents a diver from double-booking the same event — Supabase returns a
+conflict and the form shows an error.
 
 ## BookingsPage — the diver's view
 

@@ -38,21 +38,17 @@ function renderAt(path: string) {
 }
 
 describe('AdminEditEventPage', () => {
-  it('prefills the form from EO_dives and submits an update on save', async () => {
+  it('prefills the form from the events row and submits an update on save', async () => {
     const existing = {
-      _id: 'dive_x',
+      id: 'dive_x', kind: 'dive',
       admin_title: 'Kenting Day Trip',
       display_title: 'Subtitle',
       start_date: '2026-06-01',
-      time: '08:00:00',
+      start_time: '08:00:00',
       end_date: '2026-06-01',
       featured: false,
       fully_booked: false,
       price: null,
-      has_rooms: false,
-      room_types: '',
-      hasotheraddons: false,
-      other_addons: '',
       gear_rental: null,
       nitrox_required: false,
       dive_days: 1,
@@ -63,8 +59,7 @@ describe('AdminEditEventPage', () => {
       notes: 'Bring fins',
       cancel_date: null,
       cancel_policy: null,
-      destination_reference: null,
-      DiveTravel_reference: null,
+      divetravel_id: null,
       prereq_cert_id: null,
       cancelled_at: null,
     }
@@ -73,9 +68,9 @@ describe('AdminEditEventPage', () => {
       eq: () => Promise.resolve({ error: null }),
     })
     from.mockImplementation((table: string) => {
-      if (table === 'EO_dives') {
-        // The page calls .select('*').eq('_id', id).maybeSingle()
-        // and then .update(payload).eq('_id', id) on submit.
+      if (table === 'events') {
+        // The page calls .select('*').eq('id', id).maybeSingle()
+        // and then .update(payload).eq('id', id) on submit.
         // Hand both code paths the right surface from one builder.
         const b = mockQueryBuilder({ data: existing }) as Record<string, unknown>
         b.update = updateSpy
@@ -102,27 +97,26 @@ describe('AdminEditEventPage', () => {
     await waitFor(() => expect(updateSpy).toHaveBeenCalled())
     const payload = (updateSpy.mock.calls[0]?.[0] ?? {}) as Record<string, unknown>
     expect(payload.admin_title).toBe('Kenting Day Trip (revised)')
-    // Update payload should not carry _id (that's in the .eq filter).
-    expect(payload._id).toBeUndefined()
+    // Update payload should not carry id (that's in the .eq filter).
+    expect(payload.id).toBeUndefined()
     // Navigated to the detail page after save.
     expect(await screen.findByText('EVENT_DETAIL')).toBeInTheDocument()
   })
 
   it('shows the car-assignment section and moves allocations when the start date changes on save', async () => {
     const existing = {
-      _id: 'dive_x', admin_title: 'Kenting Day Trip', display_title: 'Subtitle',
-      start_date: '2026-06-01', time: '08:00:00', end_date: '2026-06-01',
+      id: 'dive_x', kind: 'dive', admin_title: 'Kenting Day Trip', display_title: 'Subtitle',
+      start_date: '2026-06-01', start_time: '08:00:00', end_date: '2026-06-01',
       featured: false, fully_booked: false, price: null,
-      has_rooms: false, room_types: '', hasotheraddons: false, other_addons: '',
       gear_rental: null, nitrox_required: false, dive_days: 1,
       featured_image: null, second_image: null, prereqs: null, req_dives: null,
       notes: '', cancel_date: null, cancel_policy: null,
-      destination_reference: null, DiveTravel_reference: null,
+      divetravel_id: null,
       prereq_cert_id: null, cancelled_at: null,
     }
     const updateSpy = vi.fn().mockReturnValue({ eq: () => Promise.resolve({ error: null }) })
     from.mockImplementation((table: string) => {
-      if (table === 'EO_dives') {
+      if (table === 'events') {
         const b = mockQueryBuilder({ data: existing }) as Record<string, unknown>
         b.update = updateSpy
         return b
@@ -149,11 +143,11 @@ describe('AdminEditEventPage', () => {
   it('prefills the featured/second image URL fields and round-trips them into the update payload', async () => {
     // Both inputs round-trip the image URL verbatim — no parsing/validation.
     const existing = {
-      _id: 'dive_x',
+      id: 'dive_x', kind: 'dive',
       admin_title: 'Kenting Day Trip',
       display_title: 'Subtitle',
       start_date: '2026-06-01',
-      time: '08:00:00',
+      start_time: '08:00:00',
       end_date: '2026-06-01',
       featured: false,
       fully_booked: false,
@@ -166,12 +160,12 @@ describe('AdminEditEventPage', () => {
       prereqs: null, req_dives: null,
       notes: '',
       cancel_date: null, cancel_policy: null,
-      DiveTravel_reference: null,
+      divetravel_id: null,
       prereq_cert_id: null, cancelled_at: null,
     }
     const updateSpy = vi.fn().mockReturnValue({ eq: () => Promise.resolve({ error: null }) })
     from.mockImplementation((table: string) => {
-      if (table === 'EO_dives') {
+      if (table === 'events') {
         const b = mockQueryBuilder({ data: existing }) as Record<string, unknown>
         b.update = updateSpy
         return b
@@ -204,12 +198,12 @@ describe('AdminEditEventPage', () => {
 
   it('renders an error and no form when the dive is not found', async () => {
     from.mockImplementation((table: string) => {
-      if (table === 'EO_dives') return mockQueryBuilder({ data: null })
+      if (table === 'events') return mockQueryBuilder({ data: null })
       return mockQueryBuilder({ data: [] })
     })
 
     renderAt('/admin/events/dive/missing/edit')
-    expect(await screen.findByText(/dive not found/i)).toBeInTheDocument()
+    expect(await screen.findByText(/event not found/i)).toBeInTheDocument()
     expect(screen.queryByLabelText(/admin title \(required, internal\)/i)).not.toBeInTheDocument()
   })
 })

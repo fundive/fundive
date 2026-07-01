@@ -1,30 +1,27 @@
 /**
- * Constraint tests for the imported catalog tables (EO_courses, EO_dives,
- * EO_prices, EO_rooms, Other_Addons). These aren't touched by the React app
- * yet, but they carry real FK relationships worth exercising.
+ * Constraint tests for the catalog tables: the unified events table plus the
+ * still-legacy EO_prices, EO_rooms, Other_Addons. These exercise the real FK
+ * relationships (events.price -> EO_prices._id) and events' own CHECKs.
  *
- * Column names here include spaces and capitals ("Created Date"), hyphens
- * ("link-eo-courses-course_title") and are quoted with double quotes.
- * supabase-js forwards them to PostgREST unchanged.
+ * The remaining EO_* tables carry Bubble-legacy column names with spaces and
+ * capitals ("Created Date"), hyphens and double-quote quoting. supabase-js
+ * forwards them to PostgREST unchanged.
  */
 import { describe, it, expect, afterEach } from 'vitest'
 import { adminClient } from './helpers'
 
 const admin = adminClient()
 const createdPriceIds: string[] = []
-const createdCourseIds: string[] = []
-const createdDiveIds: string[] = []
+const createdEventIds: string[] = []
 
 afterEach(async () => {
-  if (createdCourseIds.length) await admin.from('EO_courses' as never).delete().in('_id', createdCourseIds)
-  if (createdDiveIds.length) await admin.from('EO_dives' as never).delete().in('_id', createdDiveIds)
+  if (createdEventIds.length) await admin.from('events' as never).delete().in('id', createdEventIds)
   if (createdPriceIds.length) await admin.from('EO_prices' as never).delete().in('_id', createdPriceIds)
-  createdCourseIds.length = 0
-  createdDiveIds.length = 0
+  createdEventIds.length = 0
   createdPriceIds.length = 0
 })
 
-// _id columns are uuid; tests need valid-format ids regardless of which
+// id columns are uuid; tests need valid-format ids regardless of which
 // table they target.
 function rid() {
   return crypto.randomUUID()
@@ -33,7 +30,7 @@ function rid() {
 // Valid uuid format that no row will ever match — used for orphan-FK tests.
 const NONEXISTENT_PRICE_ID = '00000000-0000-0000-0000-000000000099'
 
-describe('EO_* catalog table constraints', () => {
+describe('catalog table constraints', () => {
   it('EO_prices._id is a primary key (duplicate inserts are rejected)', async () => {
     const id = rid()
     const first = await admin.from('EO_prices' as never).insert({ _id: id, admin_title: 'First' } as never)
@@ -45,84 +42,77 @@ describe('EO_* catalog table constraints', () => {
     expect(String(dup.error?.message ?? '')).toMatch(/duplicate|unique/i)
   })
 
-  it('EO_courses.price → EO_prices._id FK rejects orphan references', async () => {
-    const { error } = await admin.from('EO_courses' as never).insert({
-      _id: rid(),
+  it('events.price → EO_prices._id FK rejects orphan references (course kind)', async () => {
+    const { error } = await admin.from('events' as never).insert({
+      id: rid(),
+      kind: 'course',
       display_title: 'Orphan Course',
+      course_days: ['2026-05-09'],
       price: NONEXISTENT_PRICE_ID,
     } as never)
     expect(error).toBeTruthy()
     expect(String(error?.message ?? '')).toMatch(/foreign|violat/i)
   })
 
-  it('EO_dives.price → EO_prices._id FK rejects orphan references', async () => {
-    const { error } = await admin.from('EO_dives' as never).insert({
-      _id: rid(),
+  it('events.price → EO_prices._id FK rejects orphan references (dive kind)', async () => {
+    const { error } = await admin.from('events' as never).insert({
+      id: rid(),
+      kind: 'dive',
       admin_title: 'Orphan Dive',
       notes: '',
+      start_date: '2026-06-01',
       price: NONEXISTENT_PRICE_ID,
     } as never)
     expect(error).toBeTruthy()
   })
 
-  it('EO_dives.price has ON DELETE SET NULL: deleting the price nulls the reference', async () => {
+  it('events.price has ON DELETE SET NULL: deleting the price nulls the reference', async () => {
     const priceId = rid()
     await admin.from('EO_prices' as never).insert({ _id: priceId, admin_title: 'P' } as never)
     createdPriceIds.push(priceId)
 
-    const diveId = rid()
-    await admin.from('EO_dives' as never).insert({
-      _id: diveId, admin_title: 'D', notes: '', price: priceId,
+    const eventId = rid()
+    await admin.from('events' as never).insert({
+      id: eventId, kind: 'dive', admin_title: 'D', notes: '', start_date: '2026-06-01', price: priceId,
     } as never)
-    createdDiveIds.push(diveId)
+    createdEventIds.push(eventId)
 
-    // Delete the price — dive.price should become NULL.
+    // Delete the price — event.price should become NULL.
     await admin.from('EO_prices' as never).delete().eq('_id', priceId)
     // Remove from cleanup since we already deleted
     createdPriceIds.splice(createdPriceIds.indexOf(priceId), 1)
 
-    const { data } = await admin.from('EO_dives' as never).select('price').eq('_id', diveId).single()
+    const { data } = await admin.from('events' as never).select('price').eq('id', eventId).single()
     expect((data as { price: string | null }).price).toBeNull()
   })
 
-  it('EO_courses.price is a plain FK (no cascade): deleting referenced price fails', async () => {
-    const priceId = rid()
-    await admin.from('EO_prices' as never).insert({ _id: priceId, admin_title: 'P' } as never)
-    createdPriceIds.push(priceId)
+  // The old EO_courses.price (plain FK, no cascade → delete blocked) invariant
+  // is obsolete: post-unification events.price is uniformly ON DELETE SET NULL
+  // for every kind, covered by the SET NULL test above.
 
-    const courseId = rid()
-    await admin.from('EO_courses' as never).insert({
-      _id: courseId, display_title: 'C', price: priceId,
-    } as never)
-    createdCourseIds.push(courseId)
-
-    const { error } = await admin.from('EO_prices' as never).delete().eq('_id', priceId)
-    expect(error).toBeTruthy()
-    expect(String(error?.message ?? '')).toMatch(/foreign|violat/i)
-  })
-
-  it('EO_courses.course_days accepts up to 4 days and round-trips them', async () => {
-    const courseId = rid()
+  it('events.course_days accepts up to 4 days and round-trips them', async () => {
+    const eventId = rid()
     const days = ['2026-05-09', '2026-05-10', '2026-05-12', '2026-05-16']
-    const { error } = await admin.from('EO_courses' as never).insert({
-      _id: courseId, display_title: 'Four-day course', course_days: days,
+    const { error } = await admin.from('events' as never).insert({
+      id: eventId, kind: 'course', display_title: 'Four-day course', course_days: days,
     } as never)
     expect(error).toBeNull()
-    createdCourseIds.push(courseId)
+    createdEventIds.push(eventId)
 
-    const { data } = await admin.from('EO_courses' as never)
-      .select('course_days').eq('_id', courseId).single()
+    const { data } = await admin.from('events' as never)
+      .select('course_days').eq('id', eventId).single()
     expect((data as { course_days: string[] }).course_days).toEqual(days)
   })
 
-  it('EO_courses.course_days rejects more than 4 days (CHECK eo_courses_course_days_len)', async () => {
-    const { error } = await admin.from('EO_courses' as never).insert({
-      _id: rid(),
+  it('events.course_days rejects more than 4 days (CHECK events_course_has_days)', async () => {
+    const { error } = await admin.from('events' as never).insert({
+      id: rid(),
+      kind: 'course',
       display_title: 'Five-day course',
       course_days: ['2026-05-09', '2026-05-10', '2026-05-11', '2026-05-12', '2026-05-13'],
     } as never)
     expect(error).toBeTruthy()
-    expect(String(error?.message ?? '')).toMatch(/course_days|violat|check/i)
+    expect(String(error?.message ?? '')).toMatch(/events_course_has_days|course_days|violat|check/i)
   })
 
   it('EO_rooms and Other_Addons have _id primary keys (round-trips cleanly)', async () => {

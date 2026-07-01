@@ -30,8 +30,10 @@ beforeEach(() => {
   from.mockImplementation((table: string) => {
     switch (table) {
       case 'bookings': return builder({ data: [{ created_at: '2026-07-10T00:00:00+08:00' }], error: null })
-      case 'EO_dives': return builder({ data: [{ start_date: '2026-07-15' }], error: null })
-      case 'EO_courses': return builder({ data: [], error: null })
+      // Dives + courses are one `events` table now, queried twice with a
+      // kind filter the mock ignores; the dive read wants start_date and the
+      // course read reads course_days (absent here → no course days).
+      case 'events': return builder({ data: [{ start_date: '2026-07-15' }], error: null })
       default: return builder({ data: [], error: null })
     }
   })

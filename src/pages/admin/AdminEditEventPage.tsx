@@ -7,13 +7,11 @@ import { EventCarAssignment } from '../../components/admin/EventCarAssignment'
 import { EventWaiverOverrides } from '../../components/admin/EventWaiverOverrides'
 import { moveDiveCarAllocations } from '../../lib/event-vehicles'
 import {
-  divePayloadFromForm,
-  coursePayloadFromForm,
-  formStateFromDive,
-  formStateFromCourse,
+  eventPayloadFromForm,
+  formStateFromEvent,
   type FormState,
 } from '../../components/admin/event-form-state'
-import type { EOCourse, EODive } from '../../types/database'
+import type { EventRow } from '../../types/database'
 import { useToast } from '../../hooks/useToast'
 import { errorMessage } from '../../lib/errors'
 import { notifyEventScheduleChanged } from '../../lib/reschedule'
@@ -53,29 +51,15 @@ export function AdminEditEventPage() {
     let cancelled = false
     ;(async () => {
       try {
-        if (type === 'dive') {
-          const { data, error } = await supabase
-            .from('EO_dives')
-            .select('*')
-            .eq('_id', id)
-            .maybeSingle()
-          if (error) throw error
-          if (!data) throw new Error('Dive not found.')
-          const rels = await fetchEventRelations('dive', id)
-          if (!cancelled) setInitial(formStateFromDive(data as EODive, rels))
-        } else if (type === 'course') {
-          const { data, error } = await supabase
-            .from('EO_courses')
-            .select('*')
-            .eq('_id', id)
-            .maybeSingle()
-          if (error) throw error
-          if (!data) throw new Error('Course not found.')
-          const rels = await fetchEventRelations('course', id)
-          if (!cancelled) setInitial(formStateFromCourse(data as EOCourse, rels))
-        } else {
-          throw new Error(`Unknown event type: ${type}`)
-        }
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle()
+        if (error) throw error
+        if (!data) throw new Error('Event not found.')
+        const rels = await fetchEventRelations(id)
+        if (!cancelled) setInitial(formStateFromEvent(data as EventRow, rels))
       } catch (err) {
         if (!cancelled) setLoadError(errorMessage(err))
       }
@@ -88,15 +72,15 @@ export function AdminEditEventPage() {
     // Capture before the update so we can notify registrants if the dates
     // moved. `initial` is the loaded row's FormState, untouched by editing.
     const dateChange = !!initial && datesChanged(initial, form)
+    const { error } = await supabase
+      .from('events')
+      .update(eventPayloadFromForm(form) as never)
+      .eq('id', id)
+    if (error) throw error
+    const relError = await saveEventRelations(id, form)
+    if (relError) throw relError
+    if (dateChange) notifyEventScheduleChanged(id, form.type).catch(() => { /* best-effort */ })
     if (form.type === 'dive') {
-      const { error } = await supabase
-        .from('EO_dives')
-        .update(divePayloadFromForm(form) as never)
-        .eq('_id', id)
-      if (error) throw error
-      const relError = await saveEventRelations('dive', id, form)
-      if (relError) throw relError
-      if (dateChange) notifyEventScheduleChanged(id, 'dive').catch(() => { /* best-effort */ })
       // Car allocations are keyed by the dive's start_date — carry them to the
       // new day when it moves so they don't strand on the old date.
       if (initial && initial.start_date !== form.start_date && initial.start_date && form.start_date) {
@@ -109,14 +93,6 @@ export function AdminEditEventPage() {
       toast.success('Dive updated')
       navigate(`/admin/events/dive/${id}`)
     } else {
-      const { error } = await supabase
-        .from('EO_courses')
-        .update(coursePayloadFromForm(form) as never)
-        .eq('_id', id)
-      if (error) throw error
-      const relError = await saveEventRelations('course', id, form)
-      if (relError) throw relError
-      if (dateChange) notifyEventScheduleChanged(id, 'course').catch(() => { /* best-effort */ })
       toast.success('Course updated')
       navigate(`/admin/events/course/${id}`)
     }

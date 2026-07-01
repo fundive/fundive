@@ -91,20 +91,16 @@ export function AdminEventDetailPage() {
     let cancelled = false
     ;(async () => {
       // Event info via helper
-      const eventMap = await fetchEventsForBookings(
-        type === 'dive' ? [id] : [],
-        type === 'course' ? [id] : []
-      )
+      const eventMap = await fetchEventsForBookings([id])
       if (cancelled) return
       const ev = eventMap.get(id) ?? null
       setEvent(ev)
 
       // Bookings on this event
-      const column = type === 'dive' ? 'eo_dive_id' : 'eo_course_id'
       const { data: bookings } = await supabase
         .from('bookings')
         .select('*')
-        .eq(column, id)
+        .eq('event_id', id)
         .order('created_at')
 
       if (cancelled) return
@@ -335,11 +331,10 @@ export function AdminEventDetailPage() {
     setCancelInFlight(true)
     setCancelError(null)
     try {
-      const table = type === 'dive' ? 'EO_dives' : 'EO_courses'
       const { error } = await supabase
-        .from(table)
+        .from('events')
         .update({ cancelled_at: value } as never)
-        .eq('_id', id)
+        .eq('id', id)
       if (error) throw error
       setEvent(prev => (prev ? { ...prev, cancelled_at: value } : prev))
       setCancelModalOpen(false)
@@ -374,8 +369,7 @@ export function AdminEventDetailPage() {
     setDeleteInFlight(true)
     setDeleteError(null)
     try {
-      const table = type === 'dive' ? 'EO_dives' : 'EO_courses'
-      const { error } = await supabase.from(table).delete().eq('_id', id)
+      const { error } = await supabase.from('events').delete().eq('id', id)
       if (error) throw error
       toast.success('Event deleted')
       navigate('/admin/events')
