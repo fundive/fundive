@@ -239,9 +239,12 @@ This architecture is the target. Current state:
 - ✅ **Application ported** from the first deployment, already config-driven, with
   a secrets/branding scrub at the boundary. All ~1,140 unit tests pass against a
   neutral default config.
-- ⏳ **Consumer-root build** — serve the platform's `index.html`/`src` while
-  reading the deployment's `public/` `brand/`. Works today from the platform repo;
-  the deployment-as-separate-repo path is the next refinement.
-- ⏳ **Generalize the catalog model.** The first deployment's catalog tables are
-  legacy Bubble imports specific to that shop; the platform needs a clean,
-  operator-agnostic catalog schema. This is the largest remaining piece of work.
+- ✅ **Consumer-root build** — `vite.config` serves the platform's `index.html`/`src`
+  while taking `public/`, env, and `dist` from the deployment's cwd, so a separate
+  deployment repo builds its own branded bundle via the platform CLI.
+- ✅ **Edge-function config injection** — the Supabase functions read a deployment's
+  config at deploy time via the `FUNDIVE_CONFIG` secret (the Deno-side counterpart of
+  the frontend's build-time `virtual:fundive-config`). See `docs/deployment.md`.
+- ⏳ **Generalize the catalog model.** The event catalog has been de-Wixed and made
+  robust (junctions are the source of truth; no Wix sync). The remaining piece is the
+  larger clean-schema rebuild (unified `events` table, `EO_*`→clean renames) — post-1.0.

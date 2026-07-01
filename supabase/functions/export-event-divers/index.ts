@@ -33,7 +33,7 @@ import { Buffer } from "node:buffer"
 import { buildEventDiversXlsxBase64, type EventDiverRow } from "../_shared/event-divers-xlsx.ts"
 import { roleToZh } from "../_shared/event-divers-manifest.ts"
 import { corsOk, jsonResponse, safeError, bearerToken } from "../_shared/responses.ts"
-import { siteConfig } from "../../../fundive.config.ts"
+import { siteConfig } from "../_shared/config.ts"
 
 // Profile columns the manifest reads, shared by the booked-diver and
 // on-duty-staff fetches.

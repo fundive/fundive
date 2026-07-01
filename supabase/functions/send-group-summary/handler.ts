@@ -8,7 +8,7 @@
 
 import { Buffer } from "node:buffer"
 import { corsHeaders, safeError } from "../_shared/responses.ts"
-import { siteConfig } from "../../../fundive.config.ts"
+import { siteConfig } from "../_shared/config.ts"
 import type { GroupRegistrationPdfPayload, GroupDiverColumn } from "../_shared/pdf.ts"
 
 export interface GroupSummaryBody {

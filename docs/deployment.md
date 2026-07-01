@@ -160,6 +160,23 @@ and is imported relatively. `make deploy-functions` runs `supabase
 functions deploy` (no name → ships every function in the directory)
 against the linked project.
 
+### Shop config in the functions
+
+Edge functions read shop config through one seam, `_shared/config.ts`. It
+returns the deployment's config when the `FUNDIVE_CONFIG` secret is set
+(the resolved `fundive.config.ts`, serialized to JSON), and otherwise
+falls back to the platform default — so local `functions serve` and the
+vitest handler tests work unchanged. This is the Deno-side counterpart of
+the frontend's build-time `virtual:fundive-config`: the browser bundle bakes
+config in at build, the edge runtime reads it from env at deploy.
+
+`npx fundive functions deploy` wires this up from a deployment repo: it
+resolves the deployment's config, `supabase secrets set FUNDIVE_CONFIG=<json>`,
+then `supabase functions deploy --workdir <platform>` (so Supabase finds the
+platform's functions even though the deployment repo has none of its own).
+Running `make deploy-functions` from inside the platform repo still works and
+uses the platform default (no `FUNDIVE_CONFIG` set).
+
 ### `create-registration`
 
 Single atomic endpoint behind the registration form (`RegisterFormBody`).
@@ -167,9 +184,8 @@ Either the body has `email` + `password` (guest flow → creates the
 account with `email_confirm: true`, bypassing the click-to-confirm
 gate) or the caller's Bearer JWT identifies an authed user. Either
 way, the function then UPDATEs the profile, INSERTs the booking,
-builds a PDF (via `_shared/pdf.ts`, layout ported from the Wix
-backend), and emails it via Gmail SMTP to both `fundiverstw@gmail.com`
-and the diver. Returns `{ booking_id, session }`; `session` is
+builds a PDF (via `_shared/pdf.ts`), and emails it via Gmail SMTP to
+both the shop (`siteConfig.app.supportEmail`) and the diver. Returns `{ booking_id, session }`; `session` is
 populated only on the guest path so the client can `setSession`
 immediately. If the booking insert fails on the guest path the
 just-created auth user is deleted to keep retries clean.
@@ -189,7 +205,7 @@ Deploy:
 ```sh
 make deploy-functions      # ships every function under supabase/functions/
 supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" \
-  GMAIL_USER=fundiverstw@gmail.com \
+  GMAIL_USER=<shop-gmail-account> \
   GMAIL_APP_PASSWORD=<app-password>
 ```
 
