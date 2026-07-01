@@ -80,26 +80,26 @@ describe('set_event_relations RPC — admin writes + reconciles junctions', () =
 
     const sb = await userClient(adminUser.email, adminUser.password)
     const { error } = await sb.rpc('set_event_relations', {
-      p_event_type: 'dive', p_event_id: diveId,
+      p_event_id: diveId,
       p_room_ids: [r1, r2], p_addon_ids: [a1, a2], p_destination_ids: [d1],
     })
     expect(error).toBeNull()
 
-    const rooms = await admin.from('eo_dive_rooms').select('room_id').eq('eo_dive_id', diveId)
-    const addons = await admin.from('eo_dive_addons').select('addon_id').eq('eo_dive_id', diveId)
-    const dests = await admin.from('eo_dive_destinations').select('destination_id').eq('eo_dive_id', diveId)
+    const rooms = await admin.from('event_rooms').select('room_id').eq('event_id', diveId)
+    const addons = await admin.from('event_addons').select('addon_id').eq('event_id', diveId)
+    const dests = await admin.from('event_destinations').select('destination_id').eq('event_id', diveId)
     expect((rooms.data ?? []).map(r => r.room_id).sort()).toEqual([r1, r2].sort())
     expect((addons.data ?? []).map(r => r.addon_id).sort()).toEqual([a1, a2].sort())
     expect((dests.data ?? []).map(r => r.destination_id)).toEqual([d1])
 
     // Re-call with a narrowed set — delete-then-insert reconciles.
     const { error: err2 } = await sb.rpc('set_event_relations', {
-      p_event_type: 'dive', p_event_id: diveId,
+      p_event_id: diveId,
       p_room_ids: [r2], p_addon_ids: [], p_destination_ids: [d1],
     })
     expect(err2).toBeNull()
-    const rooms2 = await admin.from('eo_dive_rooms').select('room_id').eq('eo_dive_id', diveId)
-    const addons2 = await admin.from('eo_dive_addons').select('addon_id').eq('eo_dive_id', diveId)
+    const rooms2 = await admin.from('event_rooms').select('room_id').eq('event_id', diveId)
+    const addons2 = await admin.from('event_addons').select('addon_id').eq('event_id', diveId)
     expect((rooms2.data ?? []).map(r => r.room_id)).toEqual([r2])
     expect((addons2.data ?? []).length).toBe(0)
   })
@@ -108,10 +108,10 @@ describe('set_event_relations RPC — admin writes + reconciles junctions', () =
     const a = await makeAddon('Course addon')
     const sb = await userClient(adminUser.email, adminUser.password)
     const { error } = await sb.rpc('set_event_relations', {
-      p_event_type: 'course', p_event_id: courseId, p_addon_ids: [a],
+      p_event_id: courseId, p_room_ids: [], p_addon_ids: [a], p_destination_ids: [],
     })
     expect(error).toBeNull()
-    const { data } = await admin.from('eo_course_addons').select('addon_id').eq('eo_course_id', courseId)
+    const { data } = await admin.from('event_addons').select('addon_id').eq('event_id', courseId)
     expect((data ?? []).map(r => r.addon_id)).toEqual([a])
   })
 
@@ -119,13 +119,13 @@ describe('set_event_relations RPC — admin writes + reconciles junctions', () =
     const a = await makeAddon('Good addon')
     const sb = await userClient(adminUser.email, adminUser.password)
     // Seed a known-good add-on first.
-    await sb.rpc('set_event_relations', { p_event_type: 'dive', p_event_id: diveId, p_addon_ids: [a] })
+    await sb.rpc('set_event_relations', { p_event_id: diveId, p_addon_ids: [a] })
     // Now a call containing a bogus id must fail and leave the good one intact.
     const { error } = await sb.rpc('set_event_relations', {
-      p_event_type: 'dive', p_event_id: diveId, p_addon_ids: [a, crypto.randomUUID()],
+      p_event_id: diveId, p_addon_ids: [a, crypto.randomUUID()],
     })
     expect(error).not.toBeNull()
-    const { data } = await admin.from('eo_dive_addons').select('addon_id').eq('eo_dive_id', diveId)
+    const { data } = await admin.from('event_addons').select('addon_id').eq('event_id', diveId)
     expect((data ?? []).map(r => r.addon_id)).toEqual([a])
   })
 })
@@ -135,25 +135,25 @@ describe('set_event_relations RPC — RLS', () => {
     const a = await makeAddon('Diver-blocked via RPC')
     const sb = await userClient(diver.email, diver.password)
     const { error } = await sb.rpc('set_event_relations', {
-      p_event_type: 'dive', p_event_id: diveId, p_addon_ids: [a],
+      p_event_id: diveId, p_addon_ids: [a],
     })
     expect(error).not.toBeNull()
   })
 
-  it('a diver cannot insert directly into eo_dive_addons', async () => {
+  it('a diver cannot insert directly into event_addons', async () => {
     const a = await makeAddon('Diver-blocked direct')
     const sb = await userClient(diver.email, diver.password)
-    const { error } = await sb.from('eo_dive_addons').insert({ eo_dive_id: diveId, addon_id: a })
+    const { error } = await sb.from('event_addons').insert({ event_id: diveId, addon_id: a })
     expect(error).not.toBeNull()
   })
 
   it('an authenticated diver can read the junction rows', async () => {
     const a = await makeAddon('Readable addon')
     const adminSb = await userClient(adminUser.email, adminUser.password)
-    await adminSb.rpc('set_event_relations', { p_event_type: 'course', p_event_id: courseId, p_addon_ids: [a] })
+    await adminSb.rpc('set_event_relations', { p_event_id: courseId, p_addon_ids: [a] })
 
     const sb = await userClient(diver.email, diver.password)
-    const { data, error } = await sb.from('eo_course_addons').select('addon_id').eq('eo_course_id', courseId)
+    const { data, error } = await sb.from('event_addons').select('addon_id').eq('event_id', courseId)
     expect(error).toBeNull()
     expect((data ?? []).map(r => r.addon_id)).toContain(a)
   })

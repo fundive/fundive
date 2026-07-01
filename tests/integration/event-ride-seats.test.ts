@@ -33,13 +33,13 @@ async function createVehicle(name: string, seats: number): Promise<string> {
 
 async function allocate(vehicleId: string, date: string): Promise<void> {
   const { error } = await admin.from('event_vehicles')
-    .insert({ vehicle_id: vehicleId, event_date: date, eo_dive_id: diveId } as never)
+    .insert({ vehicle_id: vehicleId, event_date: date, event_id: diveId } as never)
   if (error) throw new Error(`allocate: ${error.message}`)
 }
 
 async function book(userId: string, transportation: boolean, status = 'pending'): Promise<void> {
   const { data, error } = await admin.from('bookings').insert({
-    user_id: userId, eo_dive_id: diveId, eo_course_id: null,
+    user_id: userId, event_id: diveId,
     details: { transportation }, status,
   } as never).select('id').single()
   if (error) throw new Error(`book: ${error.message}`)
@@ -47,7 +47,7 @@ async function book(userId: string, transportation: boolean, status = 'pending')
 }
 
 async function seats(client = admin): Promise<{ capacity: number; claimed: number }> {
-  const { data, error } = await client.rpc('event_ride_seats', { p_dive_id: diveId, p_course_id: null })
+  const { data, error } = await client.rpc('event_ride_seats', { p_event_id: diveId })
   if (error) throw new Error(`rpc: ${error.message}`)
   return (data as { capacity: number; claimed: number }[])[0]
 }

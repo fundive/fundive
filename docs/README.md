@@ -8,7 +8,7 @@ dive into source.
 | Doc | What it covers |
 | --- | --- |
 | [architecture.md](./architecture.md)                   | Platform-as-dependency model, `defineConfig` + `.env` surface, the `fundive` CLI, runtime boundaries, versioning contract |
-| [data-model.md](./data-model.md)                       | Every table, the `EO_*` Bubble-import convention, XOR FK pattern |
+| [data-model.md](./data-model.md)                       | Every table, the unified `events` model, catalog reference tables |
 | [authentication.md](./authentication.md)               | Sign-up trigger, `useAuth`, role gating, `ProtectedRoute` / `AdminRoute` |
 | [events-and-bookings.md](./events-and-bookings.md)     | Calendar rendering, register-form wizard, `bookings.details` JSONB shape |
 | [payments.md](./payments.md)                           | Deposit vs balance semantics, payments ledger, refund flow |
@@ -28,8 +28,9 @@ dive into source.
   `fundive.config.ts` / `.env` / `brand/`, never in platform source. See
   [architecture.md](./architecture.md#the-customization-boundary).
 - **No i18n.** The platform is English-only.
-- **XOR FKs** appear in `bookings` and `event_memos`: exactly one of
-  `eo_dive_id` / `eo_course_id` is set. Don't "fix" one side.
+- **Unified `events` table.** Dives and courses are one `events` table with a
+  `kind` discriminator; bookings/duties/admin_notes/vehicles/waivers reference it
+  by a single `event_id → events(id)`.
 
 ## Commands (via the `fundive` CLI, run from a deployment repo)
 

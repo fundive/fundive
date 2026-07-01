@@ -8,7 +8,7 @@ import {
 import type { EventVehicle, Vehicle } from '../../types/database'
 
 interface Props {
-  /** The dive's EO_dives _id. */
+  /** The dive's events id. */
   eventId: string
   isAdmin: boolean
   createdBy: string | null
@@ -37,7 +37,7 @@ export function EventCarAssignment({ eventId, isAdmin, createdBy, riders }: Prop
     let cancelled = false
     ;(async () => {
       const { data } = await supabase
-        .from('EO_dives').select('start_date').eq('_id', eventId).maybeSingle()
+        .from('events').select('start_date').eq('id', eventId).maybeSingle()
       if (!cancelled) setDayKey((data as { start_date: string | null } | null)?.start_date ?? null)
     })()
     return () => { cancelled = true }

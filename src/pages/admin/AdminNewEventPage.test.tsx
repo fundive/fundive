@@ -76,27 +76,25 @@ describe('AdminNewEventPage', () => {
 
   it('preloads form fields when a past dive is picked', async () => {
     const pastDive = {
-      _id: 'past-1',
+      id: 'past-1',
+      kind: 'dive',
       admin_title: 'Green Island Day Trip',
-      title: 'GI',
       start_date: '2026-01-15',
-      time: '09:00:00',
+      start_time: '09:00:00',
       end_date: '2026-01-15',
       notes: 'Bring fins',
       featured: true,
       fully_booked: false,
       nitrox_required: true,
-      has_rooms: false,
-      room_types: '',
-      other_addons: '',
       price: 'price-1',
     }
     from.mockImplementation((table: string) => {
       if (table === 'EO_prices')    return mockQueryBuilder({ data: [{ _id: 'price-1', title: 'Standard' }] })
       if (table === 'EO_rooms')     return mockQueryBuilder({ data: [] })
       if (table === 'Other_Addons') return mockQueryBuilder({ data: [] })
-      if (table === 'EO_dives')     return mockQueryBuilder({ data: [pastDive] })
-      if (table === 'EO_courses')   return mockQueryBuilder({ data: [] })
+      // Dives + courses are one `events` table now, queried twice by kind; the
+      // course-kind read maps the same row but drops it (no course_days).
+      if (table === 'events')       return mockQueryBuilder({ data: [pastDive] })
       return mockQueryBuilder({ data: [] })
     })
     const user = userEvent.setup()
@@ -260,7 +258,7 @@ describe('AdminNewEventPage', () => {
         { _id: 'dest-1', admin_title: 'Green Island',  country: 'Taiwan',          sort_order: 1 },
         { _id: 'dest-2', admin_title: 'Puerto Galera', country: 'The Philippines', sort_order: 2 },
       ] })
-      if (table === 'EO_dives') {
+      if (table === 'events') {
         const b = mockQueryBuilder({ data: [] }) as Record<string, unknown>
         b.insert = insert
         return b
@@ -280,10 +278,9 @@ describe('AdminNewEventPage', () => {
 
     await waitFor(() => expect(insert).toHaveBeenCalled())
     // destination_reference is no longer on the row — it goes to the junction
-    // tables through the RPC.
+    // tables through the RPC (keyed by event id, no per-kind arg).
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('set_event_relations', expect.anything()))
     const relArgs = (rpc.mock.calls.find(c => c[0] === 'set_event_relations')?.[1] ?? {}) as Record<string, unknown>
-    expect(relArgs.p_event_type).toBe('dive')
     expect(relArgs.p_destination_ids).toEqual(['dest-1', 'dest-2'])
     const payload = (insert.mock.calls[0]?.[0] ?? {}) as Record<string, unknown>
     expect(payload).not.toHaveProperty('destination_reference')
@@ -295,7 +292,7 @@ describe('AdminNewEventPage', () => {
       if (table === 'EO_prices')    return mockQueryBuilder({ data: [] })
       if (table === 'EO_rooms')     return mockQueryBuilder({ data: [] })
       if (table === 'Other_Addons') return mockQueryBuilder({ data: [] })
-      if (table === 'EO_dives') {
+      if (table === 'events') {
         // Hybrid: select() chain (past-event fetch) returns empty,
         // insert() routes through the spy so we can assert payload.
         const b = mockQueryBuilder({ data: [] }) as Record<string, unknown>
@@ -314,7 +311,7 @@ describe('AdminNewEventPage', () => {
     const payload = (insert.mock.calls[0]?.[0] ?? {}) as Record<string, unknown>
     expect(payload.admin_title).toBe('Green Island Day Trip')
     expect(payload.start_date).toBe('2026-06-01')
-    expect(typeof payload._id).toBe('string')
+    expect(typeof payload.id).toBe('string')
     expect(await screen.findByText('DIVE_DETAIL')).toBeInTheDocument()
   })
 })

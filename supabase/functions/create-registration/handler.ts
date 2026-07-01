@@ -153,9 +153,8 @@ export interface Deps {
  * happened; admins/staff bypass this server-side check too.
  */
 async function eventHasPassed(admin: SupabaseAdminClient, eventType: string, eventId: string): Promise<boolean> {
-  const table = eventType === "dive" ? "EO_dives" : "EO_courses"
-  const cols  = eventType === "dive" ? "start_date, end_date" : "course_days"
-  const { data } = await admin.from(table).select(cols).eq("_id", eventId).maybeSingle()
+  const cols = eventType === "dive" ? "start_date, end_date" : "course_days"
+  const { data } = await admin.from("events").select(cols).eq("id", eventId).maybeSingle()
   if (!data) return false // unknown event — existing existence checks handle it
   let lastDay: string | null
   if (eventType === "dive") {
@@ -275,9 +274,8 @@ export async function handleRegistration(req: Request, deps: Deps): Promise<Resp
     // Confirm the event exists in the catalog. Without this, an
     // attacker could spend their per-IP budget on garbage event_ids
     // and still consume MAU + emails.
-    const eventTable = body.event_type === "dive" ? "EO_dives" : "EO_courses"
     const { data: existsRow } = await admin
-      .from(eventTable).select("_id").eq("_id", body.event_id).maybeSingle()
+      .from("events").select("id").eq("id", body.event_id).maybeSingle()
     if (!existsRow) {
       return json({ error: "event not found" }, 404)
     }
@@ -358,21 +356,18 @@ export async function handleRegistration(req: Request, deps: Deps): Promise<Resp
 
   // 2. Booking insert — pre-check for active booking; partial unique
   //    index is the race safety net.
-  const fkColumn = body.event_type === "dive" ? "eo_dive_id" : "eo_course_id"
   const { data: existing } = await admin
     .from("bookings")
     .select("id, status")
     .eq("user_id", userId)
-    .eq(fkColumn, body.event_id)
+    .eq("event_id", body.event_id)
     .neq("status", "cancelled")
     .maybeSingle()
   if (existing) {
     return rollback(`This diver already has an active booking for this event (status: ${existing.status}).`)
   }
 
-  const fk = body.event_type === "dive"
-    ? { eo_dive_id: body.event_id, eo_course_id: null }
-    : { eo_dive_id: null, eo_course_id: body.event_id }
+  const fk = { event_id: body.event_id }
   // A lead-payer designation is only honoured when it names the registrant
   // themselves or the authenticated caller (a parent paying for a child).
   // Anything else is dropped; the DB trigger rejects an invalid payer too.
@@ -399,14 +394,8 @@ export async function handleRegistration(req: Request, deps: Deps): Promise<Resp
   // 3. Build PDF payload from data we already have or can fetch.
   const { data: profile } = await admin.from("profiles").select("*").eq("id", userId).single()
 
-  let event: Record<string, unknown> | null
-  if (body.event_type === "dive") {
-    const { data } = await admin.from("EO_dives").select("*").eq("_id", body.event_id).maybeSingle()
-    event = data as Record<string, unknown> | null
-  } else {
-    const { data } = await admin.from("EO_courses").select("*").eq("_id", body.event_id).maybeSingle()
-    event = data as Record<string, unknown> | null
-  }
+  const { data: eventData } = await admin.from("events").select("*").eq("id", body.event_id).maybeSingle()
+  const event = eventData as Record<string, unknown> | null
 
   const details = body.details as Record<string, unknown>
   const roomDetail = details.room as { option_id?: string; notes?: string } | undefined

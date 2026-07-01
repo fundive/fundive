@@ -97,7 +97,7 @@ divers**.
 
 Every memo is:
 
-- Attached to exactly one of `eo_dive_id` / `eo_course_id` (XOR check).
+- Attached to a single `event_id → events(id)`.
 - Tagged with one of: `urgent`, `payment`, `gear`, `logistics`,
   `cert`, `medical`, `note`. The tag drives the colour in the UI.
 - Free-text content, 1–2000 chars.

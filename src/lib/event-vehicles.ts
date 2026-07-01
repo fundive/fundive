@@ -28,8 +28,7 @@ export async function assignVehicleToEvent(args: {
   const row: EventVehicleInsert = {
     vehicle_id: args.vehicleId,
     event_date: args.date,
-    eo_dive_id: args.event.type === 'dive' ? args.event.id : null,
-    eo_course_id: args.event.type === 'course' ? args.event.id : null,
+    event_id: args.event.id,
     created_by: args.createdBy,
     notes: args.notes ?? null,
   }
@@ -54,7 +53,7 @@ export async function moveDiveCarAllocations(
 
   const { data: mine, error: mineErr } = await supabase
     .from('event_vehicles').select('id, vehicle_id')
-    .eq('eo_dive_id', diveId).eq('event_date', fromDate)
+    .eq('event_id', diveId).eq('event_date', fromDate)
   if (mineErr) throw mineErr
   if (!mine?.length) return { moved: 0, dropped: 0 }
 
@@ -79,7 +78,7 @@ export async function moveDiveCarAllocations(
 
 // The event key an allocation row points at (XOR, so exactly one is set).
 export function allocationEventId(a: EventVehicle): string | null {
-  return a.eo_dive_id ?? a.eo_course_id
+  return a.event_id
 }
 
 // Active cars not already allocated to some event on the date. `allocatedIds`
@@ -106,8 +105,7 @@ export async function fetchRideSeats(
   event: { dive_id?: string | null; course_id?: string | null },
 ): Promise<RideSeats> {
   const { data, error } = await supabase.rpc('event_ride_seats', {
-    p_dive_id: event.dive_id ?? null,
-    p_course_id: event.course_id ?? null,
+    p_event_id: (event.dive_id ?? event.course_id) as string,
   })
   if (error) throw error
   const row = (data as { capacity: number; claimed: number }[] | null)?.[0]
