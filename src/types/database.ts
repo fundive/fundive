@@ -118,6 +118,18 @@ export interface Database {
         }
         Returns: Array<{ capacity: number; claimed: number }>
       }
+      // Defined in 20260701020000_set_event_relations_rpc.sql. Reconciles an
+      // event's junction rows (rooms / add-ons / destinations) in one call.
+      set_event_relations: {
+        Args: {
+          p_event_type:       string
+          p_event_id:         string
+          p_room_ids?:        string[]
+          p_addon_ids?:       string[]
+          p_destination_ids?: string[]
+        }
+        Returns: undefined
+      }
       // Defined in 20260603000000_terms_consent_versioning.sql.
       // Server-stamps both agreed_to_terms_at (now()) and
       // agreed_to_terms_version (caller-supplied) on the caller's
@@ -771,10 +783,6 @@ export interface Database {
           featured: boolean | null
           fully_booked: boolean | null
           price: string | null
-          has_rooms: boolean | null
-          room_types: string | null
-          hasotheraddons: boolean | null
-          other_addons: string | null
           gear_rental: string | null
           nitrox_required: boolean | null
           dive_days: number | null
@@ -786,7 +794,6 @@ export interface Database {
           notes: string | null
           cancel_date: string | null
           cancel_policy: string | null
-          destination_reference: string | null
           DiveTravel_reference: string | null
           prereq_cert_id: string | null
           cancelled_at: string | null
@@ -806,10 +813,6 @@ export interface Database {
           fully_booked?: boolean | null
           price?: string | null
           notes?: string | null
-          has_rooms?: boolean | null
-          room_types?: string | null
-          hasotheraddons?: boolean | null
-          other_addons?: string | null
           gear_rental?: string | null
           nitrox_required?: boolean | null
           dive_days?: number | null
@@ -829,7 +832,6 @@ export interface Database {
           calendar_title: string | null
           start_time: string | null
           price: string | null
-          other_addons: string | null
           dive_days: number | null
           // Sole source of truth for the days a course runs on (max 4).
           // Replaced the old start_date/end_date envelope.
@@ -857,7 +859,6 @@ export interface Database {
           calendar_title?: string | null
           start_time?: string | null
           price?: string | null
-          other_addons?: string | null
           dive_days?: number | null
           course_days?: string[] | null
           cancelled_at?: string | null
@@ -868,34 +869,6 @@ export interface Database {
           capacity?: number | null
         }
         Update: Partial<Database['public']['Tables']['EO_courses']['Insert']>
-        Relationships: []
-      }
-      dive_sites: {
-        Row: {
-          id: string
-          name: string
-          tagline: string | null
-          latitude: number
-          longitude: number
-          region: 'keelung' | 'longdong' | 'yilan' | 'greenisland' | 'lanyu' | 'xiaoliuqiu' | 'kenting' | 'penghu'
-          dive_type: 'shore' | 'boat' | null
-          wix_slug: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          tagline?: string | null
-          latitude: number
-          longitude: number
-          region: 'keelung' | 'longdong' | 'yilan' | 'greenisland' | 'lanyu' | 'xiaoliuqiu' | 'kenting' | 'penghu'
-          dive_type?: 'shore' | 'boat' | null
-          wix_slug?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: Partial<Database['public']['Tables']['dive_sites']['Insert']>
         Relationships: []
       }
       cert_levels: {
@@ -1392,7 +1365,6 @@ export type EOAddon = Database['public']['Tables']['Other_Addons']['Row']
 export type DiveTravelEntry = Database['public']['Tables']['DiveTravel']['Row']
 export type TravelDestination = Database['public']['Tables']['TravelDestinations']['Row']
 export type CancellationPolicy = Database['public']['Tables']['cancellation_policies']['Row']
-export type DiveSite = Database['public']['Tables']['dive_sites']['Row']
 export type CertLevel = Database['public']['Tables']['cert_levels']['Row']
 export type AdminNote = Database['public']['Tables']['admin_notes']['Row']
 export type DiverNote = Database['public']['Tables']['diver_notes']['Row']

@@ -10,7 +10,7 @@ import {
 //   - Staff can SELECT events, bookings, payments, profiles, admin_notes,
 //     and their own duty rows.
 //   - Staff CANNOT write to any catalog/admin table (EO_dives, EO_courses,
-//     EO_rooms, Other_Addons, EO_prices, dive_sites, cert_levels,
+//     EO_rooms, Other_Addons, EO_prices, cert_levels,
 //     DiveTravel, cancellation_policies, eo_dive_addons, eo_course_addons).
 //   - Staff CANNOT write to bookings, payments, profiles (other than self),
 //     duties, or update/delete admin_notes.

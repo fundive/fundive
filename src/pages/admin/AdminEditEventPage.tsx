@@ -17,6 +17,7 @@ import type { EOCourse, EODive } from '../../types/database'
 import { useToast } from '../../hooks/useToast'
 import { errorMessage } from '../../lib/errors'
 import { notifyEventScheduleChanged } from '../../lib/reschedule'
+import { fetchEventRelations, saveEventRelations } from '../../lib/event-relations'
 
 // Normalize a day list (sort + dedupe + drop blanks) for comparison.
 function normDays(days: string[]): string[] {
@@ -60,7 +61,8 @@ export function AdminEditEventPage() {
             .maybeSingle()
           if (error) throw error
           if (!data) throw new Error('Dive not found.')
-          if (!cancelled) setInitial(formStateFromDive(data as EODive))
+          const rels = await fetchEventRelations('dive', id)
+          if (!cancelled) setInitial(formStateFromDive(data as EODive, rels))
         } else if (type === 'course') {
           const { data, error } = await supabase
             .from('EO_courses')
@@ -69,7 +71,8 @@ export function AdminEditEventPage() {
             .maybeSingle()
           if (error) throw error
           if (!data) throw new Error('Course not found.')
-          if (!cancelled) setInitial(formStateFromCourse(data as EOCourse))
+          const rels = await fetchEventRelations('course', id)
+          if (!cancelled) setInitial(formStateFromCourse(data as EOCourse, rels))
         } else {
           throw new Error(`Unknown event type: ${type}`)
         }
@@ -91,6 +94,8 @@ export function AdminEditEventPage() {
         .update(divePayloadFromForm(form) as never)
         .eq('_id', id)
       if (error) throw error
+      const relError = await saveEventRelations('dive', id, form)
+      if (relError) throw relError
       if (dateChange) notifyEventScheduleChanged(id, 'dive').catch(() => { /* best-effort */ })
       // Car allocations are keyed by the dive's start_date — carry them to the
       // new day when it moves so they don't strand on the old date.
@@ -109,6 +114,8 @@ export function AdminEditEventPage() {
         .update(coursePayloadFromForm(form) as never)
         .eq('_id', id)
       if (error) throw error
+      const relError = await saveEventRelations('course', id, form)
+      if (relError) throw relError
       if (dateChange) notifyEventScheduleChanged(id, 'course').catch(() => { /* best-effort */ })
       toast.success('Course updated')
       navigate(`/admin/events/course/${id}`)

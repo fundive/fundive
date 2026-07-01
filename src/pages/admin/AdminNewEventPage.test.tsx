@@ -6,13 +6,16 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AdminNewEventPage } from './AdminNewEventPage'
 import { mockQueryBuilder } from '../../../tests/test-utils'
 
-const { from } = vi.hoisted(() => ({ from: vi.fn() }))
+const { from, rpc } = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn() }))
 vi.mock('../../lib/supabase', () => ({
-  supabase: { from: (...a: unknown[]) => from(...a) },
+  supabase: { from: (...a: unknown[]) => from(...a), rpc: (...a: unknown[]) => rpc(...a) },
 }))
 
 beforeEach(() => {
   from.mockReset()
+  rpc.mockReset()
+  // set_event_relations writes the junctions after the row insert.
+  rpc.mockResolvedValue({ error: null })
 })
 
 function fakeCatalog() {
@@ -141,7 +144,7 @@ describe('AdminNewEventPage', () => {
     })
   })
 
-  it('inserts a new room option from the sub-form, auto-ticks it, and enables has_rooms', async () => {
+  it('inserts a new room option from the sub-form and auto-ticks it', async () => {
     const roomInsert = vi.fn().mockReturnValue({
       then: (cb: (r: { error: null }) => void) => Promise.resolve({ error: null }).then(cb),
     })
@@ -158,8 +161,6 @@ describe('AdminNewEventPage', () => {
     const user = userEvent.setup()
     renderPage()
     await screen.findByLabelText(/admin title \(required, internal\)/i)
-    // has_rooms starts false; the sub-form should flip it on save.
-    expect((screen.getByLabelText(/^offers rooms$/i) as HTMLInputElement).checked).toBe(false)
 
     await user.click(screen.getByRole('button', { name: /new room option/i }))
     await user.type(screen.getByLabelText('Title (required)'), 'Premium Room')
@@ -173,9 +174,9 @@ describe('AdminNewEventPage', () => {
     expect(payload.display_title).toBe('Premium Suite')
     expect(payload.added_price).toBe(2000)
 
-    // has_rooms toggle flipped on, and the new room is checked in the list.
+    // The new room is ticked in the list (selecting rooms is now the sole
+    // signal — there's no separate "offers rooms" flag).
     await waitFor(() => {
-      expect((screen.getByLabelText(/^offers rooms$/i) as HTMLInputElement).checked).toBe(true)
       expect((screen.getByLabelText(/Premium Room/) as HTMLInputElement).checked).toBe(true)
     })
   })
@@ -252,7 +253,7 @@ describe('AdminNewEventPage', () => {
     })
   })
 
-  it('encodes selected TravelDestinations into destination_reference as a JSON array', async () => {
+  it('writes selected TravelDestinations to the junctions via set_event_relations', async () => {
     const insert = vi.fn().mockReturnValue({ then: (cb: (r: { error: null }) => void) => Promise.resolve({ error: null }).then(cb) })
     from.mockImplementation((table: string) => {
       if (table === 'TravelDestinations') return mockQueryBuilder({ data: [
@@ -278,8 +279,14 @@ describe('AdminNewEventPage', () => {
     await user.click(screen.getByRole('button', { name: /create dive/i }))
 
     await waitFor(() => expect(insert).toHaveBeenCalled())
+    // destination_reference is no longer on the row — it goes to the junction
+    // tables through the RPC.
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('set_event_relations', expect.anything()))
+    const relArgs = (rpc.mock.calls.find(c => c[0] === 'set_event_relations')?.[1] ?? {}) as Record<string, unknown>
+    expect(relArgs.p_event_type).toBe('dive')
+    expect(relArgs.p_destination_ids).toEqual(['dest-1', 'dest-2'])
     const payload = (insert.mock.calls[0]?.[0] ?? {}) as Record<string, unknown>
-    expect(payload.destination_reference).toBe(JSON.stringify(['dest-1', 'dest-2']))
+    expect(payload).not.toHaveProperty('destination_reference')
   })
 
   it('inserts a dive with minimum required fields and navigates to its detail page', async () => {
