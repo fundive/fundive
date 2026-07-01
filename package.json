@@ -7,7 +7,7 @@
     "fundive": "cli/index.js"
   },
   "exports": {
-    "./config": "./src/config/site.ts",
+    "./config": "./src/config/define.ts",
     "./vite": "./src/vite/index.ts"
   },
   "scripts": {

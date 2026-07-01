@@ -19,10 +19,15 @@ const deploymentDir = process.cwd()
 // the PWA manifest and the env gate.
 const siteConfig = loadSiteConfig()
 
-// Resolve `virtual:fundive-config` to the deployment's config via an alias
-// (not just the plugin) so the vite-plugin-pwa service-worker sub-build — which
-// runs its own bundler pass and doesn't inherit our plugin — resolves it too.
-const configAlias = { 'virtual:fundive-config': configPathFor() }
+// Aliases (not just the plugin) so the vite-plugin-pwa service-worker sub-build —
+// which runs its own bundler pass and doesn't inherit our plugin — resolves them
+// too: `virtual:fundive-config` → the deployment's config, and `fundive/config`
+// (which the deployment's config imports for `defineConfig`) → the platform's
+// runtime-empty define entry.
+const configAlias = {
+  'virtual:fundive-config': configPathFor(),
+  'fundive/config': path.join(platformDir, 'src/config/define.ts'),
+}
 
 export default defineConfig(({ command, mode }) => {
   // Client env vars whose absence silently breaks a core flow at runtime

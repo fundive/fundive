@@ -1,9 +1,13 @@
 import path from 'node:path'
-import { readFileSync } from 'node:fs'
-import { transformSync } from 'esbuild'
+import { fileURLToPath } from 'node:url'
+import { buildSync } from 'esbuild'
 import type { Plugin } from 'vite'
 import { assertValidSiteConfig } from '../config/site.schema'
 import type { SiteConfig } from '../config/site'
+
+// The `fundive/config` entry (defineConfig + types), so a deployment's config
+// can `import { defineConfig } from 'fundive/config'` and still be loaded here.
+const defineEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../config/define.ts')
 
 // The FunDive platform is consumed as a dependency: the app code imports its
 // config from the virtual module `virtual:fundive-config`, which this plugin
@@ -25,10 +29,21 @@ export function configPathFor(cwd = process.cwd()): string {
  */
 export function loadSiteConfig(cwd = process.cwd()): SiteConfig {
   const file = configPathFor(cwd)
-  const src = readFileSync(file, 'utf8')
-  const js = transformSync(src, { loader: 'ts', format: 'cjs' }).code
+  // Bundle (not just transpile) so a config that `import { defineConfig } from
+  // 'fundive/config'` resolves — aliased to the platform's define entry, whose
+  // runtime is just the identity helper (no virtual:fundive-config).
+  const result = buildSync({
+    entryPoints: [file],
+    bundle: true,
+    format: 'cjs',
+    platform: 'node',
+    write: false,
+    logLevel: 'silent',
+    alias: { 'fundive/config': defineEntry },
+  })
+  const code = result.outputFiles[0].text
   const mod: { exports: Record<string, unknown> } = { exports: {} }
-  new Function('module', 'exports', js)(mod, mod.exports)
+  new Function('module', 'exports', code)(mod, mod.exports)
   const siteConfig = (mod.exports.siteConfig ?? mod.exports.default) as SiteConfig
   assertValidSiteConfig(siteConfig)
   return siteConfig

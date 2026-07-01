@@ -1,19 +1,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// TEMPLATE for a new shop's fundive.config.ts.
+// TEMPLATE for a deployment's fundive.config.ts.
 //
-// Copy this file to `fundive.config.ts` and replace every value with your own.
-// Keep it PURE DATA — no imports, no React, no import.meta.env — so the browser,
-// vite.config.ts, the service worker, and the Deno edge functions can all read
-// it. The shape is checked against SiteConfig (src/config/site.ts) at build time.
+// Copy this file to `fundive.config.ts` in your deployment repo and replace every
+// value with your own. `defineConfig` gives you full type-checking + autocomplete
+// against the platform's config contract.
 //
 // Infrastructure that does NOT live here (it's per-account, not app data): your
-// Supabase + Cloudflare secrets go in .env / GitHub Actions secrets / wrangler
-// secrets, and the Worker names live in wrangler.toml + workers/push/wrangler.toml.
-// See docs/forking.md and docs/deployment.md.
+// Supabase + Cloudflare secrets go in .env (see .env.example), and the Worker
+// names live in wrangler.toml + workers/push/wrangler.toml.
+// See docs/architecture.md.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const siteConfig = {
-  // Leave at 1 for a new fork. Only bump when core's CHANGELOG tells you to.
+import { defineConfig } from 'fundive/config'
+
+export const siteConfig = defineConfig({
+  // Bump only when the platform CHANGELOG says to.
   configVersion: 2,
 
   app: {
@@ -82,4 +83,4 @@ export const siteConfig = {
 
   // Home dive region for the admin weather baseline (decimal degrees).
   weatherRegion: { latitude: 0, longitude: 0, label: 'Your home dive region' },
-}
+})
