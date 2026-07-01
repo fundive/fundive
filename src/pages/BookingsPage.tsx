@@ -125,10 +125,10 @@ export function BookingsPage() {
     const addonIds = uniqueUuids(bookings.flatMap(b => (b.details as Booking['details'])?.add_ons ?? []))
     if (addonIds.length) {
       const { data } = await supabase
-        .from('Other_Addons')
-        .select('_id, display_title, admin_title')
-        .in('_id', addonIds)
-      setAddonNames(new Map((data ?? []).map(a => [a._id, a.display_title || a.admin_title || a._id])))
+        .from('addons')
+        .select('id, display_title, admin_title')
+        .in('id', addonIds)
+      setAddonNames(new Map((data ?? []).map(a => [a.id, a.display_title || a.admin_title || a.id])))
     } else {
       setAddonNames(new Map())
     }

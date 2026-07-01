@@ -177,11 +177,11 @@ end$$;
 
 -- Price tiers the crowded fixtures link to. The platform ships no catalog
 -- data seed, so these fixtures are self-contained.
-insert into public."EO_prices" (_id, admin_title, starting_at, deposit_amount, transport)
+insert into public.prices (id, admin_title, starting_at, deposit_amount, transport)
 values
   ('9fd90874-cd94-470c-b07c-c7655b558741'::uuid, 'Fixture dive price',   2800,  1000, 300),
   ('7eca095c-6bc6-4adf-9e48-d8b70b59fb9f'::uuid, 'Fixture course price', 15400, 5000, 0)
-on conflict (_id) do nothing;
+on conflict (id) do nothing;
 
 -- Crowded dive: 14 days out. capacity set high so seeded pending rows
 -- don't get auto-flipped to waitlisted by the BEFORE INSERT trigger.

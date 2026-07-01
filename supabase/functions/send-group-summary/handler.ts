@@ -142,7 +142,7 @@ export async function handleGroupSummary(req: Request, deps: Deps): Promise<Resp
     let room: string | null = null
     if (roomDetail?.option_id) {
       const { data: r } = await admin
-        .from("EO_rooms").select("admin_title, display_title").eq("_id", roomDetail.option_id).maybeSingle()
+        .from("rooms").select("admin_title, display_title").eq("id", roomDetail.option_id).maybeSingle()
       if (r) room = (r.display_title ?? r.admin_title ?? "Room") as string
     }
 
@@ -150,7 +150,7 @@ export async function handleGroupSummary(req: Request, deps: Deps): Promise<Resp
     let addons: string[] = []
     if (addOnIds.length) {
       const { data: as } = await admin
-        .from("Other_Addons").select("_id, admin_title, display_title").in("_id", addOnIds)
+        .from("addons").select("id, admin_title, display_title").in("id", addOnIds)
       addons = (as ?? [])
         .map((a: { admin_title?: string | null; display_title?: string | null }) =>
           (a.display_title ?? a.admin_title ?? "") as string)

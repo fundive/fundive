@@ -9,6 +9,12 @@
  */
 import { describe, it, expect } from 'vitest'
 import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+
+// The local stack names its db container supabase_db_<project_id>; derive it
+// from config.toml so this keeps working for any fork that renames the project.
+const PROJECT_ID = readFileSync('supabase/config.toml', 'utf-8').match(/^project_id = "(.*)"/m)?.[1] ?? 'fundive'
+const DB_CONTAINER = `supabase_db_${PROJECT_ID}`
 
 const NON_NULL_TOKEN_COLUMNS = [
   'confirmation_token',
@@ -26,7 +32,7 @@ describe('auth.users seed integrity', () => {
     const whereNullAny = NON_NULL_TOKEN_COLUMNS.map(c => `${c} IS NULL`).join(' OR ')
     const sql = `SELECT id FROM auth.users WHERE ${whereNullAny};`
     const out = execSync(
-      `docker exec supabase_db_app-fundivers psql -U postgres -d postgres -tAc ${JSON.stringify(sql)}`,
+      `docker exec ${DB_CONTAINER} psql -U postgres -d postgres -tAc ${JSON.stringify(sql)}`,
       { encoding: 'utf-8' }
     ).trim()
 

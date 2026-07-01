@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 // Hub for the admin "Manage" tab. Each card links to a focused
 // create/edit/delete page for one catalog entity:
 //   - events (dives + courses) — uses the existing EventForm
-//   - room options (EO_rooms)
-//   - add-ons (Other_Addons)
-//   - DiveTravel entries
+//   - room options (rooms)
+//   - add-ons (addons)
+//   - dive_travel entries
 //
 // Keeping the hub flat (no nested grouping) so the small set of options
 // stays scannable on a phone.

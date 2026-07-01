@@ -29,8 +29,8 @@ const destIds: string[] = []
 
 async function makeRoom(name: string): Promise<string> {
   const id = crypto.randomUUID()
-  const { error } = await admin.from('EO_rooms' as never).insert({
-    _id: id, display_title: name, admin_title: name, added_price: 0, currency: 'TWD',
+  const { error } = await admin.from('rooms' as never).insert({
+    id: id, display_title: name, admin_title: name, added_price: 0, currency: 'TWD',
   } as never)
   if (error) throw error
   roomIds.push(id)
@@ -38,8 +38,8 @@ async function makeRoom(name: string): Promise<string> {
 }
 async function makeAddon(name: string): Promise<string> {
   const id = crypto.randomUUID()
-  const { error } = await admin.from('Other_Addons' as never).insert({
-    _id: id, display_title: name, admin_title: name, price: 0, currency: 'TWD',
+  const { error } = await admin.from('addons' as never).insert({
+    id: id, display_title: name, admin_title: name, price: 0, currency: 'TWD',
   } as never)
   if (error) throw error
   addonIds.push(id)
@@ -47,8 +47,8 @@ async function makeAddon(name: string): Promise<string> {
 }
 async function makeDestination(name: string): Promise<string> {
   const id = crypto.randomUUID()
-  const { error } = await admin.from('TravelDestinations' as never).insert({
-    _id: id, admin_title: name, slug: `/test/${id}`, country: 'Testland',
+  const { error } = await admin.from('travel_destinations' as never).insert({
+    id: id, admin_title: name, slug: `/test/${id}`, country: 'Testland',
   } as never)
   if (error) throw error
   destIds.push(id)
@@ -63,9 +63,9 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  if (roomIds.length)  await admin.from('EO_rooms' as never).delete().in('_id', roomIds)
-  if (addonIds.length) await admin.from('Other_Addons' as never).delete().in('_id', addonIds)
-  if (destIds.length)  await admin.from('TravelDestinations' as never).delete().in('_id', destIds)
+  if (roomIds.length)  await admin.from('rooms' as never).delete().in('id', roomIds)
+  if (addonIds.length) await admin.from('addons' as never).delete().in('id', addonIds)
+  if (destIds.length)  await admin.from('travel_destinations' as never).delete().in('id', destIds)
   if (diveId)   await deleteTestDive(admin, diveId)
   if (courseId) await deleteTestCourse(admin, courseId)
   if (adminUser) await deleteTestUser(admin, adminUser.id)

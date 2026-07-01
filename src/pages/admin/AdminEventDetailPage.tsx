@@ -142,22 +142,22 @@ export function AdminEventDetailPage() {
       const roomIds = uniqueUuids(bookings.map(b => (b.details as BookingDetails).room?.option_id))
       const [addonRes, roomRes] = await Promise.all([
         addonIds.length
-          ? supabase.from('Other_Addons').select('_id, display_title, admin_title, price').in('_id', addonIds)
-          : Promise.resolve({ data: [] as { _id: string; display_title: string | null; admin_title: string | null; price: number | null }[] }),
+          ? supabase.from('addons').select('id, display_title, admin_title, price').in('id', addonIds)
+          : Promise.resolve({ data: [] as { id: string; display_title: string | null; admin_title: string | null; price: number | null }[] }),
         roomIds.length
-          ? supabase.from('EO_rooms').select('_id, display_title, admin_title, added_price').in('_id', roomIds)
-          : Promise.resolve({ data: [] as { _id: string; display_title: string | null; admin_title: string | null; added_price: number | null }[] }),
+          ? supabase.from('rooms').select('id, display_title, admin_title, added_price').in('id', roomIds)
+          : Promise.resolve({ data: [] as { id: string; display_title: string | null; admin_title: string | null; added_price: number | null }[] }),
       ])
       if (cancelled) return
-      const addonNameMap = new Map((addonRes.data ?? []).map(a => [a._id, a.display_title || a.admin_title || a._id]))
-      const roomNameMap = new Map((roomRes.data ?? []).map(r => [r._id, r.display_title || r.admin_title || r._id]))
+      const addonNameMap = new Map((addonRes.data ?? []).map(a => [a.id, a.display_title || a.admin_title || a.id]))
+      const roomNameMap = new Map((roomRes.data ?? []).map(r => [r.id, r.display_title || r.admin_title || r.id]))
       setAddonNames(addonNameMap)
       setRoomNames(roomNameMap)
 
       // Price maps drive the display-time recompute for bookings created before
       // the itemized charge snapshot existed (see resolveCharges).
-      const addonPrices = new Map((addonRes.data ?? []).map(a => [a._id, { label: addonNameMap.get(a._id) ?? a._id, amount: a.price ?? 0 }]))
-      const roomPrices = new Map((roomRes.data ?? []).map(r => [r._id, { label: roomNameMap.get(r._id) ?? r._id, amount: r.added_price ?? 0 }]))
+      const addonPrices = new Map((addonRes.data ?? []).map(a => [a.id, { label: addonNameMap.get(a.id) ?? a.id, amount: a.price ?? 0 }]))
+      const roomPrices = new Map((roomRes.data ?? []).map(r => [r.id, { label: roomNameMap.get(r.id) ?? r.id, amount: r.added_price ?? 0 }]))
 
       setRegistrants(bookings.map(b => ({
         booking: b,

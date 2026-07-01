@@ -5,7 +5,7 @@ import { siteConfig } from '../config/site'
 import type { AppEvent, EventDetails, EventRow, EOPrice } from '../types/database'
 
 type DiveTravelDetail = {
-  _id: string
+  id: string
   included: string | null
   not_included: string | null
   transportation: string | null
@@ -315,10 +315,10 @@ async function attachDiveOutings(eventIds: string[]): Promise<Map<string, DiveOu
 
   const destIds = [...new Set(links.map(l => l.destination_id))]
   const { data: dests } = await supabase
-    .from('TravelDestinations')
-    .select('_id, divetype, northeast_diving')
-    .in('_id', destIds)
-  const destById = new Map((dests ?? []).map(d => [d._id, d]))
+    .from('travel_destinations')
+    .select('id, divetype, northeast_diving')
+    .in('id', destIds)
+  const destById = new Map((dests ?? []).map(d => [d.id, d]))
 
   const byEvent = new Map<string, Array<{ divetype: string | null; northeast_diving: boolean | null }>>()
   for (const l of links) {
@@ -336,18 +336,18 @@ async function attachDiveOutings(eventIds: string[]): Promise<Map<string, DiveOu
 }
 
 /**
- * Fetch the DiveTravel rows referenced by a batch of events (via
- * events.divetravel_id, a single id). Returns a map keyed by DiveTravel._id.
+ * Fetch the dive_travel rows referenced by a batch of events (via
+ * events.divetravel_id, a single id). Returns a map keyed by dive_travel.id.
  */
 async function attachDiveTravel(refs: Array<string | null>): Promise<Map<string, DiveTravelDetail>> {
   const out = new Map<string, DiveTravelDetail>()
   const ids = [...new Set(refs.filter((x): x is string => !!x))]
   if (!ids.length) return out
   const { data } = await supabase
-    .from('DiveTravel')
-    .select('_id, included, not_included, transportation, itinerary, prerequisites')
-    .in('_id', ids)
-  for (const row of data ?? []) out.set(row._id, row as DiveTravelDetail)
+    .from('dive_travel')
+    .select('id, included, not_included, transportation, itinerary, prerequisites')
+    .in('id', ids)
+  for (const row of data ?? []) out.set(row.id, row as DiveTravelDetail)
   return out
 }
 
@@ -419,10 +419,10 @@ async function attachPrices(events: EventRow[]): Promise<Map<string, EOPrice>> {
   const priceIds = events.map(e => e.price).filter((x): x is string => !!x)
   if (!priceIds.length) return new Map()
   const { data } = await supabase
-    .from('EO_prices')
-    .select('_id, admin_title, starting_at, deposit_amount, transport')
-    .in('_id', [...new Set(priceIds)])
-  return new Map((data ?? []).map(p => [p._id, p as EOPrice]))
+    .from('prices')
+    .select('id, admin_title, starting_at, deposit_amount, transport')
+    .in('id', [...new Set(priceIds)])
+  return new Map((data ?? []).map(p => [p.id, p as EOPrice]))
 }
 
 // Core columns only — the descriptive detail columns are fetched best-effort by

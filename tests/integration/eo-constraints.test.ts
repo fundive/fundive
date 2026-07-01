@@ -1,7 +1,7 @@
 /**
  * Constraint tests for the catalog tables: the unified events table plus the
- * still-legacy EO_prices, EO_rooms, Other_Addons. These exercise the real FK
- * relationships (events.price -> EO_prices._id) and events' own CHECKs.
+ * still-legacy prices, rooms, addons. These exercise the real FK
+ * relationships (events.price -> prices.id) and events' own CHECKs.
  *
  * The remaining EO_* tables carry Bubble-legacy column names with spaces and
  * capitals ("Created Date"), hyphens and double-quote quoting. supabase-js
@@ -16,7 +16,7 @@ const createdEventIds: string[] = []
 
 afterEach(async () => {
   if (createdEventIds.length) await admin.from('events' as never).delete().in('id', createdEventIds)
-  if (createdPriceIds.length) await admin.from('EO_prices' as never).delete().in('_id', createdPriceIds)
+  if (createdPriceIds.length) await admin.from('prices' as never).delete().in('id', createdPriceIds)
   createdEventIds.length = 0
   createdPriceIds.length = 0
 })
@@ -31,18 +31,18 @@ function rid() {
 const NONEXISTENT_PRICE_ID = '00000000-0000-0000-0000-000000000099'
 
 describe('catalog table constraints', () => {
-  it('EO_prices._id is a primary key (duplicate inserts are rejected)', async () => {
+  it('prices.id is a primary key (duplicate inserts are rejected)', async () => {
     const id = rid()
-    const first = await admin.from('EO_prices' as never).insert({ _id: id, admin_title: 'First' } as never)
+    const first = await admin.from('prices' as never).insert({ id: id, admin_title: 'First' } as never)
     expect(first.error).toBeNull()
     createdPriceIds.push(id)
 
-    const dup = await admin.from('EO_prices' as never).insert({ _id: id, admin_title: 'Dup' } as never)
+    const dup = await admin.from('prices' as never).insert({ id: id, admin_title: 'Dup' } as never)
     expect(dup.error).toBeTruthy()
     expect(String(dup.error?.message ?? '')).toMatch(/duplicate|unique/i)
   })
 
-  it('events.price → EO_prices._id FK rejects orphan references (course kind)', async () => {
+  it('events.price → prices.id FK rejects orphan references (course kind)', async () => {
     const { error } = await admin.from('events' as never).insert({
       id: rid(),
       kind: 'course',
@@ -54,7 +54,7 @@ describe('catalog table constraints', () => {
     expect(String(error?.message ?? '')).toMatch(/foreign|violat/i)
   })
 
-  it('events.price → EO_prices._id FK rejects orphan references (dive kind)', async () => {
+  it('events.price → prices.id FK rejects orphan references (dive kind)', async () => {
     const { error } = await admin.from('events' as never).insert({
       id: rid(),
       kind: 'dive',
@@ -68,7 +68,7 @@ describe('catalog table constraints', () => {
 
   it('events.price has ON DELETE SET NULL: deleting the price nulls the reference', async () => {
     const priceId = rid()
-    await admin.from('EO_prices' as never).insert({ _id: priceId, admin_title: 'P' } as never)
+    await admin.from('prices' as never).insert({ id: priceId, admin_title: 'P' } as never)
     createdPriceIds.push(priceId)
 
     const eventId = rid()
@@ -78,7 +78,7 @@ describe('catalog table constraints', () => {
     createdEventIds.push(eventId)
 
     // Delete the price — event.price should become NULL.
-    await admin.from('EO_prices' as never).delete().eq('_id', priceId)
+    await admin.from('prices' as never).delete().eq('id', priceId)
     // Remove from cleanup since we already deleted
     createdPriceIds.splice(createdPriceIds.indexOf(priceId), 1)
 
@@ -115,23 +115,23 @@ describe('catalog table constraints', () => {
     expect(String(error?.message ?? '')).toMatch(/events_course_has_days|course_days|violat|check/i)
   })
 
-  it('EO_rooms and Other_Addons have _id primary keys (round-trips cleanly)', async () => {
+  it('rooms and addons have id primary keys (round-trips cleanly)', async () => {
     const roomId = rid()
-    const ins = await admin.from('EO_rooms' as never).insert({
-      _id: roomId, admin_title: 'Test Room',
+    const ins = await admin.from('rooms' as never).insert({
+      id: roomId, admin_title: 'Test Room',
     } as never)
     expect(ins.error).toBeNull()
 
-    const { data } = await admin.from('EO_rooms' as never).select('_id').eq('_id', roomId).single()
-    expect((data as { _id: string })._id).toBe(roomId)
+    const { data } = await admin.from('rooms' as never).select('id').eq('id', roomId).single()
+    expect((data as { id: string }).id).toBe(roomId)
 
-    await admin.from('EO_rooms' as never).delete().eq('_id', roomId)
+    await admin.from('rooms' as never).delete().eq('id', roomId)
 
     const addonId = rid()
-    const ins2 = await admin.from('Other_Addons' as never).insert({
-      _id: addonId, admin_title: 'Test Addon',
+    const ins2 = await admin.from('addons' as never).insert({
+      id: addonId, admin_title: 'Test Addon',
     } as never)
     expect(ins2.error).toBeNull()
-    await admin.from('Other_Addons' as never).delete().eq('_id', addonId)
+    await admin.from('addons' as never).delete().eq('id', addonId)
   })
 })

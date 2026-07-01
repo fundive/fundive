@@ -17,11 +17,11 @@ export interface FormState {
   end_date: string
   /** Max confirmed bookings before the trigger forces waitlist. Empty = uncapped. */
   capacity: string
-  price: string          // FK → EO_prices._id; empty = no price linked
+  price: string          // FK → prices.id; empty = no price linked
   prereq_cert_id: string // FK → cert_levels.id; empty = no cert required
   req_dives: string      // dives store bigint, courses store text — keep as string here
   dive_days: string      // bigint or empty
-  addonIds: string[]     // FK multi → Other_Addons
+  addonIds: string[]     // FK multi → addons
   // Plain image URLs the shop hosts itself; the SPA stores and round-trips
   // the text (no upload/resolve).
   featured_image: string // both kinds
@@ -31,12 +31,12 @@ export interface FormState {
   featured: boolean
   fully_booked: boolean
   is_private: boolean    // dive-only: hidden from diver-facing calendars
-  roomIds: string[]      // FK multi → EO_rooms
+  roomIds: string[]      // FK multi → rooms
   nitrox_required: boolean
   gear_rental: string
   cancel_date: string
   cancel_policy: string
-  destinationIds: string[]   // FK multi → TravelDestinations
+  destinationIds: string[]   // FK multi → travel_destinations
   divetravel_reference: string
   // full-payment deadline (both event types) — empty string = unset, falls
   // back client-side to "7 days before start_date". The deposit is always
