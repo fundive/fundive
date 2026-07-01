@@ -18,7 +18,7 @@
 //      (instructors / guides / support), deduped by person, with their role
 //      noted in the 備註 column. Anyone already booked as a diver is skipped.
 //   7. Build an .xlsx via _shared/event-divers-xlsx.ts and email it to
-//      fundiverstw@gmail.com with the caller BCCed.
+//      hello@example.com with the caller BCCed.
 //
 // Body: { event_type: 'dive' | 'course', event_id: string,
 //         boat?: { boat_name?: string, registration?: string, notes?: string[] } }

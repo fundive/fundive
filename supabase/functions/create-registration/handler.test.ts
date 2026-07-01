@@ -184,7 +184,7 @@ function makeDeps(opts: MockOpts = {}): { deps: Deps; captured: CapturedWrites }
     anon,
     transporter,
     buildPdfBase64: vi.fn(async () => 'ZmFrZS1wZGY='),
-    env: { companyEmail: 'fundiverstw@gmail.com', mailFromName: 'FunDivers TW', mailFromAddress: 'fundiverstw@gmail.com' },
+    env: { companyEmail: 'hello@example.com', mailFromName: 'Your Dive Shop', mailFromAddress: 'hello@example.com' },
     verifyTurnstile,
   }
   return { deps, captured }
@@ -527,12 +527,12 @@ describe('handleRegistration — email behaviour', () => {
     const { deps, captured } = makeDeps()
     await handleRegistration(postJson({
       ...goodBody,
-      email:    'fundiverstw@gmail.com',
+      email:    'hello@example.com',
       password: 'hunter2hunter2',
       turnstile_token: 'tk',
     }), deps)
     expect(captured.sendMailCalls).toHaveLength(1)
-    expect(captured.sendMailCalls[0].to).toBe('fundiverstw@gmail.com')
+    expect(captured.sendMailCalls[0].to).toBe('hello@example.com')
   })
 
   it('waitlisted booking sends text-only email (no PDF attachment)', async () => {
