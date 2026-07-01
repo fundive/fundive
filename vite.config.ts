@@ -1,35 +1,18 @@
-import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { siteConfig } from './fundive.config'
-import { assertValidSiteConfig } from './src/config/site.schema'
+import { fundive, loadSiteConfig, configPathFor } from './src/vite'
 
-// Fail fast if the fork's fundive.config.ts is malformed or its configVersion is
-// behind the core contract — same loud-at-build philosophy as the env check
-// below. Runs at config load so `vite dev` catches it too.
-assertValidSiteConfig(siteConfig)
+// The deployment's config, read + validated from the cwd where the build runs.
+// `fundive()` bakes values into index.html; here we also need them eagerly for
+// the PWA manifest and the env gate.
+const siteConfig = loadSiteConfig()
 
-// Replace static placeholders in index.html with values from fundive.config.ts,
-// so the title / description / theme-color / favicon track the shop config
-// rather than being hardcoded in the HTML.
-function htmlConfigPlugin(): Plugin {
-  const replacements: Record<string, string> = {
-    '%APP_TITLE%': siteConfig.app.name,
-    '%APP_DESCRIPTION%': siteConfig.app.description,
-    '%THEME_COLOR%': siteConfig.theme.themeColor,
-    '%FAVICON%': siteConfig.assets.favicon,
-  }
-  return {
-    name: 'fundive-html-config',
-    transformIndexHtml(html) {
-      return Object.entries(replacements).reduce(
-        (out, [token, value]) => out.replaceAll(token, value),
-        html,
-      )
-    },
-  }
-}
+// Resolve `virtual:fundive-config` to the deployment's config via an alias
+// (not just the plugin) so the vite-plugin-pwa service-worker sub-build — which
+// runs its own bundler pass and doesn't inherit our plugin — resolves it too.
+const configAlias = { 'virtual:fundive-config': configPathFor() }
 
 export default defineConfig(({ command, mode }) => {
   // Client env vars whose absence silently breaks a core flow at runtime
@@ -60,10 +43,11 @@ export default defineConfig(({ command, mode }) => {
   }
 
   return {
+    resolve: { alias: configAlias },
     plugins: [
     react(),
     tailwindcss(),
-    htmlConfigPlugin(),
+    fundive(),
     VitePWA({
       // injectManifest so src/sw.ts owns the service worker — we need the
       // `push` + `notificationclick` handlers on top of workbox precaching

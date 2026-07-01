@@ -1,4 +1,5 @@
-import { siteConfig as raw } from '../../fundive.config'
+import { siteConfig as raw } from 'virtual:fundive-config'
+export { CONFIG_CONTRACT_VERSION } from './contract'
 
 // Shop configuration contract. `fundive.config.ts` at the repo root holds the
 // values (pure data, no imports, so every runtime can read it); this file is the
@@ -108,11 +109,6 @@ export interface SiteConfig {
   business: SiteBusiness
   weatherRegion: SiteWeatherRegion
 }
-
-// Bump when the SiteConfig contract changes in a way that requires a deployment
-// to migrate its fundive.config.ts. The build compares this against
-// siteConfig.configVersion and fails loudly on a mismatch.
-export const CONFIG_CONTRACT_VERSION = 2
 
 /**
  * Identity helper a deployment uses to author its `fundive.config.ts` with full
