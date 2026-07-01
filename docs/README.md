@@ -1,12 +1,13 @@
-# FunDivers TW — docs
+# FunDive platform — docs
 
-Start here when picking up this codebase. Each doc below covers one
-slice; read the one closest to the change you're making before you dive
-into source.
+Start with [architecture.md](./architecture.md) — the platform-vs-deployment
+model, the config surface, and the upgrade contract. The rest cover one slice of
+the platform each; read the one closest to the change you're making before you
+dive into source.
 
 | Doc | What it covers |
 | --- | --- |
-| [architecture.md](./architecture.md)                   | Stack, directory layout, runtime boundaries (client / worker / Supabase) |
+| [architecture.md](./architecture.md)                   | Platform-as-dependency model, `defineConfig` + `.env` surface, the `fundive` CLI, runtime boundaries, versioning contract |
 | [data-model.md](./data-model.md)                       | Every table, the `EO_*` Bubble-import convention, XOR FK pattern |
 | [authentication.md](./authentication.md)               | Sign-up trigger, `useAuth`, role gating, `ProtectedRoute` / `AdminRoute` |
 | [events-and-bookings.md](./events-and-bookings.md)     | Calendar rendering, register-form wizard, `bookings.details` JSONB shape |
@@ -14,29 +15,29 @@ into source.
 | [admin.md](./admin.md)                                 | Admin routes, event memos, user search, role-view toggle |
 | [trip-board.md](./trip-board.md)                       | Partner referral network: curated trips abroad, referral codes, kickback ledger |
 | [push-notifications.md](./push-notifications.md)       | Web Push: VAPID, service worker, Cloudflare cron sender, `/admin-broadcast`, `/notify-duty`, CORS |
-| [testing.md](./testing.md)                             | Unit vs integration conventions, `mockQueryBuilder`, Makefile surface |
-| [deployment.md](./deployment.md)                       | Env vars (which secret lives where), Cloudflare deploy (CLI + GitHub Actions), Supabase link / push / pull / verify, edge functions |
-| [forking.md](./forking.md)                             | Running your own shop: the `fundive.config.ts` seam, brand assets, feature gates, and how to pull core updates without conflicts |
-| [security-audit.md](./security-audit.md)               | Point-in-time audit (2026-06-02): findings by severity, fix priority |
-| [legal-brief.md](./legal-brief.md)                     | Brief for the Terms-of-Use / Privacy lawyer review: data inventory, flows, code-text alignment, open questions |
+| [testing.md](./testing.md)                             | Unit vs integration conventions, `mockQueryBuilder`, test layout |
+| [deployment.md](./deployment.md)                       | Env vars (which secret lives where), Cloudflare deploy, Supabase push / verify, edge functions |
 
 ## Conventions called out across docs
 
-- **Migrations are immutable once pushed.** Add a forward migration; never
-  edit a file already applied to cloud. See
+- **Migrations are immutable once released.** A migration in a published tag is a
+  public contract — add a forward migration, never edit an applied one. See
+  [architecture.md](./architecture.md#versioning--the-upgrade-contract) and
   [data-model.md](./data-model.md#migrations).
-- **No i18n.** The app is English-only.
-- **No emojis in code or commits** unless explicitly requested.
+- **Config over forking.** Shop-specific values live in a deployment's
+  `fundive.config.ts` / `.env` / `brand/`, never in platform source. See
+  [architecture.md](./architecture.md#the-customization-boundary).
+- **No i18n.** The platform is English-only.
 - **XOR FKs** appear in `bookings` and `event_memos`: exactly one of
   `eo_dive_id` / `eo_course_id` is set. Don't "fix" one side.
 
-## Common commands
+## Commands (via the `fundive` CLI, run from a deployment repo)
 
 ```sh
-make dev       # Vite against local supabase stack
-make start     # boot local supabase stack (Docker)
-make test      # full test suite (unit + integration)
-make push      # push local migrations to cloud
-make verify    # confirm local schema + row counts match cloud
-make deploy    # deploy both workers (SPA + push cron)
+npx fundive dev            # dev server against a local Supabase stack
+npx fundive build          # production build with your branding baked in
+npx fundive deploy         # deploy the SPA worker to your Cloudflare
+npx fundive db push        # apply the platform migrations to your Supabase
+npx fundive db verify      # confirm your schema matches the pinned version
+npx fundive functions deploy
 ```

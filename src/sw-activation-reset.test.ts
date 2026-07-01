@@ -20,7 +20,7 @@ function makeScope() {
 describe('wipeCachesAndClaim', () => {
   it('deletes every cache the SW currently owns', async () => {
     const storage = makeStorage([
-      'workbox-precache-v2-https://app.fundiverstw.com/',
+      'workbox-precache-v2-https://app.example.com/',
       'supabase-api',
       'random-leftover',
     ])
@@ -31,7 +31,7 @@ describe('wipeCachesAndClaim', () => {
     expect(storage.delete).toHaveBeenCalledTimes(3)
     expect(storage.delete.mock.calls.map(c => c[0])).toEqual(
       expect.arrayContaining([
-        'workbox-precache-v2-https://app.fundiverstw.com/',
+        'workbox-precache-v2-https://app.example.com/',
         'supabase-api',
         'random-leftover',
       ]),

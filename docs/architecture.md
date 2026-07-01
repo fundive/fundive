@@ -231,13 +231,17 @@ upgrade as potentially breaking until 1.0.
 This architecture is the target. Current state:
 
 - ✅ Platform repo established: license, governance, versioning.
-- ⏳ **Extract the config seam** — `fundive.config.ts`, the env contract, and the
-  `fundive` CLI skeleton — so feature code is ported already config-driven.
-- ⏳ **Port the application** feature-by-feature from the first deployment, with a
-  secrets scrub at the boundary.
+- ✅ **Config seam** — `fundive.config.ts` with the `defineConfig({ app, theme,
+  features, … })` contract (`fundive/config`), the `.env.example` contract, and
+  build-time injection via `virtual:fundive-config` (the `fundive/vite` plugin).
+- ✅ **`fundive` CLI skeleton** — `dev / build / preview / deploy / db push|verify
+  / functions deploy`, wired through `package.json` `bin`.
+- ✅ **Application ported** from the first deployment, already config-driven, with
+  a secrets/branding scrub at the boundary. All ~1,140 unit tests pass against a
+  neutral default config.
+- ⏳ **Consumer-root build** — serve the platform's `index.html`/`src` while
+  reading the deployment's `public/` `brand/`. Works today from the platform repo;
+  the deployment-as-separate-repo path is the next refinement.
 - ⏳ **Generalize the catalog model.** The first deployment's catalog tables are
   legacy Bubble imports specific to that shop; the platform needs a clean,
-  operator-agnostic catalog schema. This is the largest piece of work.
-
-Until those land, the CLI commands and config files above describe the intended
-interface, not shipping functionality.
+  operator-agnostic catalog schema. This is the largest remaining piece of work.

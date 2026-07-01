@@ -70,7 +70,7 @@ function makeDeps(opts: Opts = {}) {
     }),
     transporter: opts.transporter === false ? null : { sendMail },
     buildGroupPdfBase64,
-    env: { companyEmail: 'shop@fundiverstw.com', mailFromName: 'FunDivers TW', mailFromAddress: 'shop@fundiverstw.com' },
+    env: { companyEmail: 'hello@example.com', mailFromName: 'Your Dive Shop', mailFromAddress: 'hello@example.com' },
   }
   return { deps, sendMail, buildGroupPdfBase64 }
 }
@@ -101,7 +101,7 @@ describe('handleGroupSummary', () => {
     // One mail to the company, one to the lead.
     expect(sendMail).toHaveBeenCalledTimes(2)
     const recipients = sendMail.mock.calls.map(c => c[0].to)
-    expect(recipients).toContain('shop@fundiverstw.com')
+    expect(recipients).toContain('hello@example.com')
     expect(recipients).toContain('ada@example.com')
   })
 
