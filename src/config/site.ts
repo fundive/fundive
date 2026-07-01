@@ -110,13 +110,4 @@ export interface SiteConfig {
   weatherRegion: SiteWeatherRegion
 }
 
-/**
- * Identity helper a deployment uses to author its `fundive.config.ts` with full
- * type-checking and autocomplete: `export const siteConfig = defineConfig({ … })`.
- * Exported to deployments as `fundive/config`.
- */
-export function defineConfig(config: SiteConfig): SiteConfig {
-  return config
-}
-
 export const siteConfig: SiteConfig = raw
