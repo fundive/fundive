@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../../lib/supabase'
 import { errorMessage } from '../../lib/errors'
+import { fetchEventRelations } from '../../lib/event-relations'
 import { siteConfig } from '../../config/site'
 import type { CancellationPolicy, CertLevel, DiveTravelEntry, EOAddon, EOCourse, EODive, EOPrice, EORoom, TravelDestination } from '../../types/database'
 import {
@@ -193,19 +194,20 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
 
   const filteredPastEvents = pastEvents.filter(p => p.kind === form.type)
 
-  function applyPreload(p: PastEvent) {
-    if (p.kind === 'dive') {
-      setForm(formStateFromDive(p.row))
-    } else {
-      setForm(formStateFromCourse(p.row))
-    }
+  async function applyPreload(p: PastEvent) {
+    // Rooms/add-ons/destinations live in the junction tables, so fetch them
+    // for the picked event to clone the full config.
+    const rels = await fetchEventRelations(p.kind, p.id)
+    setForm(p.kind === 'dive'
+      ? formStateFromDive(p.row, rels)
+      : formStateFromCourse(p.row, rels))
   }
 
   function handlePreload(id: string) {
     setPreloadId(id)
     if (!id) return
     const found = pastEvents.find(p => p.id === id)
-    if (found) applyPreload(found)
+    if (found) void applyPreload(found)
   }
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -290,7 +292,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
         (a, b) => (a.admin_title ?? a.display_title ?? '').localeCompare(b.admin_title ?? b.display_title ?? '')
       ))
       // Auto-tick the new room so admins don't have to scroll back.
-      setForm(f => ({ ...f, has_rooms: true, roomIds: [...f.roomIds, id] }))
+      setForm(f => ({ ...f, roomIds: [...f.roomIds, id] }))
       setRoomForm(EMPTY_ROOM_FORM)
       setShowNewRoom(false)
     } catch (err) {
@@ -576,13 +578,13 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
             <Field label="Gear rental info">
               <Input value={form.gear_rental} onChange={v => set('gear_rental', v)} />
             </Field>
-            <WixImageField
-              label="Featured image (Wix URI)"
+            <UrlImageField
+              label="Featured image URL"
               value={form.featured_image}
               onChange={v => set('featured_image', v)}
             />
-            <WixImageField
-              label="Second image (Wix URI)"
+            <UrlImageField
+              label="Second image URL"
               value={form.second_image}
               onChange={v => set('second_image', v)}
             />
@@ -658,8 +660,8 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
           </Section>
 
           <Section title="Rooms">
-            <Checkbox checked={form.has_rooms} onChange={v => set('has_rooms', v)} label="Offers rooms" />
-            {form.has_rooms && rooms.length > 0 && (
+            <p className="text-xs text-white/60">Tick any room options this dive offers. Leave all unticked for none.</p>
+            {rooms.length > 0 && (
               <div className="space-y-1 max-h-48 overflow-y-auto bg-white/70 backdrop-blur-md border border-surface-200 rounded-md p-2">
                 {rooms.map(r => (
                   <Checkbox
@@ -728,8 +730,8 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
           <Field label="Schedule">
             <Textarea value={form.schedule} onChange={v => set('schedule', v)} />
           </Field>
-          <WixImageField
-            label="Featured image (Wix URI)"
+          <UrlImageField
+            label="Featured image URL"
             value={form.featured_image}
             onChange={v => set('featured_image', v)}
           />
@@ -878,31 +880,21 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-// Wix media references look like
-//   wix:image://v1/<id>/<filename>#originWidth=…&originHeight=…
-// Wix Velo reads them directly for hero / gallery rendering. We don't
-// resolve or validate beyond a soft prefix hint — admins paste in
-// whatever the Wix Media Manager hands them.
-function WixImageField({
+// A plain image-URL field. The shop hosts its own images (its CDN, object
+// storage, etc.) and pastes the URL; the app stores it verbatim.
+function UrlImageField({
   label, value, onChange,
 }: { label: string; value: string; onChange: (v: string) => void }) {
-  const trimmed = value.trim()
-  const looksRight = trimmed === '' || trimmed.startsWith('wix:image://')
   return (
     <label className="block space-y-1">
       <span className="text-xs font-medium text-white/80">{label}</span>
       <input
-        type="text"
+        type="url"
         value={value}
         onChange={e => onChange(e.target.value)}
-        placeholder="wix:image://v1/…/…jpg#originWidth=…&originHeight=…"
+        placeholder="https://…"
         className={INPUT_CLASS}
       />
-      {!looksRight && (
-        <span className="block text-[11px] text-amber-300">
-          Expected a Wix media URI starting with <code>wix:image://</code>. Save anyway if you've pasted a different format on purpose.
-        </span>
-      )}
     </label>
   )
 }

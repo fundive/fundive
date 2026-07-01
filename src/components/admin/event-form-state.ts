@@ -22,10 +22,8 @@ export interface FormState {
   req_dives: string      // dives store bigint, courses store text — keep as string here
   dive_days: string      // bigint or empty
   addonIds: string[]     // FK multi → Other_Addons
-  // Wix media references — paste from the Wix Media Manager (URI looks
-  // like `wix:image://v1/<id>/<filename>#originWidth=…&originHeight=…`).
-  // The Wix site reads these directly for hero / gallery rendering; the
-  // SPA only stores and round-trips the text.
+  // Plain image URLs the shop hosts itself; the SPA stores and round-trips
+  // the text (no upload/resolve).
   featured_image: string // EO_dives + EO_courses
   second_image: string   // EO_dives only — left empty for courses
   // dive
@@ -33,13 +31,12 @@ export interface FormState {
   featured: boolean
   fully_booked: boolean
   is_private: boolean    // dive-only: hidden from diver-facing calendars
-  has_rooms: boolean
-  roomIds: string[]      // FK multi → EO_rooms (CSV-encoded)
+  roomIds: string[]      // FK multi → EO_rooms
   nitrox_required: boolean
   gear_rental: string
   cancel_date: string
   cancel_policy: string
-  destinationIds: string[]   // FK multi → TravelDestinations (JSON-encoded into destination_reference)
+  destinationIds: string[]   // FK multi → TravelDestinations
   divetravel_reference: string
   // full-payment deadline (both event types) — empty string = unset, falls
   // back client-side to "7 days before start_date". The deposit is always
@@ -64,7 +61,7 @@ export const EMPTY_FORM: FormState = {
   addonIds: [],
   featured_image: '', second_image: '',
   notes: '', featured: false, fully_booked: false, is_private: false,
-  has_rooms: false, roomIds: [],
+  roomIds: [],
   nitrox_required: false, gear_rental: '',
   cancel_date: '', cancel_policy: '',
   destinationIds: [], divetravel_reference: '',
@@ -72,6 +69,19 @@ export const EMPTY_FORM: FormState = {
   courseDays: [], course_name: '',
   included: '', schedule: '',
 }
+
+/**
+ * An event's related catalog ids, held in the junction tables (the single
+ * source of truth). Loaded alongside an event for editing/preload, and written
+ * back via the set_event_relations RPC. See src/lib/event-relations.ts.
+ */
+export interface EventRelations {
+  roomIds: string[]
+  addonIds: string[]
+  destinationIds: string[]
+}
+
+const NO_RELATIONS: EventRelations = { roomIds: [], addonIds: [], destinationIds: [] }
 
 function toHhmm(raw: string | null | undefined): string {
   if (!raw) return ''
@@ -91,29 +101,12 @@ function stripCapacitySuffix(raw: string | null | undefined): string {
   return raw.replace(/\s*\((?:\d+\s*spots?\s*open|fully booked\s*[-–—]+\s*register for waitlist)\)\s*$/i, '')
 }
 
-// other_addons can be a JSON array string, a CSV string, or empty (Bubble
-// legacy). Try JSON first, fall back to CSV — same shape as the DB-side
-// parse_addon_ids() function.
-export function parseAddonIds(raw: string | null | undefined): string[] {
-  if (!raw) return []
-  const trimmed = raw.trim()
-  if (!trimmed) return []
-  if (trimmed.startsWith('[')) {
-    try {
-      const parsed = JSON.parse(trimmed)
-      if (Array.isArray(parsed)) return parsed.map(String).map(s => s.trim()).filter(Boolean)
-    } catch { /* fall through to CSV */ }
-  }
-  return trimmed.split(',').map(s => s.trim()).filter(Boolean)
-}
-
-export function parseCsvIds(raw: string | null | undefined): string[] {
-  if (!raw) return []
-  return raw.split(',').map(s => s.trim()).filter(Boolean)
-}
-
-/** Build a FormState from an existing EO_dives row (used by edit page). */
-export function formStateFromDive(d: EODive): FormState {
+/**
+ * Build a FormState from an existing EO_dives row (used by the edit page and the
+ * preload picker). Room/add-on/destination ids come from the junction tables via
+ * `rels`, not from the row.
+ */
+export function formStateFromDive(d: EODive, rels: EventRelations = NO_RELATIONS): FormState {
   return {
     type: 'dive',
     admin_title: d.admin_title ?? '',
@@ -127,18 +120,17 @@ export function formStateFromDive(d: EODive): FormState {
     prereq_cert_id: d.prereq_cert_id ?? '',
     req_dives: d.req_dives != null ? String(d.req_dives) : '',
     dive_days: d.dive_days != null ? String(d.dive_days) : '',
-    addonIds: parseAddonIds(d.other_addons),
+    addonIds: rels.addonIds,
     notes: d.notes ?? '',
     featured: !!d.featured,
     fully_booked: !!d.fully_booked,
     is_private: !!d.is_private,
-    has_rooms: !!d.has_rooms,
-    roomIds: parseCsvIds(d.room_types),
+    roomIds: rels.roomIds,
     nitrox_required: d.nitrox_required ?? false,
     gear_rental: d.gear_rental ?? '',
     cancel_date: d.cancel_date ?? '',
     cancel_policy: d.cancel_policy ?? '',
-    destinationIds: parseAddonIds(d.destination_reference),
+    destinationIds: rels.destinationIds,
     divetravel_reference: d.DiveTravel_reference ?? '',
     full_payment_deadline: d.full_payment_deadline ?? '',
     featured_image: d.featured_image ?? '',
@@ -149,7 +141,7 @@ export function formStateFromDive(d: EODive): FormState {
 }
 
 /** Build a FormState from an existing EO_courses row (used by edit page). */
-export function formStateFromCourse(c: EOCourse): FormState {
+export function formStateFromCourse(c: EOCourse, rels: EventRelations = NO_RELATIONS): FormState {
   const courseDays = [...new Set((c.course_days ?? []).filter(Boolean))].sort()
   return {
     type: 'course',
@@ -170,14 +162,14 @@ export function formStateFromCourse(c: EOCourse): FormState {
     dive_days: c.dive_days != null ? String(c.dive_days) : '',
     included: c.included ?? '',
     schedule: c.schedule ?? '',
-    addonIds: parseAddonIds(c.other_addons),
+    addonIds: rels.addonIds,
     full_payment_deadline: c.full_payment_deadline ?? '',
     cancel_date: c.cancel_date ?? '',
     cancel_policy: c.cancel_policy ?? '',
     featured_image: c.featured_image ?? '',
     second_image: '',
     notes: '', featured: false, fully_booked: false, is_private: false,
-    has_rooms: false, roomIds: [],
+    roomIds: [],
     nitrox_required: false, gear_rental: '',
     destinationIds: [], divetravel_reference: '',
   }
@@ -190,7 +182,8 @@ export function formStateFromCourse(c: EOCourse): FormState {
 export function divePayloadFromForm(form: FormState): Record<string, unknown> {
   // Bubble's time format includes seconds; pad if the input was 'HH:mm'.
   const timeText = form.start_time ? `${form.start_time}:00` : ''
-  const addonsJson = form.addonIds.length ? JSON.stringify(form.addonIds) : ''
+  // Rooms/add-ons/destinations are written separately to the junction tables
+  // via the set_event_relations RPC — not on the event row.
   return {
     admin_title: form.admin_title.trim(),
     display_title: form.display_title || null,
@@ -209,13 +202,8 @@ export function divePayloadFromForm(form: FormState): Record<string, unknown> {
     dive_days: form.dive_days ? Number(form.dive_days) : null,
     gear_rental: form.gear_rental || null,
     nitrox_required: form.nitrox_required,
-    has_rooms: form.has_rooms,
-    room_types: form.roomIds.join(','),
-    hasotheraddons: form.addonIds.length > 0,
-    other_addons: addonsJson,
     cancel_date: form.cancel_date || null,
     cancel_policy: form.cancel_policy || null,
-    destination_reference: form.destinationIds.length ? JSON.stringify(form.destinationIds) : null,
     DiveTravel_reference: form.divetravel_reference || null,
     full_payment_deadline: form.full_payment_deadline || null,
     featured_image: form.featured_image.trim() || null,
@@ -228,7 +216,7 @@ export function divePayloadFromForm(form: FormState): Record<string, unknown> {
  */
 export function coursePayloadFromForm(form: FormState): Record<string, unknown> {
   const timeText = form.start_time ? `${form.start_time}:00` : ''
-  const addonsJson = form.addonIds.length ? JSON.stringify(form.addonIds) : ''
+  // Add-ons are written separately to eo_course_addons via set_event_relations.
   // Sort + dedupe the entered days. course_days is the sole date source —
   // there's no start_date/end_date envelope on EO_courses anymore.
   const days = [...new Set(form.courseDays.filter(Boolean))].sort()
@@ -246,7 +234,6 @@ export function coursePayloadFromForm(form: FormState): Record<string, unknown> 
     dive_days: form.dive_days ? Number(form.dive_days) : null,
     included: form.included || null,
     schedule: form.schedule || null,
-    other_addons: addonsJson,
     full_payment_deadline: form.full_payment_deadline || null,
     cancel_date: form.cancel_date || null,
     cancel_policy: form.cancel_policy || null,

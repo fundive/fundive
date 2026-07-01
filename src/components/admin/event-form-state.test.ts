@@ -1,17 +1,18 @@
 import { describe, it, expect } from 'vitest'
 import {
-  parseAddonIds,
-  parseCsvIds,
   formStateFromDive,
   formStateFromCourse,
   divePayloadFromForm,
   coursePayloadFromForm,
   EMPTY_FORM,
+  type EventRelations,
 } from './event-form-state'
 import type { EOCourse, EODive } from '../../types/database'
 
 // Minimal valid EO_* rows. Override the columns each test cares about so the
-// assertions stay focused on the field under test.
+// assertions stay focused on the field under test. Rooms/add-ons/destinations
+// are NOT on the row anymore — they come from the junction tables via the
+// `rels` argument (see src/lib/event-relations.ts).
 function dive(overrides: Partial<EODive> = {}): EODive {
   return {
     _id: 'd1',
@@ -24,10 +25,6 @@ function dive(overrides: Partial<EODive> = {}): EODive {
     featured: false,
     fully_booked: false,
     price: null,
-    has_rooms: false,
-    room_types: null,
-    hasotheraddons: false,
-    other_addons: null,
     gear_rental: null,
     nitrox_required: false,
     dive_days: null,
@@ -38,7 +35,6 @@ function dive(overrides: Partial<EODive> = {}): EODive {
     notes: null,
     cancel_date: null,
     cancel_policy: null,
-    destination_reference: null,
     DiveTravel_reference: null,
     prereq_cert_id: null,
     cancelled_at: null,
@@ -57,7 +53,6 @@ function course(overrides: Partial<EOCourse> = {}): EOCourse {
     calendar_title: 'CCal',
     start_time: null,
     price: null,
-    other_addons: null,
     dive_days: null,
     course_days: null,
     course_name: null,
@@ -78,70 +73,12 @@ function course(overrides: Partial<EOCourse> = {}): EOCourse {
   }
 }
 
-describe('parseAddonIds', () => {
-  it('parses a JSON-array string', () => {
-    expect(parseAddonIds('["a","b","c"]')).toEqual(['a', 'b', 'c'])
-  })
-
-  it('coerces non-string JSON array members to strings', () => {
-    expect(parseAddonIds('[1, 2, 3]')).toEqual(['1', '2', '3'])
-  })
-
-  it('trims whitespace inside JSON array members and drops blanks', () => {
-    expect(parseAddonIds('[" a ", "", "  ", "b"]')).toEqual(['a', 'b'])
-  })
-
-  it('falls back to CSV parsing for a plain comma list', () => {
-    expect(parseAddonIds('a,b,c')).toEqual(['a', 'b', 'c'])
-  })
-
-  it('falls back to CSV when the JSON is malformed', () => {
-    expect(parseAddonIds('[a,b,c')).toEqual(['[a', 'b', 'c'])
-  })
-
-  it('treats a non-array JSON value by falling back to CSV', () => {
-    // '{...}' does not start with '[', so it skips JSON entirely and CSV-splits.
-    expect(parseAddonIds('{"x":1}')).toEqual(['{"x":1}'])
-  })
-
-  it('returns [] for null, undefined, empty, and whitespace-only', () => {
-    expect(parseAddonIds(null)).toEqual([])
-    expect(parseAddonIds(undefined)).toEqual([])
-    expect(parseAddonIds('')).toEqual([])
-    expect(parseAddonIds('   ')).toEqual([])
-  })
-
-  it('handles a single CSV id with surrounding whitespace', () => {
-    expect(parseAddonIds('  solo  ')).toEqual(['solo'])
-  })
-
-  it('drops empty CSV segments and trims each', () => {
-    expect(parseAddonIds('a, ,b,,c,')).toEqual(['a', 'b', 'c'])
-  })
-})
-
-describe('parseCsvIds', () => {
-  it('splits a comma list', () => {
-    expect(parseCsvIds('r1,r2,r3')).toEqual(['r1', 'r2', 'r3'])
-  })
-
-  it('returns [] for null, undefined, and empty', () => {
-    expect(parseCsvIds(null)).toEqual([])
-    expect(parseCsvIds(undefined)).toEqual([])
-    expect(parseCsvIds('')).toEqual([])
-  })
-
-  it('drops trailing commas and empty segments, trimming whitespace', () => {
-    expect(parseCsvIds(' a , , b ,, c , ')).toEqual(['a', 'b', 'c'])
-  })
-
-  it('does not JSON-parse — a bracketed string is treated literally', () => {
-    expect(parseCsvIds('["a","b"]')).toEqual(['["a"', '"b"]'])
-  })
+const rels = (o: Partial<EventRelations> = {}): EventRelations => ({
+  roomIds: [], addonIds: [], destinationIds: [], ...o,
 })
 
 describe('formStateFromDive', () => {
-  it('maps every field from a fully-populated row', () => {
+  it('maps every field from a fully-populated row + its relations', () => {
     const fs = formStateFromDive(dive({
       admin_title: 'Internal',
       display_title: 'Public title',
@@ -154,23 +91,19 @@ describe('formStateFromDive', () => {
       prereq_cert_id: 'cert_1',
       req_dives: 20,
       dive_days: 3,
-      other_addons: '["ad1","ad2"]',
       notes: 'Bring fins',
       featured: true,
       fully_booked: true,
       is_private: true,
-      has_rooms: true,
-      room_types: 'rm1,rm2',
       nitrox_required: true,
       gear_rental: 'full',
       cancel_date: '2026-06-20',
       cancel_policy: 'No refunds',
-      destination_reference: '["dest1"]',
       DiveTravel_reference: 'dt_ref',
       full_payment_deadline: '2026-06-25',
-      featured_image: 'wix:image://hero',
-      second_image: 'wix:image://second',
-    }))
+      featured_image: 'https://cdn.example/hero.jpg',
+      second_image: 'https://cdn.example/second.jpg',
+    }), rels({ roomIds: ['rm1', 'rm2'], addonIds: ['ad1', 'ad2'], destinationIds: ['dest1'] }))
     expect(fs).toEqual({
       type: 'dive',
       admin_title: 'Internal',
@@ -189,7 +122,6 @@ describe('formStateFromDive', () => {
       featured: true,
       fully_booked: true,
       is_private: true,
-      has_rooms: true,
       roomIds: ['rm1', 'rm2'],
       nitrox_required: true,
       gear_rental: 'full',
@@ -198,13 +130,27 @@ describe('formStateFromDive', () => {
       destinationIds: ['dest1'],
       divetravel_reference: 'dt_ref',
       full_payment_deadline: '2026-06-25',
-      featured_image: 'wix:image://hero',
-      second_image: 'wix:image://second',
+      featured_image: 'https://cdn.example/hero.jpg',
+      second_image: 'https://cdn.example/second.jpg',
       courseDays: [],
       course_name: '',
       included: '',
       schedule: '',
     })
+  })
+
+  it('defaults relation ids to empty arrays when no rels are passed', () => {
+    const fs = formStateFromDive(dive())
+    expect(fs.roomIds).toEqual([])
+    expect(fs.addonIds).toEqual([])
+    expect(fs.destinationIds).toEqual([])
+  })
+
+  it('sources relation ids from the rels argument, not the row', () => {
+    const fs = formStateFromDive(dive(), rels({ roomIds: ['r'], addonIds: ['a'], destinationIds: ['d'] }))
+    expect(fs.roomIds).toEqual(['r'])
+    expect(fs.addonIds).toEqual(['a'])
+    expect(fs.destinationIds).toEqual(['d'])
   })
 
   it('represents a null capacity as empty string and a numeric one as a string', () => {
@@ -263,26 +209,15 @@ describe('formStateFromDive', () => {
     expect(formStateFromDive(dive({ time: 'nonsense' })).start_time).toBe('')
   })
 
-  it('parses addon ids from CSV as well as JSON', () => {
-    expect(formStateFromDive(dive({ other_addons: 'a1,a2' })).addonIds).toEqual(['a1', 'a2'])
-    expect(formStateFromDive(dive({ other_addons: null })).addonIds).toEqual([])
-  })
-
-  it('parses room ids as CSV only (never JSON)', () => {
-    expect(formStateFromDive(dive({ room_types: 'rm1, rm2 ,' })).roomIds).toEqual(['rm1', 'rm2'])
-    expect(formStateFromDive(dive({ room_types: null })).roomIds).toEqual([])
-  })
-
   it('coerces nullish booleans to false', () => {
-    const fs = formStateFromDive(dive({ nitrox_required: null, featured: null, has_rooms: null }))
+    const fs = formStateFromDive(dive({ nitrox_required: null, featured: null }))
     expect(fs.nitrox_required).toBe(false)
     expect(fs.featured).toBe(false)
-    expect(fs.has_rooms).toBe(false)
   })
 })
 
 describe('formStateFromCourse', () => {
-  it('maps every field from a fully-populated row', () => {
+  it('maps every field from a fully-populated row + its relations', () => {
     const fs = formStateFromCourse(course({
       admin_title: 'Open Water',
       display_title: 'Open Water Diver',
@@ -297,12 +232,11 @@ describe('formStateFromCourse', () => {
       dive_days: 4,
       included: 'Manual',
       schedule: 'Morning',
-      other_addons: '["ca1"]',
       full_payment_deadline: '2026-06-28',
       cancel_date: '2026-06-25',
       cancel_policy: 'Policy',
-      featured_image: 'wix:image://c',
-    }))
+      featured_image: 'https://cdn.example/course.jpg',
+    }), rels({ addonIds: ['ca1'] }))
     expect(fs).toEqual({
       type: 'course',
       admin_title: 'Open Water',
@@ -324,13 +258,12 @@ describe('formStateFromCourse', () => {
       full_payment_deadline: '2026-06-28',
       cancel_date: '2026-06-25',
       cancel_policy: 'Policy',
-      featured_image: 'wix:image://c',
+      featured_image: 'https://cdn.example/course.jpg',
       second_image: '',
       notes: '',
       featured: false,
       fully_booked: false,
       is_private: false,
-      has_rooms: false,
       roomIds: [],
       nitrox_required: false,
       gear_rental: '',
@@ -377,7 +310,7 @@ describe('formStateFromCourse', () => {
 })
 
 describe('divePayloadFromForm', () => {
-  it('serialises a fully-populated form to the EO_dives row shape', () => {
+  it('serialises a fully-populated form to the EO_dives row shape (no relation columns)', () => {
     const payload = divePayloadFromForm({
       ...EMPTY_FORM,
       type: 'dive',
@@ -398,7 +331,6 @@ describe('divePayloadFromForm', () => {
       dive_days: '3',
       gear_rental: 'full',
       nitrox_required: true,
-      has_rooms: true,
       roomIds: ['rm1', 'rm2'],
       addonIds: ['ad1', 'ad2'],
       cancel_date: '2026-06-20',
@@ -406,8 +338,8 @@ describe('divePayloadFromForm', () => {
       destinationIds: ['dest1'],
       divetravel_reference: 'dt',
       full_payment_deadline: '2026-06-25',
-      featured_image: '  wix:hero  ',
-      second_image: '  wix:second  ',
+      featured_image: '  https://cdn.example/hero.jpg  ',
+      second_image: '  https://cdn.example/second.jpg  ',
     })
     expect(payload).toEqual({
       admin_title: 'Internal',
@@ -427,18 +359,27 @@ describe('divePayloadFromForm', () => {
       dive_days: 3,
       gear_rental: 'full',
       nitrox_required: true,
-      has_rooms: true,
-      room_types: 'rm1,rm2',
-      hasotheraddons: true,
-      other_addons: '["ad1","ad2"]',
       cancel_date: '2026-06-20',
       cancel_policy: 'Policy',
-      destination_reference: '["dest1"]',
       DiveTravel_reference: 'dt',
       full_payment_deadline: '2026-06-25',
-      featured_image: 'wix:hero',
-      second_image: 'wix:second',
+      featured_image: 'https://cdn.example/hero.jpg',
+      second_image: 'https://cdn.example/second.jpg',
     })
+  })
+
+  it('never emits the room/add-on/destination columns (they live in junctions now)', () => {
+    const payload = divePayloadFromForm({
+      ...EMPTY_FORM,
+      roomIds: ['rm1'],
+      addonIds: ['ad1'],
+      destinationIds: ['dest1'],
+    })
+    expect(payload).not.toHaveProperty('room_types')
+    expect(payload).not.toHaveProperty('other_addons')
+    expect(payload).not.toHaveProperty('has_rooms')
+    expect(payload).not.toHaveProperty('hasotheraddons')
+    expect(payload).not.toHaveProperty('destination_reference')
   })
 
   it('appends a :00 seconds suffix to the time, and nulls an empty time', () => {
@@ -482,40 +423,22 @@ describe('divePayloadFromForm', () => {
       .toMatchObject({ req_dives: 0, dive_days: 0 })
   })
 
-  it('serialises addon ids as a JSON string, empty form gives "" and hasotheraddons false', () => {
-    expect(divePayloadFromForm({ ...EMPTY_FORM, addonIds: ['x', 'y'] }))
-      .toMatchObject({ other_addons: '["x","y"]', hasotheraddons: true })
-    expect(divePayloadFromForm({ ...EMPTY_FORM, addonIds: [] }))
-      .toMatchObject({ other_addons: '', hasotheraddons: false })
-  })
-
-  it('joins room ids with commas, empty gives an empty string', () => {
-    expect(divePayloadFromForm({ ...EMPTY_FORM, roomIds: ['a', 'b'] }).room_types).toBe('a,b')
-    expect(divePayloadFromForm({ ...EMPTY_FORM, roomIds: [] }).room_types).toBe('')
-  })
-
-  it('serialises destination ids as JSON, empty gives null', () => {
-    expect(divePayloadFromForm({ ...EMPTY_FORM, destinationIds: ['d1', 'd2'] }).destination_reference)
-      .toBe('["d1","d2"]')
-    expect(divePayloadFromForm({ ...EMPTY_FORM, destinationIds: [] }).destination_reference).toBeNull()
-  })
-
   it('trims admin_title and the image fields', () => {
     const payload = divePayloadFromForm({
       ...EMPTY_FORM,
       admin_title: '  Title  ',
       featured_image: '   ',
-      second_image: '  url  ',
+      second_image: '  https://x/y.jpg  ',
     })
     expect(payload.admin_title).toBe('Title')
     // A whitespace-only image trims to '' which is falsy → null.
     expect(payload.featured_image).toBeNull()
-    expect(payload.second_image).toBe('url')
+    expect(payload.second_image).toBe('https://x/y.jpg')
   })
 })
 
 describe('coursePayloadFromForm', () => {
-  it('serialises a fully-populated form to the EO_courses row shape', () => {
+  it('serialises a fully-populated form to the EO_courses row shape (no add-on column)', () => {
     const payload = coursePayloadFromForm({
       ...EMPTY_FORM,
       type: 'course',
@@ -536,7 +459,7 @@ describe('coursePayloadFromForm', () => {
       full_payment_deadline: '2026-06-28',
       cancel_date: '2026-06-25',
       cancel_policy: 'Policy',
-      featured_image: '  wix:c  ',
+      featured_image: '  https://cdn.example/c.jpg  ',
     })
     expect(payload).toEqual({
       admin_title: 'Course admin',
@@ -552,12 +475,12 @@ describe('coursePayloadFromForm', () => {
       dive_days: 4,
       included: 'Manual',
       schedule: 'Morning',
-      other_addons: '["ca1"]',
       full_payment_deadline: '2026-06-28',
       cancel_date: '2026-06-25',
       cancel_policy: 'Policy',
-      featured_image: 'wix:c',
+      featured_image: 'https://cdn.example/c.jpg',
     })
+    expect(payload).not.toHaveProperty('other_addons')
   })
 
   it('dedupes and sorts course_days, nulling an empty list', () => {
@@ -589,11 +512,6 @@ describe('coursePayloadFromForm', () => {
   it('appends :00 to start_time and nulls an empty time', () => {
     expect(coursePayloadFromForm({ ...EMPTY_FORM, start_time: '08:00' }).start_time).toBe('08:00:00')
     expect(coursePayloadFromForm({ ...EMPTY_FORM, start_time: '' }).start_time).toBeNull()
-  })
-
-  it('serialises addon ids as JSON, empty gives an empty string', () => {
-    expect(coursePayloadFromForm({ ...EMPTY_FORM, addonIds: ['z'] }).other_addons).toBe('["z"]')
-    expect(coursePayloadFromForm({ ...EMPTY_FORM, addonIds: [] }).other_addons).toBe('')
   })
 
   it('maps blank text fields to null', () => {

@@ -7,31 +7,26 @@ import {
   coursePayloadFromForm,
   type FormState,
 } from '../../components/admin/event-form-state'
+import { saveEventRelations } from '../../lib/event-relations'
 
 // Thin wrapper: defer all field rendering to the shared EventForm and
 // handle the create-side persistence (insert a new EO_dive / EO_course
-// row, then redirect to its admin detail page).
+// row, write its room/add-on/destination junctions, then redirect to its
+// admin detail page).
 export function AdminNewEventPage() {
   const navigate = useNavigate()
   const toast = useToast()
 
   async function handleSubmit(form: FormState) {
     const id = crypto.randomUUID()
-    if (form.type === 'dive') {
-      const { error } = await supabase
-        .from('EO_dives')
-        .insert({ _id: id, ...divePayloadFromForm(form) } as never)
-      if (error) throw error
-      toast.success('Dive created')
-      navigate(`/admin/events/dive/${id}`)
-    } else {
-      const { error } = await supabase
-        .from('EO_courses')
-        .insert({ _id: id, ...coursePayloadFromForm(form) } as never)
-      if (error) throw error
-      toast.success('Course created')
-      navigate(`/admin/events/course/${id}`)
-    }
+    const table = form.type === 'dive' ? 'EO_dives' : 'EO_courses'
+    const payload = form.type === 'dive' ? divePayloadFromForm(form) : coursePayloadFromForm(form)
+    const { error } = await supabase.from(table).insert({ _id: id, ...payload } as never)
+    if (error) throw error
+    const relError = await saveEventRelations(form.type, id, form)
+    if (relError) throw relError
+    toast.success(form.type === 'dive' ? 'Dive created' : 'Course created')
+    navigate(`/admin/events/${form.type}/${id}`)
   }
 
   return (

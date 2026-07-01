@@ -175,13 +175,21 @@ begin
   end loop;
 end$$;
 
+-- Price tiers the crowded fixtures link to. The platform ships no catalog
+-- data seed, so these fixtures are self-contained.
+insert into public."EO_prices" (_id, admin_title, starting_at, deposit_amount, transport)
+values
+  ('9fd90874-cd94-470c-b07c-c7655b558741'::uuid, 'Fixture dive price',   2800,  1000, 300),
+  ('7eca095c-6bc6-4adf-9e48-d8b70b59fb9f'::uuid, 'Fixture course price', 15400, 5000, 0)
+on conflict (_id) do nothing;
+
 -- Crowded dive: 14 days out. capacity set high so seeded pending rows
 -- don't get auto-flipped to waitlisted by the BEFORE INSERT trigger.
 insert into public."EO_dives" (
   _id, admin_title, display_title, calendar_title,
   start_date, "time", end_date,
   notes, featured, fully_booked, capacity,
-  has_rooms, hasotheraddons, dive_days,
+  dive_days,
   price, "EO_price_reference"
 ) values (
   'e0000000-0000-0000-0000-000000000001'::uuid,
@@ -193,7 +201,7 @@ insert into public."EO_dives" (
   current_date + 14,
   'Local dev fixture: 25+ registrants for stressing the admin event detail page.',
   false, false, 60,
-  false, false, 1,
+  1,
   '9fd90874-cd94-470c-b07c-c7655b558741'::uuid,
   '9fd90874-cd94-470c-b07c-c7655b558741'::uuid
 ) on conflict (_id) do nothing;

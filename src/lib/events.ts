@@ -168,7 +168,7 @@ function diveToEvent(d: EODive, priceIndex: Map<string, EOPrice>, addonIds: stri
     deposit_amount: p?.deposit_amount ?? null,
     transport_price: p?.transport ?? null,
     currency: siteConfig.locale.currency,
-    has_rooms: Boolean(d.has_rooms),
+    has_rooms: roomIds.length > 0,
     room_type_ids: roomIds,
     has_addons: addonIds.length > 0,
     addon_ids: addonIds,
@@ -273,14 +273,12 @@ function courseToEvents(c: EOCourse, priceIndex: Map<string, EOPrice>, addonIds:
 }
 
 /**
- * Fetch addon links for a batch of dives + courses from the junction tables
- * (replacing the legacy JSON-array-of-IDs parse on `other_addons`).
+ * Fetch addon links for a batch of dives + courses from the junction tables.
  * Returns a map keyed by dive/course `_id` → ordered list of addon IDs.
  */
 /**
- * Same shape as attachAddonIds but for the `eo_dive_rooms` junction table
- * (kept in sync from EO_dives.room_types CSV by the sync_eo_dive_rooms
- * trigger). Courses don't carry rooms, so this is dive-only.
+ * Same shape as attachAddonIds but for the `eo_dive_rooms` junction table.
+ * Courses don't carry rooms, so this is dive-only.
  */
 async function attachRoomIds(diveIds: string[]): Promise<Map<string, string[]>> {
   const out = new Map<string, string[]>()
@@ -475,8 +473,8 @@ async function attachPrices(dives: EODive[], courses: EOCourse[]): Promise<Map<s
 // Core columns only — every one is guaranteed to exist in the EO_* schema.
 // The descriptive detail columns are deliberately excluded and fetched
 // best-effort by attachEventDetails, so schema drift can't break the calendar.
-const DIVE_COLS = '_id, admin_title, display_title, calendar_title, start_date, time, end_date, featured, fully_booked, capacity, price, has_rooms, room_types, hasotheraddons, other_addons, gear_rental, nitrox_required, dive_days, cancelled_at, full_payment_deadline, cancel_policy, cancel_date, is_private'
-const COURSE_COLS = '_id, admin_title, display_title, calendar_title, start_time, price, other_addons, dive_days, course_days, cancelled_at, full_payment_deadline, cancel_policy, cancel_date, fully_booked, capacity'
+const DIVE_COLS = '_id, admin_title, display_title, calendar_title, start_date, time, end_date, featured, fully_booked, capacity, price, gear_rental, nitrox_required, dive_days, cancelled_at, full_payment_deadline, cancel_policy, cancel_date, is_private'
+const COURSE_COLS = '_id, admin_title, display_title, calendar_title, start_time, price, dive_days, course_days, cancelled_at, full_payment_deadline, cancel_policy, cancel_date, fully_booked, capacity'
 
 // Every 'YYYY-MM-DD' from `fromDate` to `toDate` inclusive. Used to ask
 // PostgREST for courses whose course_days array shares at least one day

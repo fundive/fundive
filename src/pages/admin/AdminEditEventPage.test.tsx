@@ -5,9 +5,9 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AdminEditEventPage } from './AdminEditEventPage'
 import { mockQueryBuilder } from '../../../tests/test-utils'
 
-const { from, moveSpy } = vi.hoisted(() => ({ from: vi.fn(), moveSpy: vi.fn() }))
+const { from, rpc, moveSpy } = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), moveSpy: vi.fn() }))
 vi.mock('../../lib/supabase', () => ({
-  supabase: { from: (...a: unknown[]) => from(...a) },
+  supabase: { from: (...a: unknown[]) => from(...a), rpc: (...a: unknown[]) => rpc(...a) },
 }))
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ profile: { id: 'admin-1', role: 'admin' } }),
@@ -19,6 +19,9 @@ vi.mock('../../lib/event-vehicles', async () => {
 
 beforeEach(() => {
   from.mockReset()
+  rpc.mockReset()
+  // set_event_relations reconciles the junctions after the row update.
+  rpc.mockResolvedValue({ error: null })
   moveSpy.mockReset()
   moveSpy.mockResolvedValue({ moved: 0, dropped: 0 })
 })
@@ -143,9 +146,8 @@ describe('AdminEditEventPage', () => {
     await waitFor(() => expect(moveSpy).toHaveBeenCalledWith('dive_x', '2026-06-01', '2026-06-08'))
   })
 
-  it('prefills the Wix featured/second image fields and round-trips them into the update payload', async () => {
-    // Both inputs round-trip the wix:image:// URI verbatim — no parsing,
-    // no validation beyond a soft hint we don't assert on here.
+  it('prefills the featured/second image URL fields and round-trips them into the update payload', async () => {
+    // Both inputs round-trip the image URL verbatim — no parsing/validation.
     const existing = {
       _id: 'dive_x',
       admin_title: 'Kenting Day Trip',
@@ -156,17 +158,15 @@ describe('AdminEditEventPage', () => {
       featured: false,
       fully_booked: false,
       price: null,
-      has_rooms: false, room_types: '',
-      hasotheraddons: false, other_addons: '',
       gear_rental: null,
       nitrox_required: false,
       dive_days: 1,
-      featured_image: 'wix:image://v1/abc/featured.jpg#originWidth=2000&originHeight=3000',
-      second_image:   'wix:image://v1/def/second.jpg#originWidth=2000&originHeight=3000',
+      featured_image: 'https://cdn.example/featured.jpg',
+      second_image:   'https://cdn.example/second.jpg',
       prereqs: null, req_dives: null,
       notes: '',
       cancel_date: null, cancel_policy: null,
-      destination_reference: null, DiveTravel_reference: null,
+      DiveTravel_reference: null,
       prereq_cert_id: null, cancelled_at: null,
     }
     const updateSpy = vi.fn().mockReturnValue({ eq: () => Promise.resolve({ error: null }) })
@@ -182,22 +182,22 @@ describe('AdminEditEventPage', () => {
     const user = userEvent.setup()
     renderAt('/admin/events/dive/dive_x/edit')
 
-    const featuredInput = await screen.findByLabelText(/featured image \(wix uri\)/i) as HTMLInputElement
-    const secondInput = screen.getByLabelText(/second image \(wix uri\)/i) as HTMLInputElement
+    const featuredInput = await screen.findByLabelText(/featured image url/i) as HTMLInputElement
+    const secondInput = screen.getByLabelText(/second image url/i) as HTMLInputElement
     await waitFor(() => {
       expect(featuredInput.value).toBe(existing.featured_image)
       expect(secondInput.value).toBe(existing.second_image)
     })
 
-    // Swap both for new URIs and save.
+    // Swap both for new URLs and save.
     await user.clear(featuredInput)
-    await user.type(featuredInput, 'wix:image://v1/new/hero.jpg')
+    await user.type(featuredInput, 'https://cdn.example/new-hero.jpg')
     await user.clear(secondInput)
     await user.click(screen.getByRole('button', { name: /save changes/i }))
 
     await waitFor(() => expect(updateSpy).toHaveBeenCalled())
     const payload = (updateSpy.mock.calls[0]?.[0] ?? {}) as Record<string, unknown>
-    expect(payload.featured_image).toBe('wix:image://v1/new/hero.jpg')
+    expect(payload.featured_image).toBe('https://cdn.example/new-hero.jpg')
     // Empty input round-trips to null in the payload.
     expect(payload.second_image).toBeNull()
   })
