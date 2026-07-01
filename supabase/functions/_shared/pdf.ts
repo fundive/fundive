@@ -8,7 +8,7 @@
 import { jsPDF } from "npm:jspdf@2.5.1"
 import { Buffer } from "node:buffer"
 import { paymentInstructionsFor, paymentConfirmationReminder } from "./payment-instructions.ts"
-import { siteConfig } from "../../../fundive.config.ts"
+import { siteConfig } from "./config.ts"
 
 // Shop currency label shown on money rows in the PDF.
 const CUR = siteConfig.locale.currencyLabel

@@ -2,7 +2,7 @@
 // so it's vitest-importable (index.ts uses jsr:/npm: specifiers). See
 // create-registration/handler.ts for the same split.
 
-import { siteConfig } from "../../../fundive.config.ts"
+import { siteConfig } from "./config.ts"
 
 export function buildCancellationEmail(eventTitle: string): { subject: string; text: string } {
   const title = eventTitle.trim() || 'your dive'

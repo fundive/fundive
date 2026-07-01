@@ -17,7 +17,7 @@
 import { Buffer } from "node:buffer"
 import { sanitizeProfilePatch } from "../_shared/profile-patch.ts"
 import { corsHeaders, safeError } from "../_shared/responses.ts"
-import { siteConfig } from "../../../fundive.config.ts"
+import { siteConfig } from "../_shared/config.ts"
 import type { RegistrationPdfPayload } from "../_shared/pdf.ts"
 
 // Matches RegisterForm.tsx's payment_method enum verbatim.

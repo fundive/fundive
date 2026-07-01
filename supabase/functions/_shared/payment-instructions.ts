@@ -3,7 +3,7 @@
 // same fundive.config.ts as the app (pure data, no imports, so Deno reads it
 // fine), so they can't drift. Keep any COPY changes in sync between the two.
 
-import { siteConfig } from "../../../fundive.config.ts"
+import { siteConfig } from "./config.ts"
 
 export const SHOP_PHONE    = siteConfig.contact.phone
 export const SHOP_ADDRESS  = siteConfig.contact.address

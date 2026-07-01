@@ -14,7 +14,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2.103.2"
 import nodemailer from "npm:nodemailer@6.9.14"
 import { corsOk, jsonResponse, bearerToken } from "../_shared/responses.ts"
-import { siteConfig } from "../../../fundive.config.ts"
+import { siteConfig } from "../_shared/config.ts"
 
 const COMPANY_EMAIL = siteConfig.app.supportEmail
 

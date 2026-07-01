@@ -20,7 +20,7 @@
 // without a SQLSTATE) pass through unchanged — they're authored by
 // us and don't leak schema.
 
-import { siteConfig } from "../../../fundive.config.ts"
+import { siteConfig } from "./config.ts"
 
 const ALLOWED_ORIGINS = [
   siteConfig.urls.app,

@@ -29,6 +29,45 @@ function run(cmd, args) {
   child.on('exit', (code) => process.exit(code ?? 1))
 }
 
+// Like run(), but resolves so callers can sequence steps (a nonzero exit still
+// aborts the whole command).
+function runStep(cmd, args) {
+  return new Promise((resolve) => {
+    const child = spawn(cmd, args, { stdio: 'inherit', cwd: process.cwd(), env: process.env })
+    child.on('error', (e) => { console.error(`fundive: ${e.message}`); process.exit(1) })
+    child.on('exit', (code) => { if (code) process.exit(code); resolve() })
+  })
+}
+
+// The target Supabase project ref: an explicit env var wins, else the
+// deployment's .env(.local). Undefined falls through to the linked project.
+function projectRef() {
+  if (process.env.SUPABASE_PROJECT_REF) return process.env.SUPABASE_PROJECT_REF
+  for (const f of ['.env.local', '.env']) {
+    try {
+      const m = readFileSync(path.join(process.cwd(), f), 'utf8')
+        .match(/^\s*SUPABASE_PROJECT_REF\s*=\s*(.+?)\s*$/m)
+      if (m) return m[1].replace(/^["']|["']$/g, '')
+    } catch { /* no such file */ }
+  }
+  return undefined
+}
+
+// Deploy the platform's edge functions to the deployment's project, injecting
+// the deployment's config as the FUNDIVE_CONFIG secret (read by the
+// _shared/config.ts seam). --workdir points Supabase at the platform's
+// supabase/ dir so a thin deployment (no supabase/functions of its own) can
+// ship them.
+async function deployFunctions() {
+  const { loadSiteConfig } = await import('./load-site-config.mjs')
+  const ref = projectRef()
+  const refArgs = ref ? ['--project-ref', ref] : []
+  const configJson = JSON.stringify(loadSiteConfig())
+  await runStep(bin('supabase'), ['secrets', 'set', `FUNDIVE_CONFIG=${configJson}`, ...refArgs])
+  await runStep(bin('supabase'), ['functions', 'deploy', '--workdir', platformDir, ...refArgs])
+  process.exit(0)
+}
+
 function version() {
   const pkg = JSON.parse(readFileSync(path.join(platformDir, 'package.json'), 'utf8'))
   console.log(`fundive ${pkg.version}`)
@@ -64,7 +103,7 @@ switch (command) {
     else usage()
     break
   case 'functions':
-    if (sub === 'deploy') run(bin('supabase'), ['functions', 'deploy'])
+    if (sub === 'deploy') deployFunctions().catch(e => { console.error(`fundive: ${e.message}`); process.exit(1) })
     else usage()
     break
   case 'version': case '--version': case '-v': version(); break
