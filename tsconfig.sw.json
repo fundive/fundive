@@ -5,6 +5,6 @@
     "lib": ["ES2023", "WebWorker"],
     "types": ["vite/client"]
   },
-  "include": ["src/sw.ts"],
+  "include": ["src/sw.ts", "src/fundive-config.d.ts"],
   "exclude": []
 }

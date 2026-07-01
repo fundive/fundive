@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { CONFIG_CONTRACT_VERSION, type SiteConfig } from './site'
+import { CONFIG_CONTRACT_VERSION } from './contract'
+import type { SiteConfig } from './site'
 
 // Runtime validation of a fork's fundive.config.ts. Kept separate from site.ts
 // (which stays dependency-free so the pure config file's import graph never pulls
