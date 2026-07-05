@@ -102,7 +102,7 @@ export function AppShell() {
           )}
           <Link
             to="/partner-connect"
-            aria-label="Partner Connect (PX)"
+            aria-label="Trusted Partners"
             className="text-accent hover:text-red-400 transition-colors"
           >
             <PartnerConnectIcon />

@@ -25,7 +25,7 @@ import { RecordsPage } from './pages/RecordsPage'
 import { DiveLogsPage } from './pages/DiveLogsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ContactPage } from './pages/ContactPage'
-import { PartnerConnectPage } from './pages/PartnerConnectPage'
+import { TrustedPartnersPage } from './pages/TrustedPartnersPage'
 import { TripBoardPage } from './pages/TripBoardPage'
 import { TripDetailPage } from './pages/TripDetailPage'
 import { NotificationsPage } from './pages/NotificationsPage'
@@ -50,6 +50,7 @@ import { AdminAccountingPage } from './pages/admin/AdminAccountingPage'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminHistoryPage } from './pages/admin/AdminHistoryPage'
 import { AdminTripBoardPage } from './pages/admin/AdminTripBoardPage'
+import { AdminTrustedPartnersPage } from './pages/admin/AdminTrustedPartnersPage'
 import { AdminVehiclesPage } from './pages/admin/AdminVehiclesPage'
 
 // Public registration flow — /register (pick an event) and /register/:type/:id
@@ -105,7 +106,7 @@ export default function App() {
               </Route>
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/contact" element={<ContactPage />} />
-              <Route path="/partner-connect" element={<PartnerConnectPage />} />
+              <Route path="/partner-connect" element={<TrustedPartnersPage />} />
               <Route path="/trips" element={<TripBoardPage />} />
               <Route path="/trips/:id" element={<TripDetailPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
@@ -137,6 +138,7 @@ export default function App() {
                 <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
                 <Route path="/admin/accounting" element={<AdminAccountingPage />} />
                 <Route path="/admin/trip-board" element={<AdminTripBoardPage />} />
+                <Route path="/admin/trusted-partners" element={<AdminTrustedPartnersPage />} />
                 <Route path="/admin/vehicles" element={<AdminVehiclesPage />} />
                 <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
                 <Route path="/admin/history" element={<AdminHistoryPage />} />
