@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 import type { TrustedPartner, TrustedPartnerRow, TrustedPartnerInsert } from '../types/database'
 
 // Data layer for the trusted-partner catalog (table `trusted_partners`, gated
-// by 20260703010000_trusted_partners.sql: admin-only direct access; divers read
+// by 20260706000000_trusted_partners.sql: admin-only direct access; divers read
 // the public columns via the list_trusted_partners() RPC — the email never
 // reaches the client). Contacting a partner goes through the
 // contact-trusted-partner edge function, which resolves the email server-side.

@@ -13,10 +13,9 @@ import {
 const LOOKAHEAD_DAYS = 180
 
 // Scheduled Trips (diver-facing) — the shop's upcoming trips, i.e. the
-// scheduled dive/course events the calendar flags as trips (via the configured
-// trip keywords). Tapping one drops the diver into that event's registration.
-// Distinct from Packages, which are open-ended travel packages abroad with no
-// fixed date.
+// scheduled dive/course events an admin has flagged with is_trip. Tapping one
+// drops the diver into that event's registration. Distinct from the Trip Board,
+// which curates open-ended travel packages abroad with no fixed date.
 export function ScheduledTripsPage() {
   const [trips, setTrips] = useState<AppEvent[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -51,7 +50,7 @@ export function ScheduledTripsPage() {
         </p>
         <p className="text-sm">
           <Link to="/trips" className={ON_DEEP_LINK}>
-            After an open-ended travel package instead? See Packages →
+            After an open-ended travel package instead? See the Trip Board →
           </Link>
         </p>
       </div>

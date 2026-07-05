@@ -437,7 +437,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
   // Open Water / DSD courses bundle gear into the fee — we record the fact
   // in the booking but don't prompt. Every other course (AOW, EANx, Deep,
   // Rescue, ...) lets the diver rent, same as a dive. Dives expose the rent
-  // toggle when the admin filled in gear_rental_info on EO_dives.
+  // toggle when the admin filled in gear_rental_info on the event.
   const gearIncluded = event.type === 'course' && isGearIncludedCourse(event.title)
   const showGearRentChoice =
     (event.type === 'dive' && !!event.gear_rental_info) ||

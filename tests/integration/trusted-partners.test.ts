@@ -1,5 +1,5 @@
 // Integration coverage for the trusted_partners catalog + list_trusted_partners
-// RPC (20260703010000). Runs against the live local Supabase stack.
+// RPC (20260706000000). Runs against the live local Supabase stack.
 //
 // The security contract: a diver must NOT be able to read a partner's email.
 // RLS grants direct table access to admins only; divers read the public
