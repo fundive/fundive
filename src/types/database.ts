@@ -819,6 +819,8 @@ export interface Database {
           start_time: string | null
           course_days: string[] | null
           is_private: boolean
+          is_boat_dive: boolean | null
+          is_trip: boolean | null
           nitrox_required: boolean
           second_image: string | null
           gear_rental: string | null
@@ -853,6 +855,8 @@ export interface Database {
           start_time?: string | null
           course_days?: string[] | null
           is_private?: boolean
+          is_boat_dive?: boolean | null
+          is_trip?: boolean | null
           nitrox_required?: boolean
           second_image?: string | null
           gear_rental?: string | null
@@ -1465,6 +1469,10 @@ export interface AppEvent {
    *  Wix calendars, upcoming feeds), registerable only via a direct link.
    *  Always false for courses. */
   is_private: boolean
+  /** Dive-only, independent of is_trip: this dive is a boat dive. */
+  is_boat_dive?: boolean
+  /** Dive-only, independent of is_boat_dive: surfaced under Scheduled Trips. */
+  is_trip?: boolean
   /**
    * Admin-set full-payment deadline (YYYY-MM-DD). When null the
    * registration form falls back to "7 days before start_date" — see

@@ -27,6 +27,7 @@ import { ProfilePage } from './pages/ProfilePage'
 import { ContactPage } from './pages/ContactPage'
 import { TrustedPartnersPage } from './pages/TrustedPartnersPage'
 import { TripBoardPage } from './pages/TripBoardPage'
+import { ScheduledTripsPage } from './pages/ScheduledTripsPage'
 import { TripDetailPage } from './pages/TripDetailPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -108,6 +109,7 @@ export default function App() {
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/partner-connect" element={<TrustedPartnersPage />} />
               <Route path="/trips" element={<TripBoardPage />} />
+              <Route path="/scheduled-trips" element={<ScheduledTripsPage />} />
               <Route path="/trips/:id" element={<TripDetailPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/duties" element={<DutiesPage />} />

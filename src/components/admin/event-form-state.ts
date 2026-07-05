@@ -31,6 +31,8 @@ export interface FormState {
   featured: boolean
   fully_booked: boolean
   is_private: boolean    // dive-only: hidden from diver-facing calendars
+  is_boat_dive: boolean  // dive-only, independent of is_trip
+  is_trip: boolean       // dive-only: surfaced under Scheduled Trips
   roomIds: string[]      // FK multi → rooms
   nitrox_required: boolean
   gear_rental: string
@@ -60,7 +62,7 @@ export const EMPTY_FORM: FormState = {
   req_dives: '', dive_days: '',
   addonIds: [],
   featured_image: '', second_image: '',
-  notes: '', featured: false, fully_booked: false, is_private: false,
+  notes: '', featured: false, fully_booked: false, is_private: false, is_boat_dive: false, is_trip: false,
   roomIds: [],
   nitrox_required: false, gear_rental: '',
   cancel_date: '', cancel_policy: '',
@@ -138,7 +140,7 @@ export function formStateFromEvent(e: EventRow, rels: EventRelations = NO_RELATI
       included: e.included ?? '',
       schedule: e.schedule ?? '',
       second_image: '',
-      notes: '', featured: false, is_private: false,
+      notes: '', featured: false, is_private: false, is_boat_dive: false, is_trip: false,
       roomIds: [],
       nitrox_required: false, gear_rental: '',
       destinationIds: [], divetravel_reference: '',
@@ -153,6 +155,8 @@ export function formStateFromEvent(e: EventRow, rels: EventRelations = NO_RELATI
     notes: e.notes ?? '',
     featured: !!e.featured,
     is_private: !!e.is_private,
+    is_boat_dive: !!e.is_boat_dive,
+    is_trip: !!e.is_trip,
     roomIds: rels.roomIds,
     nitrox_required: e.nitrox_required ?? false,
     gear_rental: e.gear_rental ?? '',
@@ -197,6 +201,8 @@ export function eventPayloadFromForm(form: FormState): Record<string, unknown> {
     // dive-only
     featured: isDive ? form.featured : false,
     is_private: isDive ? form.is_private : false,
+    is_boat_dive: isDive ? form.is_boat_dive : false,
+    is_trip: isDive ? form.is_trip : false,
     notes: isDive ? form.notes : null,
     nitrox_required: isDive ? form.nitrox_required : false,
     gear_rental: isDive ? (form.gear_rental || null) : null,

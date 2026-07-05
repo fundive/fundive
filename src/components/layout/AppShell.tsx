@@ -11,6 +11,7 @@ import { ChatIcon } from '../icons/ChatIcon'
 import { CrosshairIcon } from '../icons/CrosshairIcon'
 import { PartnerConnectIcon } from '../icons/PartnerConnectIcon'
 import { TripBoardIcon } from '../icons/TripBoardIcon'
+import { ScheduledTripsIcon } from '../icons/ScheduledTripsIcon'
 import { PersonIcon } from '../icons/PersonIcon'
 import { NotificationBell } from '../NotificationBell'
 import { siteConfig } from '../../config/site'
@@ -113,6 +114,13 @@ export function AppShell() {
             className="text-accent hover:text-red-400 transition-colors"
           >
             <TripBoardIcon />
+          </Link>
+          <Link
+            to="/scheduled-trips"
+            aria-label="Scheduled Trips"
+            className="text-accent hover:text-red-400 transition-colors"
+          >
+            <ScheduledTripsIcon />
           </Link>
         </div>
         <Link to="/dashboard" aria-label="Home" className="shrink-0">
