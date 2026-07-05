@@ -33,5 +33,9 @@ CLAUDE.md
 *.sln
 *.sw?
 
+# VitePress docs-site build output
+docs/.vitepress/dist
+docs/.vitepress/cache
+
 # Deployment secrets — never committed
 .env
