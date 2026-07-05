@@ -76,6 +76,13 @@ export interface BookingDetails {
 export interface Database {
   public: {
     Functions: {
+      // Defined in 20260706000000_trusted_partners.sql; security-definer.
+      // Public projection of the trusted-partner directory (no email) so a
+      // plain diver can list partners without seeing the RLS-hidden rows.
+      list_trusted_partners: {
+        Args: Record<string, never>
+        Returns: Array<{ id: string; name: string; region: string | null; blurb: string | null }>
+      }
       // Staff/admin-only narrow write path for diver gear sizes. Defined in
       // 20260430020000_profile_gear_sizes.sql; gated server-side on
       // is_staff_or_admin(). Empty / whitespace strings are normalized to NULL.
@@ -613,6 +620,33 @@ export interface Database {
           created_by?: string | null
         }
         Update: Partial<Database['public']['Tables']['vehicles']['Insert']>
+        Relationships: []
+      }
+      // Defined in 20260706000000_trusted_partners.sql. Partner dive shops the
+      // admin vouches for. `email` is server-only (RLS admin-only); divers read
+      // name/region/blurb via the list_trusted_partners() RPC.
+      trusted_partners: {
+        Row: {
+          id: string
+          name: string
+          region: string | null
+          blurb: string | null
+          email: string
+          active: boolean
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          region?: string | null
+          blurb?: string | null
+          email: string
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['trusted_partners']['Insert']>
         Relationships: []
       }
       event_vehicles: {
@@ -1305,6 +1339,9 @@ export type Payment = Database['public']['Tables']['payments']['Row']
 export type BookingAmendment = Database['public']['Tables']['booking_amendments']['Row']
 export type Credit = Database['public']['Tables']['credits']['Row']
 export type CreditInsert = Database['public']['Tables']['credits']['Insert']
+export type TrustedPartnerRow = Database['public']['Tables']['trusted_partners']['Row']
+export type TrustedPartnerInsert = Database['public']['Tables']['trusted_partners']['Insert']
+export type TrustedPartner = Database['public']['Functions']['list_trusted_partners']['Returns'][number]
 export type EventRow = Database['public']['Tables']['events']['Row']
 export type EOPrice = Database['public']['Tables']['prices']['Row']
 export type EORoom = Database['public']['Tables']['rooms']['Row']
