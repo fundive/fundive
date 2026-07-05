@@ -16,7 +16,7 @@ described below.
 ## Environment variables
 
 The single source of truth for what to fill in is
-[`.env.example`](../.env.example) — copy it to `.env.local` (the file every
+[`.env.example`](https://github.com/fundive/fundive/blob/main/.env.example) — copy it to `.env.local` (the file every
 `make`/`npm` script reads) and fill in the values. From there, each value has a
 final destination. Putting one in the wrong place is the most common deploy
 footgun, so the table below maps each value to where it ultimately lives.

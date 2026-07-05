@@ -155,12 +155,14 @@ and the full flow.
 
 ## Documentation
 
-In-depth docs live under [`docs/`](docs/). Start with
-[architecture.md](docs/architecture.md) — it explains the **platform vs.
-deployment** model: this repo is the authoritative codebase, and each dive
-center runs it from a small deployment repo holding only their branding,
-credentials, and catalog data. More docs (data model, auth, payments,
-deployment) land as the code is ported.
+In-depth docs live under [`docs/`](docs/) and read as a browsable site at
+**[fundive.github.io/fundive](https://fundive.github.io/fundive/)**. New here?
+Start with the [self-hosting walkthrough](docs/self-hosting.md). Building on the
+platform? Start with [architecture.md](docs/architecture.md) — the **platform
+vs. deployment** model — then the per-topic docs: data model, authentication,
+events & bookings, payments, admin, trip board, trusted partners, push
+notifications, testing, and deployment. The [docs index](docs/README.md) lists
+them all.
 
 ## Contributing
 

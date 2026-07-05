@@ -12,11 +12,11 @@ This guide walks each piece. For the full deploy mechanics see
 
 ## 1. `fundive.config.ts` — your shop's data
 
-The root [`fundive.config.ts`](../fundive.config.ts) is **pure data** (no
+The root [`fundive.config.ts`](https://github.com/fundive/fundive/blob/main/fundive.config.ts) is **pure data** (no
 imports, no React, no `import.meta.env`) read by the app, the service worker,
 `vite.config.ts`, and the Deno edge functions. Its shape is checked against
-`SiteConfig` ([`src/config/site.ts`](../src/config/site.ts)) at build time.
-[`fundive.config.example.ts`](../fundive.config.example.ts) is a blank template —
+`SiteConfig` ([`src/config/site.ts`](https://github.com/fundive/fundive/blob/main/src/config/site.ts)) at build time.
+[`fundive.config.example.ts`](https://github.com/fundive/fundive/blob/main/fundive.config.example.ts) is a blank template —
 copy it over and replace every value.
 
 Walking the fields:
@@ -42,7 +42,7 @@ Walking the fields:
 > **Brand color palette.** `theme.*` in the config only sets the PWA manifest
 > theme/background colors. The in-app brand palette (`brand-*`, `surface-*`,
 > `accent`) is defined as Tailwind `@theme` tokens in
-> [`src/index.css`](../src/index.css) — edit those tokens to recolor the app.
+> [`src/index.css`](https://github.com/fundive/fundive/blob/main/src/index.css) — edit those tokens to recolor the app.
 > Status colors (emerald/amber/danger-red) and the categorical event-type
 > rainbow intentionally stay on the raw palette; leave them.
 
@@ -67,19 +67,19 @@ show your brand, not FunDivers TW.
 
 ## 3. Terms of Use & privacy — `src/config/terms.tsx`
 
-[`src/config/terms.tsx`](../src/config/terms.tsx) is a shop-specific seam:
+[`src/config/terms.tsx`](https://github.com/fundive/fundive/blob/main/src/config/terms.tsx) is a shop-specific seam:
 rewrite its copy to match your own legal posture. It reads `app.name`,
 `app.shortName`, and `app.supportEmail` from your config, so those interpolate
 automatically. The page chrome and the versioned re-acceptance flow live in core
 and don't change per shop — but bump `CURRENT_TERMS_VERSION`
-([`src/lib/terms-version.ts`](../src/lib/terms-version.ts)) whenever you change
+([`src/lib/terms-version.ts`](https://github.com/fundive/fundive/blob/main/src/lib/terms-version.ts)) whenever you change
 the wording materially, so every diver is re-prompted to accept. A lawyer pass is
 recommended before going live.
 
 ## 4. Infrastructure credentials — `.env.local`
 
 Credentials are per-account, not app data, so they never go in
-`fundive.config.ts`. Copy [`.env.example`](../.env.example) to `.env.local` and
+`fundive.config.ts`. Copy [`.env.example`](https://github.com/fundive/fundive/blob/main/.env.example) to `.env.local` and
 fill it in:
 
 ```sh
@@ -94,8 +94,8 @@ edge-function values are grouped and commented in the same file.
 maps each value to its final destination.
 
 Worker names are infrastructure too, but they live in the two `wrangler.toml`
-files ([`wrangler.toml`](../wrangler.toml) → `fundive-app`,
-[`workers/push/wrangler.toml`](../workers/push/wrangler.toml) → `fundive-push`),
+files ([`wrangler.toml`](https://github.com/fundive/fundive/blob/main/wrangler.toml) → `fundive-app`,
+[`workers/push/wrangler.toml`](https://github.com/fundive/fundive/blob/main/workers/push/wrangler.toml) → `fundive-push`),
 not in the config. Rename them there if you want a shop-specific worker name, and
 set the push worker's non-secret `[vars]` (`VAPID_SUBJECT`, `ALLOWED_ORIGINS`,
 `TIMEZONE`, `CURRENCY`) to your own values.
@@ -122,4 +122,4 @@ Then point at your own backend and ship:
    (`supabase secrets set`) — see [deployment.md](./deployment.md).
 
 Because FunDive runs as a network service under the AGPL, keep a visible link to
-your source from the deployed app (see the [README](../README.md#license)).
+your source from the deployed app (see the [README](https://github.com/fundive/fundive/blob/main/README.md#license)).

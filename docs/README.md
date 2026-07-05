@@ -16,6 +16,7 @@ dive into source.
 | [payments.md](./payments.md)                           | Deposit vs balance semantics, payments ledger, refund flow |
 | [admin.md](./admin.md)                                 | Admin routes, event memos, user search, role-view toggle |
 | [trip-board.md](./trip-board.md)                       | Partner referral network: curated trips abroad, referral codes, kickback ledger |
+| [trusted-partners.md](./trusted-partners.md)           | Vouched partner-shop directory + server-relayed diver→partner messaging (email privacy) |
 | [push-notifications.md](./push-notifications.md)       | Web Push: VAPID, service worker, Cloudflare cron sender, `/admin-broadcast`, `/notify-duty`, CORS |
 | [testing.md](./testing.md)                             | Unit vs integration conventions, `mockQueryBuilder`, test layout |
 | [deployment.md](./deployment.md)                       | Env vars (which secret lives where), Cloudflare deploy, Supabase push / verify, edge functions |
@@ -38,7 +39,7 @@ dive into source.
 ## Commands
 
 Run these from the repo root; they read your `.env.local`. See the
-[Makefile](../Makefile) for the full list.
+[Makefile](https://github.com/fundive/fundive/blob/main/Makefile) for the full list.
 
 ```sh
 make start     # boot the local Supabase stack (Docker)

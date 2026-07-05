@@ -169,7 +169,7 @@ and add it any time; the app works fine without it.
 - [ ] Terms of Use reviewed for your jurisdiction.
 - [ ] (Optional) A custom domain attached in Cloudflare → Workers.
 - [ ] **A visible link to your source code** is present in the app — this is
-      required by the license (see [License](../README.md#license)); you're
+      required by the license (see [License](https://github.com/fundive/fundive/blob/main/README.md#license)); you're
       running a modified copy over the network, so AGPL §13 obliges you to offer
       users the source.
 

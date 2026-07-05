@@ -21,17 +21,39 @@ Every UI surface reads `AppEvent`, not raw `events` rows.
 
 ```ts
 {
-  id: string                 // the EO_dives/EO_courses _id
-  type: 'dive' | 'course'
-  title: string              // dive_title || title || fallback
-  start_time: string         // ISO timestamp (Taipei-local composed from text cols)
+  id: string                 // events.id (uuid)
+  type: 'dive' | 'course'    // mirrors events.kind
+  title: string              // display_title || admin_title || fallback
+  start_time: string         // ISO timestamp (shop-tz-local, from the date/time columns)
   end_time:   string | null
   price:      number | null
   deposit_amount: number | null
-  currency:   'TWD'
+  currency:   string         // from siteConfig.locale.currency
+  is_boat_dive?: boolean     // dive-only flag (independent of is_trip)
+  is_trip?:      boolean      // dive-only; surfaced under Scheduled Trips
   has_rooms / room_type_ids / has_addons / addon_ids / gear_rental_info / nitrox_required / dive_days
 }
 ```
+
+### Trip & boat-dive flags
+
+Two independent booleans on a dive event, both default `false`, both toggled in
+the admin `EventForm` (dive-only):
+
+- **`is_trip`** — surfaces the dive on the diver-facing **Scheduled Trips** page
+  (`src/pages/ScheduledTripsPage.tsx`), which filters `events` on `is_trip` and
+  drops the diver straight into that event's registration. This is a deliberate
+  admin choice per event — distinct from the calendar's *cosmetic* trip coloring,
+  which is keyword-driven via `business.tripKeywords` (see
+  [forking.md](./forking.md)). Also distinct from the **Trip Board**
+  ([trip-board.md](./trip-board.md)), which curates open-ended partner trips
+  abroad with no fixed date.
+- **`is_boat_dive`** — marks the dive as a boat dive (vs shore). Informational
+  today; independent of `is_trip` (a trip may or may not be a boat dive).
+
+Both are plain columns on `events` (`is_trip`, `is_boat_dive boolean not null
+default false`) — see [data-model.md](./data-model.md). Neither is backfilled by
+keyword; a fresh event starts `false` until an admin ticks it.
 
 ## Calendar rendering
 
@@ -99,17 +121,19 @@ total = base_price
       + transport_cost  (event.transport_price if surcharge>0 and ticked;
                          else 0 — surcharge=0 means transport is bundled
                          and we render "Included with base price")
-      + nitrox_course   (6,000 TWD if required-and-not-certified and ticked)
-total *= 1.05           (if payment_method === 'credit_card')
+      + nitrox_course   (business.nitroxCourseFee if required-and-not-certified and ticked)
+total *= (1 + business.cardSurchargePercent/100)   (if payment_method === 'credit_card')
 ```
 
-Gear prices (`GEAR_ALACARTE_PRICES`) live in `src/lib/gear.ts`;
-`NITROX_COURSE_FEE` lives in `src/lib/booking-charges.ts` (shared by both
-register forms and the display-time recompute). Gear is à-la-carte only —
-there is no full-set package. **Transport** moved out of the constants in
-migration `20260430030000_eo_prices_transport_int.sql`: it's now a
-per-event integer on the linked `prices.transport` row, surfaced
-on `AppEvent` as `transport_price`.
+Gear prices come from `business.gearPrices` in `fundive.config.ts`; the nitrox
+fee is `business.nitroxCourseFee`, read through `NITROX_COURSE_FEE` in
+`src/lib/booking-charges.ts` (shared by both register forms and the display-time
+recompute). The card surcharge is `business.cardSurchargePercent`. All three are
+shop-config fields, not literals — see [forking.md](./forking.md). Gear is
+à-la-carte only — there is no full-set package. **Transport** is a per-event
+integer on the linked `prices.transport` row, surfaced on `AppEvent` as
+`transport_price` (a `surcharge` of 0 means transport is bundled into the base
+price rather than added).
 
 `buildCharges()` in `src/lib/booking-charges.ts` turns these into an
 itemized `ChargeLine[]` that is both shown in the form summary and
@@ -135,8 +159,8 @@ The form does **not** write to `bookings` directly. It invokes the
      [data-model.md § BookingDetails](./data-model.md#bookingdetails-jsonb-shape)
      (`total`, `deposit`, and the itemized `charges` are snapshots).
 4. Builds a registration PDF (`supabase/functions/_shared/pdf.ts`) and
-   sends it via Gmail SMTP to `fundiverstw@gmail.com` and the diver —
-   unless `suppress_email` is set (group registration; see below).
+   sends it via Gmail SMTP to the shop (`siteConfig.app.supportEmail`) and
+   the diver — unless `suppress_email` is set (group registration; see below).
 5. Returns `{ booking_id, session? }` — `session` populated on the
    guest path so the SPA can `setSession()` without a second
    round-trip.
@@ -147,6 +171,44 @@ the just-created auth user so the diver can retry cleanly.
 The **admin edit path** (`existingBooking` set) skips the edge
 function and updates `bookings.notes` / `bookings.details` directly
 under the admin's RLS — no PDF, no account creation.
+
+### Registration resilience & eligibility
+
+Public registration is the app's highest-stakes flow (money + a new account over
+a possibly-flaky phone connection), so it's hardened on four axes. All four are
+**belt-and-suspenders**: enforced in the form for good UX and re-checked
+server-side so nothing slips through.
+
+- **Certification-declaration gate.** A diver must either name a certification
+  level or explicitly tick **"I'm not certified yet"** before advancing — the
+  cert-card *photo* is deferrable behind an acknowledgment, but the declaration
+  isn't. Boat/deep events with a prerequisite (`events.prereq_cert_id` /
+  `req_dives`) show a warning the diver must acknowledge. The shared rules live in
+  `supabase/functions/_shared/registration-eligibility.ts` (pure `eligibilityError`),
+  used both by the form's step-gating and by `create-registration`, which returns
+  **HTTP 422** and rolls back if an ineligible diver reaches the server. Admin
+  on-behalf-of registrations bypass the gate (`target_user_id` set). This is the
+  path that previously let an under-documented diver book a boat dive.
+- **Resume drafts.** `RegisterForm` autosaves its state to `localStorage` via
+  `src/lib/registration-draft.ts` (key prefix `fd_reg_draft_v1`, keyed on
+  event + user, 14-day expiry, debounced, skips the first render so it never
+  clobbers a restore). If the diver drops off mid-registration, a **"Continue
+  where you left off"** banner offers to reapply the draft; it's cleared on a
+  successful submit.
+- **Submit-retry + lost-response recovery.** The edge call goes through
+  `invokeWithRetry` (`src/lib/edge-invoke.ts`), which retries **only** transient
+  no-response errors (`FunctionsFetchError`/`FunctionsRelayError`) — never HTTP
+  errors, so the dedupe guard below isn't hammered. If the *response* is lost
+  after the booking was actually created, `fetchOwnBooking(userId, event)` looks
+  the booking up by `event_id` and treats the duplicate as success instead of
+  showing a spurious error.
+- **Ride waitlist.** When a diver requests transport but no ride seat is free
+  (`event_ride_seats` reports the fleet full — see
+  [data-model.md](./data-model.md)), they are **not** blocked: the ride option
+  stays selectable and the booking records `details.ride_waitlisted = true`. A
+  DB trigger notifies admins so they can add a car or reshuffle. Seat capacity
+  reserves the crew's seats (one per vehicle, rising to the full on-duty staff
+  count), so the number offered to divers is what's genuinely rideable.
 
 ### Group registrations — one consolidated PDF
 
