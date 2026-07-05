@@ -141,7 +141,7 @@ This is the most important line to hold, because it's what keeps upgrades cheap.
 - **Contribute upstream:** new features, layout changes, copy changes, new
   fields, bug fixes. These belong in this repository so every deployer benefits
   and so they survive upgrades. Open a PR (see
-  [CONTRIBUTING.md](../CONTRIBUTING.md)).
+  [CONTRIBUTING.md](https://github.com/fundive/fundive/blob/main/CONTRIBUTING.md)).
 - **Fork (last resort):** deeply divergent behavior a deployer won't upstream.
   This forfeits the one-line upgrade path and is explicitly *not* the intended
   model — prefer contributing upstream.

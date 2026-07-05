@@ -8,11 +8,6 @@ export default defineConfig({
   base: '/fundive/',
   lastUpdated: true,
   cleanUrls: true,
-  // The docs link to repo-root files (README, source, config, Makefile,
-  // wrangler.toml, .env.example) that live outside the docs site. Those resolve
-  // fine when browsing the repo on GitHub but aren't pages here, so don't fail
-  // the build on them. Internal cross-links are still checked.
-  ignoreDeadLinks: [/\.\.\//],
   themeConfig: {
     nav: [
       { text: 'Self-hosting', link: '/self-hosting' },
@@ -45,6 +40,7 @@ export default defineConfig({
           { text: 'Payments', link: '/payments' },
           { text: 'Admin', link: '/admin' },
           { text: 'Trip board', link: '/trip-board' },
+          { text: 'Trusted partners', link: '/trusted-partners' },
           { text: 'Push notifications', link: '/push-notifications' },
         ],
       },

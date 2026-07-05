@@ -34,14 +34,14 @@ public.push_subscriptions / push_notifications_sent  (cron infra)
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | `profiles` | `id` (= `auth.users.id`), `role` | `role in ('diver','staff','admin')`. Row auto-created by `handle_new_user()` on signup. Personal + cert + sizing + emergency contact + gear-owned + gear sizes + `agreed_to_terms_at`. |
-| `bookings` | `id`, `user_id`, `event_id`, `status`, `details` (jsonb), `refund_requested_at` | `event_id` NOT NULL → `events(id)` (ON DELETE CASCADE). `details` shape enforced app-side by `BookingDetails` in `src/types/database.ts`. Unique per (user, event). After insert, most columns are immutable for divers — see migration `20260423130000_core_rls_and_booking_immutability.sql`. |
+| `bookings` | `id`, `user_id`, `event_id`, `status`, `details` (jsonb), `refund_requested_at` | `event_id` NOT NULL → `events(id)` (ON DELETE CASCADE). `details` shape enforced app-side by `BookingDetails` in `src/types/database.ts`. Unique per (user, event). After insert, most columns are immutable for divers — a trigger in the baseline schema makes a diver's booking tamper-resistant by design. |
 | `payments` | `id`, `user_id`, `booking_id`, `amount`, `status`, `method`, `recorded_by` | Ledger entries, staff-inserted. `status in ('pending','paid','refunded')`. |
 | `event_memos` | `id`, `event_id`, `tag`, `content`, `resolved_*` | XOR FK to dive/course. Tags: `urgent` / `payment` / `gear` / `logistics` / `cert` / `medical` / `note`. Resolution flags come as a trio (all null or all set, DB-enforced). |
 | `diver_notes` | `id`, `profile_id`, `created_by`, `content`, `edited_*` | Per-diver standing facts (allergies, accommodations) — staff/admin can read+insert under their own attribution; admin or own-author can update/delete. `profile_id`/`created_by`/`created_at` frozen by trigger so RLS can't be sidestepped. |
 | `admin_notes` | `id`, `profile_id`, `created_by`, `content` | Free-text staff notes attached to a diver's profile. Read/insert open to staff+admin (insert requires `created_by = auth.uid()`); update/delete admin-only. |
 | `admin_audit_log` | `id`, `actor_id`, `action`, `target_table`, `target_id`, `before`, `after` | Append-only audit trail for admin mutations. Insert via DB triggers; reads admin-only. |
 | `duties` | `id`, `assignee_id`, `role`, `start_date`, `end_date`, `event_id` | Staff-or-admin shift assignments. Trigger enforces `assignee_id` references a profile with role in (admin, staff). |
-| `vehicles` | `id`, `name`, `passenger_seats`, `active` | Transport-fleet catalog (`passenger_seats` excludes the driver). Staff+admin read, admin write. Stateless capacity input to the logistics ride planner. |
+| `vehicles` | `id`, `name`, `passenger_seats`, `active` | Transport-fleet catalog. `passenger_seats` is the car's **total physical seats**; `event_ride_seats()` reserves the crew's seats (one per vehicle, rising to the on-duty staff count) so divers are offered only what's genuinely rideable. There is no driver-assignment concept — divers and staff compete for physical seats. Staff+admin read, admin write. |
 | `event_vehicles` | `id`, `vehicle_id`, `event_date`, `event_id` | Which car is allocated to which event on which date. `event_id` NOT NULL → `events`; **unique `(vehicle_id, event_date)`** makes a car exclusive per day (the availability rule). One row per date for multi-day events. Staff+admin read, admin write. Assigned on the logistics day view. |
 | `dive_sites` | `id`, `name`, `lat`, `lng`, `dive_type` | Public catalog rendered on `/map`; readable by all authenticated users. |
 | `waiver_signatures` | `id`, `diver_id`, `waiver_code`, `waiver_version`, `signed_name`, `signed_at`, `event_id` | Append-only e-signature records. The waiver **catalog + global rules** live in code (`src/config/waivers.ts`), not the DB — these rows only record who signed what, when. Annual waivers leave `event_id` null; per-event waivers set it. Writes go through the `sign_waiver()` RPC (diver reads own; staff+admin read all). |
@@ -52,6 +52,7 @@ public.push_subscriptions / push_notifications_sent  (cron infra)
 | `event_rooms` / `event_addons` / `event_destinations` | junctions | FK junctions linking rooms / add-ons / destinations to `events` by `event_id`. Reconciled by the `set_event_relations` RPC (the single write path). |
 | `push_subscriptions` | `endpoint` (unique), `user_id`, `p256dh`, `auth` | One row per device. Diver owns their rows (RLS). |
 | `push_notifications_sent` | `(user_id, event_id, kind)` composite PK | Idempotency ledger for the push cron. Service-role-only. |
+| `trusted_partners` | `id`, `name`, `region`, `blurb`, `email`, `active`, `created_by` | Directory of vouched partner dive shops. **Admin-only RLS on every verb** — divers never see the `email` column; they read `id`/`name`/`region`/`blurb` for active rows through the `list_trusted_partners()` RPC, and message a partner via the `contact-trusted-partner` edge function (relayed server-side). See [trusted-partners.md](./trusted-partners.md). |
 
 ## `events` table + catalog reference tables
 
@@ -66,7 +67,7 @@ admin_notes, event_vehicles, and waiver rows all reference it by a single
 | `id` (uuid), `kind`, `admin_title`, `display_title`, `calendar_title` | shared identity |
 | `price` → `prices`, `cancel_policy` → `cancellation_policies`, `prereq_cert_id` → `cert_levels`, `divetravel_id` → `dive_travel` | catalog links |
 | `capacity`, `fully_booked`, `full_payment_deadline`, `cancel_date`, `cancelled_at`, `dive_days`, `prereqs`, `req_dives`, `featured_image` | shared |
-| **dive-only:** `start_date`, `end_date`, `start_time`, `featured`, `is_private`, `nitrox_required`, `gear_rental`, `notes`, `second_image` | scalar date envelope |
+| **dive-only:** `start_date`, `end_date`, `start_time`, `featured`, `is_private`, `nitrox_required`, `gear_rental`, `notes`, `second_image`, `is_trip`, `is_boat_dive` | scalar date envelope; `is_trip`/`is_boat_dive` are independent `boolean not null default false` flags (see [events-and-bookings.md](./events-and-bookings.md)) |
 | **course-only:** `course_days` (`date[]`, max 4 — the days a course runs on; see [events-and-bookings.md](./events-and-bookings.md#course_days)), `course_name`, `included`, `schedule`, `starting_at` | discrete session days (no envelope) |
 
 **Temporal model:** dives use the scalar `start_date`/`end_date`/`start_time`
@@ -127,45 +128,35 @@ adds a column / constraint / policy. File naming is
 
 ### Migration history
 
-The migrations folder is the source of truth — `ls
-supabase/migrations/` for the full list. Maintaining a curated table
-here drifted out of date faster than any other doc; we no longer try.
+fundive ships a **single squashed baseline**,
+`20260703000000_baseline_schema.sql`, that captures the entire schema — the
+unified `events` model, every app-owned table above, all RLS policies and
+triggers, and the SECURITY DEFINER RPCs (`event_ride_seats`, `sign_waiver`,
+`event_confirmed_counts`, `set_event_relations`, …). It collapsed the long
+per-feature migration lineage the platform grew in early development, so a fresh
+database is one baseline apply, not a replay of history.
 
-Notable milestones to skim if you're new to the schema:
+Everything after the baseline is a **forward** migration (the `ls
+supabase/migrations/` order is the source of truth):
 
-- `20260416111642_initial_schema.sql` — baseline (profiles, bookings,
-  payments, RLS, `handle_new_user` trigger).
-- `20260421150000_swap_activities_for_eo_events.sql` — replaced the
-  initial `activities` table with the XOR FKs to `EO_dives` /
-  `EO_courses` we use today.
-- `20260422180000_push_notifications.sql` — push subscriptions +
-  idempotency ledger.
-- `20260423000000_duties.sql` — staff/admin shift assignments.
-- `20260624000000_vehicles.sql` — transport-fleet catalog.
-- `20260627000000_event_vehicles.sql` — per-event car allocation
-  (exclusive per date via unique `(vehicle_id, event_date)`).
-- `20260628000000_event_ride_seats.sql` — `event_ride_seats()` SECURITY
-  DEFINER RPC: an event's ride-seat capacity (distinct assigned cars) and
-  claimed count (transportation=true bookings), readable by any diver so the
-  registration form can gate the "I need a ride" option.
-- `20260629000000_waivers.sql` — waiver tracking: `waiver_signatures`
-  (append-only e-signatures), `event_waivers` (per-event require/exempt
-  overrides), and the `sign_waiver()` SECURITY DEFINER RPC (server-stamps
-  `signed_at`/`diver_id` so signatures can't be backdated, same pattern as
-  `accept_current_terms`). The waiver catalog + global applicability rules live
-  in `src/config/waivers.ts`, not the DB, so each shop customizes them in code.
-- `20260423130000_core_rls_and_booking_immutability.sql` — the
-  bookings-immutable-once-inserted trigger; the policy that makes
-  divers' bookings tamper-resistant by design.
-- `20260423140000_admin_audit_log.sql` — audit trail.
-- `20260427000000_dive_sites.sql` — dive sites for `/map`.
-- `20260428000000_cert_levels.sql` — certification reference data.
-- `20260429000000_dive_travel_and_cancellation_policies.sql` —
-  transport + cancellation policy reference data.
-- `20260429240000_staff_role.sql` — added the `staff` role and
-  `is_staff_or_admin()` helper.
-- `20260430040000_eo_dive_rooms_junction.sql` — modern junction for
-  the legacy CSV `room_types` column on `EO_dives`.
+- `20260705000000_event_ride_seats_reserve_crew.sql` — redefines
+  `event_ride_seats()` so capacity reserves the crew's seats:
+  `Σ passenger_seats − greatest(#assigned vehicles, #on-duty staff)`. One seat per
+  vehicle is held as a floor, rising to the full on-duty staff count when staff
+  outnumber the cars, so the seats offered to divers are what's genuinely
+  rideable.
+- `20260706000000_trusted_partners.sql` — the `trusted_partners` table, its
+  admin-only RLS, and the `list_trusted_partners()` RPC (email-free projection).
+  See [trusted-partners.md](./trusted-partners.md).
+- `20260707000000_dive_trip_boat_flags.sql` — adds `is_trip` and `is_boat_dive`
+  (both `boolean not null default false`) to `events`. No keyword backfill — an
+  admin ticks them per event. See [events-and-bookings.md](./events-and-bookings.md).
+- `20260707010000_notify_admins_ride_waitlist.sql` — trigger that notifies admins
+  when a booking lands on the ride waitlist (`details.ride_waitlisted = true`).
+- `20260707020000_event_ride_seats_authenticated_only.sql` — revokes the default
+  `PUBLIC`/`anon` EXECUTE on `event_ride_seats()` and re-grants only
+  `authenticated` + `service_role`, so aggregate seat counts aren't exposed to
+  unauthenticated callers (a guest's fetch fails open).
 
 ## `BookingDetails` JSONB shape
 
