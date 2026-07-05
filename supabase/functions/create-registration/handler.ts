@@ -148,10 +148,10 @@ export interface Deps {
 }
 
 /**
- * True when the target event's last day is before today (Asia/Taipei). EO_*
- * date columns are 'YYYY-MM-DD' Taipei calendar days, so a lexical compare is
- * correct. Used to reject diver/guest registrations for events that already
- * happened; admins/staff bypass this server-side check too.
+ * True when the target event's last day is before today (Asia/Taipei). The
+ * events date columns are 'YYYY-MM-DD' Taipei calendar days, so a lexical
+ * compare is correct. Used to reject diver/guest registrations for events that
+ * already happened; admins/staff bypass this server-side check too.
  */
 async function eventHasPassed(admin: SupabaseAdminClient, eventType: string, eventId: string): Promise<boolean> {
   const cols = eventType === "dive" ? "start_date, end_date" : "course_days"

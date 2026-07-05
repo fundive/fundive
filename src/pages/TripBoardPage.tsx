@@ -47,7 +47,7 @@ export function TripBoardPage() {
         </p>
         <p className="text-sm">
           <Link to="/partner-connect" className={ON_DEEP_LINK}>
-            Headed somewhere not listed? Try Partner Connect →
+            Headed somewhere not listed? Try Trusted Partners →
           </Link>
         </p>
       </div>
