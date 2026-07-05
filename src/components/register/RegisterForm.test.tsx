@@ -230,7 +230,7 @@ describe('RegisterForm', () => {
     expect(screen.queryByText(/already has an active booking/i)).not.toBeInTheDocument()
   })
 
-  it('disables the "I need a ride" option when the assigned cars are full', async () => {
+  it('waitlists the ride (still selectable) when the assigned cars are full', async () => {
     setupFrom()
     // event_ride_seats reports 7 capacity / 7 claimed → no seats left.
     rpc.mockImplementation((name: string) =>
@@ -245,9 +245,13 @@ describe('RegisterForm', () => {
     await user.click(screen.getByRole('button', { name: /next/i })) // step 1 → 2
     await user.click(screen.getByRole('button', { name: /next/i })) // step 2 → 3
 
-    expect(await screen.findByText(/the shop ride is full/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/yes, i'll ride with the shop/i)).toBeDisabled()
-    expect(screen.getByLabelText(/no, i don't need a ride/i)).not.toBeDisabled()
+    // The option stays selectable (full → waitlist, not blocked).
+    const ride = screen.getByLabelText(/yes, i'll ride with the shop/i)
+    expect(ride).not.toBeDisabled()
+    expect(await screen.findByText(/join the ride waitlist/i)).toBeInTheDocument()
+    // Selecting it flips the copy to the "you're on the waitlist" warning.
+    await user.click(ride)
+    expect(await screen.findByText(/you've been added to the ride waitlist/i)).toBeInTheDocument()
   })
 
   it('shows remaining ride seats when the assigned cars still have room', async () => {

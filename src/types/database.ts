@@ -35,6 +35,10 @@ export interface BookingDetails {
   }
   add_ons?: string[]
   transportation?: boolean
+  /** True when the diver opted into a shop ride while the assigned cars were
+   *  already full — the ride booking stands but lands on a ride waitlist, and
+   *  admins are notified (notify_admins_ride_waitlist trigger). */
+  ride_waitlisted?: boolean
   payment_method?: 'bank_transfer' | 'credit_card' | 'paypal' | 'cash'
   /** Optional billing email when the diver picks credit_card — they receive
    *  the invoice with the card-payment link at this address. Empty / undefined
