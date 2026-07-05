@@ -1,9 +1,11 @@
-// Integration coverage for the event_ride_seats RPC (20260628000000).
-// Runs against the live local Supabase stack.
+// Integration coverage for the event_ride_seats RPC (capacity clause superseded
+// by 20260705000000). Runs against the live local Supabase stack.
 //
 // Contract:
 //   - capacity = sum of passenger_seats over the DISTINCT vehicles assigned to
-//     the event (a van on several days of a multi-day event counts once)
+//     the event, MINUS one seat per vehicle reserved for whoever drives it,
+//     rising to the full on-duty staff count when staff outnumber the vans
+//     (a van on several days of a multi-day event counts once)
 //   - claimed  = non-cancelled bookings with details.transportation = true
 //   - callable by a plain diver (SECURITY DEFINER bypasses the event_vehicles /
 //     bookings RLS that would otherwise hide the inputs)
@@ -19,8 +21,10 @@ let diverA: TestUser
 let diverB: TestUser
 let diverC: TestUser
 let diveId: string
+let staffDive: string | undefined
 const cleanupVehicles: string[] = []
 const cleanupBookings: string[] = []
+const cleanupUsers: TestUser[] = []
 
 async function createVehicle(name: string, seats: number): Promise<string> {
   const { data, error } = await admin.from('vehicles')
@@ -61,9 +65,12 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (cleanupBookings.length) await admin.from('bookings').delete().in('id', cleanupBookings)
+  // Delete the staff-test dive first — cascades its event_vehicles + duties so
+  // the shared vehicle cleanup below isn't blocked by a lingering allocation.
+  if (staffDive) await deleteTestDive(admin, staffDive)
   for (const id of cleanupVehicles) await admin.from('vehicles').delete().eq('id', id)
   if (diveId) await deleteTestDive(admin, diveId)
-  for (const u of [diverA, diverB, diverC]) if (u) await deleteTestUser(admin, u.id)
+  for (const u of [diverA, diverB, diverC, ...cleanupUsers]) if (u) await deleteTestUser(admin, u.id)
 })
 
 describe('event_ride_seats', () => {
@@ -71,18 +78,19 @@ describe('event_ride_seats', () => {
     expect(await seats()).toEqual({ capacity: 0, claimed: 0 })
   })
 
-  it('sums passenger seats over assigned vehicles for capacity', async () => {
+  it('sums passenger seats over assigned vehicles, reserving one driver seat each', async () => {
     await allocate(await createVehicle('Delica', 7), '2031-05-01')
     await allocate(await createVehicle('Veryca', 4), '2031-05-01')
-    expect((await seats()).capacity).toBe(11)
+    // (7 - 1) + (4 - 1) = 9 rideable seats after the two drivers.
+    expect((await seats()).capacity).toBe(9)
   })
 
   it('counts a van assigned to several days of the event only once', async () => {
     const bus = await createVehicle('Bus', 12)
     await allocate(bus, '2031-05-02')
     await allocate(bus, '2031-05-03') // same van, another day → still +12, not +24
-    // 7 + 4 (from previous test) + 12 = 23
-    expect((await seats()).capacity).toBe(23)
+    // (7 + 4 + 12) physical − 3 drivers = 20 rideable seats.
+    expect((await seats()).capacity).toBe(20)
   })
 
   it('counts only non-cancelled transportation=true bookings as claimed', async () => {
@@ -97,7 +105,27 @@ describe('event_ride_seats', () => {
     const asDiver = await seats(diverClient)
     const asAdmin = await seats(admin)
     expect(asDiver).toEqual(asAdmin)
-    expect(asDiver.capacity).toBe(23)
+    expect(asDiver.capacity).toBe(20)
     expect(asDiver.claimed).toBe(1)
+  })
+
+  it('reserves the full on-duty staff count when staff outnumber the vehicles', async () => {
+    // Isolated dive: one 8-seat van but three on-duty staff, all of whom ride.
+    staffDive = await createTestDive(admin)
+    const van = await createVehicle('Hiace', 8)
+    const va = await admin.from('event_vehicles')
+      .insert({ vehicle_id: van, event_date: '2031-06-01', event_id: staffDive } as never)
+    if (va.error) throw new Error(`allocate: ${va.error.message}`)
+    for (let i = 0; i < 3; i++) {
+      const st = await createTestUser(admin, { role: 'staff' })
+      cleanupUsers.push(st)
+      const du = await admin.from('duties')
+        .insert({ assignee_id: st.id, role: 'guide', start_date: '2031-06-01', event_id: staffDive } as never)
+      if (du.error) throw new Error(`duty: ${du.error.message}`)
+    }
+    const { data, error } = await admin.rpc('event_ride_seats', { p_event_id: staffDive })
+    if (error) throw new Error(`rpc: ${error.message}`)
+    // 8 physical seats − max(1 van, 3 staff) = 8 − 3 = 5 rideable for divers.
+    expect((data as { capacity: number }[])[0].capacity).toBe(5)
   })
 })
