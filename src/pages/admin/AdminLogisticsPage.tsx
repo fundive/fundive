@@ -435,9 +435,25 @@ export function AdminLogisticsPage() {
               {/* Bold banner per event so the sections are obvious when
                   scrolling a tall phone screen. */}
               <div className="bg-brand-900 text-white rounded-xl px-4 py-2.5 space-y-0.5">
-                <Link to={`/admin/events/${g.event.type}/${g.event.id}/edit`}>
-                  <h2 className="text-base font-semibold break-words hover:underline">{g.event.title}</h2>
-                </Link>
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="text-base font-semibold break-words">
+                    {isAdmin ? (
+                      <Link to={`/admin/events/${g.event.type}/${g.event.id}/edit`} className="hover:underline">
+                        {g.event.title}
+                      </Link>
+                    ) : (
+                      g.event.title
+                    )}
+                  </h2>
+                  {isAdmin && (
+                    <Link
+                      to={`/admin/events/${g.event.type}/${g.event.id}/edit`}
+                      className="shrink-0 text-xs bg-white/15 hover:bg-white/25 text-white px-2.5 py-1 rounded-lg font-medium"
+                    >
+                      Edit
+                    </Link>
+                  )}
+                </div>
                 <span className="block text-xs text-white/80">
                   {formatEventSpan(g.event, { style: 'compact' })} · {g.rows.length} diver{g.rows.length === 1 ? '' : 's'}
                 </span>

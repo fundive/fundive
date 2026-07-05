@@ -11,7 +11,7 @@
 //     bookings RLS that would otherwise hide the inputs)
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import {
-  adminClient, userClient,
+  adminClient, userClient, anonClient,
   createTestUser, deleteTestUser, createTestDive, deleteTestDive,
   type TestUser,
 } from './helpers'
@@ -107,6 +107,11 @@ describe('event_ride_seats', () => {
     expect(asDiver).toEqual(asAdmin)
     expect(asDiver.capacity).toBe(20)
     expect(asDiver.claimed).toBe(1)
+  })
+
+  it('is not callable by an anonymous (unauthenticated) client', async () => {
+    const { error } = await anonClient().rpc('event_ride_seats', { p_event_id: diveId })
+    expect(error).not.toBeNull()
   })
 
   it('reserves the full on-duty staff count when staff outnumber the vehicles', async () => {

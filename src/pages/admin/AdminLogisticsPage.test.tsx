@@ -81,6 +81,15 @@ describe('AdminLogisticsPage', () => {
       .toHaveAttribute('href', '/admin/users?diver=u1')
   })
 
+  it('shows the event title as plain text (no edit link) for non-admin staff', async () => {
+    useAuthMock.mockReturnValue({ profile: { id: 'staff-1', role: 'staff' } })
+    renderPage()
+    await screen.findByText(/1 event · 2 divers/i)
+    expect(screen.getByText('Kenting fun dive')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Kenting fun dive' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /^edit$/i })).not.toBeInTheDocument()
+  })
+
   it('offers a per-event car picker listing the day\'s available cars', async () => {
     const vehicleRows = [{ id: 'v1', name: 'Delica', passenger_seats: 7, active: true, created_at: '', created_by: null }]
     from.mockImplementation((table: string) => {
