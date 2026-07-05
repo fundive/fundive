@@ -68,7 +68,10 @@ export function DateField({
     })
     document.body.appendChild(native)
     const cleanup = () => native.remove()
-    native.addEventListener('change', () => { onChange(native.value); cleanup() })
+    // Reflect the pick in the text field immediately. Without the setText the
+    // focus guard in the value-sync effect can hold the old text until blur, so
+    // a calendar pick appears to do nothing until the user clicks away.
+    native.addEventListener('change', () => { setText(native.value); onChange(native.value); cleanup() })
     native.addEventListener('cancel', cleanup)
     native.addEventListener('blur', () => setTimeout(cleanup, 100))
     try { native.showPicker() } catch { cleanup() }
