@@ -7,6 +7,7 @@ dive into source.
 
 | Doc | What it covers |
 | --- | --- |
+| [self-hosting.md](./self-hosting.md)                   | Non-technical step-by-step: fork → Supabase → Cloudflare → live app, first admin, go-live checklist |
 | [architecture.md](./architecture.md)                   | Platform-as-dependency model, `defineConfig` + `.env` surface, the `fundive` CLI, runtime boundaries, versioning contract |
 | [forking.md](./forking.md)                             | Forking for a new shop: `fundive.config.ts` fields, branding assets in `public/`, `terms.tsx`, env vars, fork-to-deploy |
 | [data-model.md](./data-model.md)                       | Every table, the unified `events` model, catalog reference tables |
