@@ -70,9 +70,12 @@ export interface EventFormProps {
   onCancel: () => void
   /** Override the submit button text (defaults to "Create dive/course" or "Save changes"). */
   submitLabel?: string
+  /** Create-mode only: extra fields (e.g. a car picker) whose values the page
+   *  persists after the event row exists. Given the current event type. */
+  renderCreateExtras?: (type: 'dive' | 'course') => ReactNode
 }
 
-export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: EventFormProps) {
+export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, renderCreateExtras }: EventFormProps) {
   const [form, setForm] = useState<FormState>(initial ?? EMPTY_FORM)
   const [prices, setPrices] = useState<EOPrice[]>([])
   const [rooms, setRooms] = useState<EORoom[]>([])
@@ -817,6 +820,8 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel }: Ev
           </div>
         )}
       </Section>
+
+      {mode === 'create' && renderCreateExtras && renderCreateExtras(form.type)}
 
       {error && (
         <p className="text-sm text-red-200 bg-red-900/50 border border-accent rounded-md p-2">{error}</p>
