@@ -17,6 +17,10 @@ and your customers' data, with no per-seat fee.
 > upgrade as potentially breaking until 1.0. Issues and PRs welcome — see
 > [Contributing](#contributing).
 
+> 🏝️ **Run a dive shop and want your own copy?** No coding required — follow the
+> **[step-by-step self-hosting walkthrough](docs/self-hosting.md)** to launch a
+> live booking app for free in an afternoon.
+
 ## Features
 
 - **Booking & scheduling** — a diver-facing calendar of dives and courses with a
@@ -125,6 +129,15 @@ FunDive is built to be forked per shop. Two things make a clone *yours*:
    shop's marks. The asset paths are listed under `assets` in `fundive.config.ts`.
 
 See [`docs/forking.md`](docs/forking.md) for the field-by-field walkthrough.
+
+## Self-hosting: launch your shop's app
+
+New to this and not a developer? **[docs/self-hosting.md](docs/self-hosting.md)**
+is a step-by-step walkthrough that takes you from nothing to a live booking app —
+mostly creating accounts and clicking buttons, with a couple of copy-paste
+commands. The free tiers of GitHub, Supabase, and Cloudflare cover a small shop,
+so you can launch for **$0**. The developer-oriented reference below and in
+[`docs/deployment.md`](docs/deployment.md) covers the same ground in less detail.
 
 ## Deployment
 
