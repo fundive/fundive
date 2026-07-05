@@ -10,6 +10,9 @@ const { from, rpc } = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn() }))
 vi.mock('../../lib/supabase', () => ({
   supabase: { from: (...a: unknown[]) => from(...a), rpc: (...a: unknown[]) => rpc(...a) },
 }))
+vi.mock('../../hooks/useAuth', () => ({
+  useAuth: () => ({ profile: { id: 'admin-1', role: 'admin' } }),
+}))
 
 beforeEach(() => {
   from.mockReset()
