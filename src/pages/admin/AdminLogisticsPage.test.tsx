@@ -70,6 +70,17 @@ describe('AdminLogisticsPage', () => {
     expect(screen.getByRole('group', { name: /needs ride/i })).toBeInTheDocument()
   })
 
+  it('links each event banner to its edit page and each diver card to its profile', async () => {
+    renderPage()
+    await screen.findByText(/1 event · 2 divers/i)
+    // The event banner title links to the edit form.
+    expect(screen.getByRole('link', { name: 'Kenting fun dive' }))
+      .toHaveAttribute('href', '/admin/events/dive/e1/edit')
+    // The diver card name links to the diver's admin profile card.
+    expect(screen.getByRole('link', { name: 'Ada' }))
+      .toHaveAttribute('href', '/admin/users?diver=u1')
+  })
+
   it('offers a per-event car picker listing the day\'s available cars', async () => {
     const vehicleRows = [{ id: 'v1', name: 'Delica', passenger_seats: 7, active: true, created_at: '', created_by: null }]
     from.mockImplementation((table: string) => {

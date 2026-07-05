@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PageLoading } from '../../components/ui/Spinner'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '../../lib/supabase'
@@ -434,7 +435,9 @@ export function AdminLogisticsPage() {
               {/* Bold banner per event so the sections are obvious when
                   scrolling a tall phone screen. */}
               <div className="bg-brand-900 text-white rounded-xl px-4 py-2.5 space-y-0.5">
-                <h2 className="text-base font-semibold break-words">{g.event.title}</h2>
+                <Link to={`/admin/events/${g.event.type}/${g.event.id}/edit`}>
+                  <h2 className="text-base font-semibold break-words hover:underline">{g.event.title}</h2>
+                </Link>
                 <span className="block text-xs text-white/80">
                   {formatEventSpan(g.event, { style: 'compact' })} · {g.rows.length} diver{g.rows.length === 1 ? '' : 's'}
                 </span>
@@ -460,7 +463,7 @@ export function AdminLogisticsPage() {
                 <p className="text-xs text-brand-950/70 font-medium italic pl-1">No active registrants.</p>
               ) : (
                 g.rows.map(r => (
-                  <DiverGearCard key={r.booking.id} row={r} onProfilePatched={patchProfile} />
+                  <DiverGearCard key={r.booking.id} row={r} onProfilePatched={patchProfile} linkToProfile />
                 ))
               )}
             </section>
