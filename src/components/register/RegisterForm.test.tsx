@@ -750,7 +750,7 @@ describe('RegisterForm', () => {
     expect(screen.getByRole('button', { name: /next/i })).not.toBeDisabled()
   })
 
-  it('step 2 Next is blocked when a cert level is filled but no cert card is on file', async () => {
+  it('step 2 defers the cert photo behind the bring-your-card disclaimer', async () => {
     setupFrom()
     const user = userEvent.setup()
     const noCardProfile: Profile = { ...sampleProfile, cert_level: 'Open Water', cert_card_path: null }
@@ -759,11 +759,52 @@ describe('RegisterForm', () => {
         onClose={() => {}} onBooked={() => {}} />
     )
     await user.click(screen.getByRole('button', { name: /next/i }))
-    expect(screen.getByText(/upload a photo of your highest certification card/i)).toBeInTheDocument()
+    // Cert level named but no card → proof prompt, Next blocked until proof or ack.
+    expect(screen.getByText(/add proof of your certification/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /next/i })).toBeDisabled()
 
-    // Clearing the cert level releases the gate (no cert ⇒ no photo required).
-    await user.clear(screen.getByLabelText(/cert level/i))
+    // Ticking the "I'll bring my physical card, no refund" disclaimer releases it.
+    await user.click(screen.getByLabelText(/bring my physical certification card/i))
+    expect(screen.getByRole('button', { name: /next/i })).not.toBeDisabled()
+  })
+
+  it('step 2 requires either a cert level or the uncertified declaration', async () => {
+    setupFrom()
+    const user = userEvent.setup()
+    const blankCert: Profile = { ...sampleProfile, cert_level: null, cert_card_path: null }
+    render(
+      <RegisterForm event={sampleEvent} profile={blankCert} userId="u1"
+        onClose={() => {}} onBooked={() => {}} />
+    )
+    await user.click(screen.getByRole('button', { name: /next/i }))
+    expect(screen.getByText(/enter your certification level, or tick/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /next/i })).toBeDisabled()
+
+    await user.click(screen.getByLabelText(/not certified yet/i))
+    expect(screen.getByRole('button', { name: /next/i })).not.toBeDisabled()
+    expect(screen.queryByLabelText(/cert level/i)).not.toBeInTheDocument()
+  })
+
+  it('warns and gates on an event logged-dive prerequisite until acknowledged', async () => {
+    from.mockImplementation((table: string) => {
+      if (table === 'events')  return mockQueryBuilder({ data: { prereq_cert_id: null, req_dives: 20 } })
+      if (table === 'rooms')   return mockQueryBuilder({ data: sampleRooms })
+      if (table === 'addons')  return mockQueryBuilder({ data: sampleAddons })
+      return mockQueryBuilder()
+    })
+    const user = userEvent.setup()
+    // sampleProfile has a cert + card on file (declaration passes) but only 12
+    // logged dives — short of the event's 20.
+    render(
+      <RegisterForm event={sampleEvent} profile={sampleProfile} userId="u1"
+        onClose={() => {}} onBooked={() => {}} />
+    )
+    await user.click(screen.getByRole('button', { name: /next/i }))  // step 1 → 2
+    expect(await screen.findByText(/this event has a prerequisite/i)).toBeInTheDocument()
+    expect(screen.getByText(/at least 20 logged dives/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /next/i })).toBeDisabled()
+
+    await user.click(screen.getByLabelText(/i understand this requirement/i))
     expect(screen.getByRole('button', { name: /next/i })).not.toBeDisabled()
   })
 
@@ -865,6 +906,7 @@ describe('RegisterForm', () => {
     await user.type(screen.getByLabelText(/^name \*/i), 'Grace Hopper')
     await user.type(screen.getByLabelText(/nationality \*/i), 'American')
     await user.selectOptions(screen.getByLabelText(/gender \*/i), 'female')
+    await user.click(screen.getByLabelText(/not certified yet/i))
     // Step 2 → 3 → 4 → confirm
     await user.click(screen.getByRole('button', { name: /next/i }))
     await user.click(screen.getByLabelText(/no, i don't need a ride/i))
@@ -917,6 +959,7 @@ describe('RegisterForm', () => {
     await user.type(screen.getByLabelText(/^name \*/i), 'Grace Hopper')
     await user.type(screen.getByLabelText(/nationality \*/i), 'American')
     await user.selectOptions(screen.getByLabelText(/gender \*/i), 'female')
+    await user.click(screen.getByLabelText(/not certified yet/i))
     await user.click(screen.getByRole('button', { name: /next/i }))
     await user.click(screen.getByLabelText(/no, i don't need a ride/i))
     await user.click(screen.getByLabelText(/i have all the required gear/i))
@@ -1559,7 +1602,7 @@ describe('RegisterForm resume draft', () => {
       savedAt: Date.now(), step: 2,
       fullName: 'Restored Diver', nickname: '', dob: '', nationality: 'Testland',
       gender: 'other', idNumber: '', contactMethod: 'line', contactId: 'restored-id',
-      certAgency: '', certLevel: '', loggedDives: 7,
+      certAgency: '', certLevel: '', uncertified: false, loggedDives: 7,
       nitroxCertified: false, deepCertified: false,
       emergencyName: '', emergencyPhone: '', guestEmail: '', guestAgreedTerms: false,
       gearChoice: null, gearHelpNote: '', editedGearItems: null,
