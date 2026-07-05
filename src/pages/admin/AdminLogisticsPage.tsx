@@ -310,7 +310,7 @@ export function AdminLogisticsPage() {
     allocByEvent.set(eid, arr)
   }
   // Ride plan: seat everyone who travels in the fleet — divers who need a ride
-  // plus all on-duty staff, one of whom drives each vehicle taken.
+  // plus all on-duty staff. No driver assignment; all seats are physical seats.
   const fleetPlan = planFleet(
     activeVehicles.map(v => ({ name: v.name, passenger_seats: v.passenger_seats })),
     diverRiders,

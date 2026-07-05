@@ -90,7 +90,9 @@ export function availableVehicles(active: Vehicle[], allocatedIds: Set<string>):
 }
 
 export interface RideSeats {
-  /** Passenger seats across the cars assigned to the event (driver excluded). */
+  /** Rideable seats a diver can claim — total physical seats across the
+   *  assigned cars minus the crew's seats (the greater of one driver per
+   *  vehicle or the full on-duty staff count, who all ride the fleet). */
   capacity: number
   /** Divers already holding a ride (non-cancelled, transportation = true). */
   claimed: number
