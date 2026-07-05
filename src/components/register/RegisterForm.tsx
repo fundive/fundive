@@ -879,6 +879,9 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
       claimed: rideSeats.claimed,
       alreadyHasRide: initialDetails?.transportation === true,
     })
+  // The diver may still opt into a ride when the cars are full — it lands on a
+  // ride waitlist and notifies admins (they add a car or arrange transport).
+  const rideWaitlisted = needsTransport === true && !rideAllowed
   const subTotal = base + gearCost + roomCost + addonsCost + transportCost + ((showNitroxAddon && addNitroxCourse) ? NITROX_COURSE_FEE : 0)
 
   // The card/PayPal surcharge applies only to what actually goes on the card
@@ -1054,6 +1057,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
       room: (showRooms && roomId) ? { option_id: roomId, notes: roomNotes || null } : undefined,
       add_ons: showAddons ? [...addonIds] : [],
       transportation: needsTransport === true,
+      ride_waitlisted: rideWaitlisted,
       payment_method: payment,
       credit_card_invoice_email: payment === 'credit_card' && creditCardInvoiceEmail.trim()
         ? creditCardInvoiceEmail.trim()
@@ -1820,8 +1824,8 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
 
           <fieldset className="space-y-2">
             <legend className="text-sm font-semibold text-brand-900">Transportation *</legend>
-            <label className={`flex gap-2 text-sm font-medium items-start ${rideAllowed ? 'text-brand-950' : 'text-brand-950/40'}`}>
-              <input type="radio" name="transport" checked={needsTransport === true} disabled={!rideAllowed} onChange={() => setNeedsTransport(true)} className="accent-brand-900 mt-1" />
+            <label className="flex gap-2 text-sm font-medium items-start text-brand-950">
+              <input type="radio" name="transport" checked={needsTransport === true} onChange={() => setNeedsTransport(true)} className="accent-brand-900 mt-1" />
               <span className="flex-1">
                 <span className="block">Yes, I'll ride with the shop from the dive shop to the site</span>
                 {!transportIncluded && transportSurcharge > 0 && (
@@ -1831,8 +1835,10 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
                   <span className="block text-xs text-brand-950 font-medium">Included in base price</span>
                 )}
                 {!rideAllowed && (
-                  <span className="block text-xs text-red-600 font-semibold">
-                    The shop ride is full for this dive — please arrange your own transport or contact the shop.
+                  <span className={`block text-xs font-semibold ${rideWaitlisted ? 'text-amber-700' : 'text-brand-950/70'}`}>
+                    {rideWaitlisted
+                      ? "You've been added to the ride waitlist — the shop is notified and will try to arrange transport, but a seat isn't guaranteed."
+                      : 'Select this to join the ride waitlist; the shop will be notified.'}
                   </span>
                 )}
                 {rideAllowed && rideSeats != null && rideSeats.capacity > 0 && (

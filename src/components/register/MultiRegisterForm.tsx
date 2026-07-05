@@ -291,6 +291,13 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
         ? (childById.get(targetForDiverId) ?? profile)
         : profile
       const showNitroxAddon = ev.nitrox_required && !(targetProfile?.nitrox_certified ?? false)
+      // Opting into a ride while the assigned cars are full lands on a ride
+      // waitlist (the booking stands) and notifies admins.
+      const evSeats = rideSeatsByEvent[ev.id]
+      const rideAllowed = ev.type !== 'dive' || !evSeats
+        ? true
+        : canRequestRide({ capacity: evSeats.capacity, claimed: evSeats.claimed, alreadyHasRide: false })
+      const rideWaitlisted = c.needsTransport === true && !rideAllowed
 
       const details: BookingDetails = {
         gear: gearIncluded
@@ -298,6 +305,7 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
           : (c.rentGear ? { rent: true, mode: 'a-la-carte', items: c.gearItems } : { rent: false }),
         add_ons: [],
         transportation: c.needsTransport === true,
+        ride_waitlisted: rideWaitlisted,
         payment_method: payment,
         credit_card_invoice_email: payment === 'credit_card' && creditCardInvoiceEmail.trim()
           ? creditCardInvoiceEmail.trim()
@@ -599,6 +607,7 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
                 const rideAllowed = ev.type !== 'dive' || !evSeats
                   ? true
                   : canRequestRide({ capacity: evSeats.capacity, claimed: evSeats.claimed, alreadyHasRide: false })
+                const rideWaitlisted = c.needsTransport === true && !rideAllowed
                 const targetForDiverId = forDiverByEvent[ev.id] ?? null
                 const targetProfile = targetForDiverId
                   ? (childById.get(targetForDiverId) ?? profile)
@@ -657,8 +666,8 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
                     )}
                     <fieldset className="space-y-1">
                       <legend className="text-xs font-semibold text-brand-900">Transportation *</legend>
-                      <label className={`flex items-start gap-2 text-sm font-medium ${rideAllowed ? 'text-brand-950' : 'text-brand-950/40'}`}>
-                        <input type="radio" name={`t-${ev.id}`} checked={c.needsTransport === true} disabled={!rideAllowed} onChange={() => updateChoice(ev.id, { needsTransport: true })} className="accent-brand-900 mt-1" />
+                      <label className="flex items-start gap-2 text-sm font-medium text-brand-950">
+                        <input type="radio" name={`t-${ev.id}`} checked={c.needsTransport === true} onChange={() => updateChoice(ev.id, { needsTransport: true })} className="accent-brand-900 mt-1" />
                         <span className="flex-1">
                           Yes, ride with the shop
                           {!transportIncluded && transportSurcharge > 0 && (
@@ -668,7 +677,11 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
                             <span className="block text-xs text-brand-950 font-medium">Included in base price</span>
                           )}
                           {!rideAllowed && (
-                            <span className="block text-xs text-red-600 font-semibold">Shop ride is full for this dive.</span>
+                            <span className={`block text-xs font-semibold ${rideWaitlisted ? 'text-amber-700' : 'text-brand-950/70'}`}>
+                              {rideWaitlisted
+                                ? "On the ride waitlist — the shop is notified and will try to arrange transport, but a seat isn't guaranteed."
+                                : 'Select to join the ride waitlist; the shop will be notified.'}
+                            </span>
                           )}
                           {rideAllowed && evSeats && evSeats.capacity > 0 && (
                             <span className="block text-xs text-brand-950/70 font-medium">{evSeats.available} ride seat{evSeats.available === 1 ? '' : 's'} left</span>
