@@ -4,9 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { CreateEventVehiclePicker } from './CreateEventVehiclePicker'
 import type { Vehicle } from '../../types/database'
 
-const { fetchVehicles } = vi.hoisted(() => ({ fetchVehicles: vi.fn() }))
+const { fetchVehicles, fetchTaken } = vi.hoisted(() => ({ fetchVehicles: vi.fn(), fetchTaken: vi.fn() }))
 vi.mock('../../lib/vehicles', () => ({
   fetchVehicles: (...a: unknown[]) => fetchVehicles(...a),
+}))
+vi.mock('../../lib/event-vehicles', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/event-vehicles')>()),
+  fetchAssignedVehicleIdsForDate: (...a: unknown[]) => fetchTaken(...a),
 }))
 
 const vehicle = (id: string, name: string, seats: number, active = true): Vehicle => ({
@@ -20,13 +24,15 @@ beforeEach(() => {
     vehicle('v2', 'Bus', 12),
     vehicle('v3', 'Retired', 4, false),
   ])
+  fetchTaken.mockReset()
+  fetchTaken.mockResolvedValue(new Set<string>())
 })
 
 describe('CreateEventVehiclePicker', () => {
   it('lists only active cars and reports the picked ids with a running seat total', async () => {
     const onChange = vi.fn()
     const user = userEvent.setup()
-    render(<CreateEventVehiclePicker onChange={onChange} />)
+    render(<CreateEventVehiclePicker date="2026-09-01" onChange={onChange} />)
 
     // Active cars render; the retired one is filtered out.
     expect(await screen.findByText(/Delica \(7 seats\)/)).toBeInTheDocument()
@@ -46,9 +52,16 @@ describe('CreateEventVehiclePicker', () => {
     expect(onChange).toHaveBeenLastCalledWith(['v2'])
   })
 
+  it('hides cars already taken on that date', async () => {
+    fetchTaken.mockResolvedValue(new Set(['v1']))   // Delica booked elsewhere that day
+    render(<CreateEventVehiclePicker date="2026-09-01" onChange={() => {}} />)
+    expect(await screen.findByText(/Bus \(12 seats\)/)).toBeInTheDocument()
+    expect(screen.queryByText(/Delica/)).not.toBeInTheDocument()
+  })
+
   it('shows an empty-fleet note when there are no active cars', async () => {
     fetchVehicles.mockResolvedValue([vehicle('v3', 'Retired', 4, false)])
-    render(<CreateEventVehiclePicker onChange={() => {}} />)
+    render(<CreateEventVehiclePicker date="2026-09-01" onChange={() => {}} />)
     await waitFor(() => expect(screen.getByText(/no active cars in the fleet/i)).toBeInTheDocument())
   })
 })

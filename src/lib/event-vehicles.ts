@@ -89,6 +89,15 @@ export function availableVehicles(active: Vehicle[], allocatedIds: Set<string>):
   return active.filter(v => !allocatedIds.has(v.id))
 }
 
+// Vehicle ids already allocated to ANY event on a given date — a car is
+// exclusive per date (unique (vehicle_id, event_date)), so the create-time
+// picker uses this to hide cars that are already taken that day.
+export async function fetchAssignedVehicleIdsForDate(date: string): Promise<Set<string>> {
+  const { data, error } = await supabase.from('event_vehicles').select('vehicle_id').eq('event_date', date)
+  if (error) throw error
+  return new Set((data ?? []).map(r => (r as { vehicle_id: string }).vehicle_id))
+}
+
 export interface RideSeats {
   /** Rideable seats a diver can claim — total physical seats across the
    *  assigned cars minus the crew's seats (the greater of one driver per
