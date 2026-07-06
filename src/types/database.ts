@@ -87,6 +87,13 @@ export interface Database {
         Args: Record<string, never>
         Returns: Array<{ id: string; name: string; region: string | null; blurb: string | null }>
       }
+      // Defined in 20260708010000_replace_gear_model_sizes_rpc.sql.
+      // Admin-only. Atomically replaces a gear model's size rows (delete +
+      // insert in one transaction) from a JSON array of size objects.
+      replace_gear_model_sizes: {
+        Args: { p_model_id: string; p_sizes: Json }
+        Returns: void
+      }
       // Staff/admin-only narrow write path for diver gear sizes. Defined in
       // 20260430020000_profile_gear_sizes.sql; gated server-side on
       // is_staff_or_admin(). Empty / whitespace strings are normalized to NULL.
