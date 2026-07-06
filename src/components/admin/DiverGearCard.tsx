@@ -2,11 +2,20 @@ import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { personName } from '../../lib/names'
 import { supabase } from '../../lib/supabase'
-import { gearPackList } from '../../lib/gear'
+import { gearPackList, GEAR_ITEMS } from '../../lib/gear'
 import { shoeAsJp } from '../../lib/shoe-size'
 import { useToast } from '../../hooks/useToast'
 import { AdminNotes } from './AdminNotes'
-import type { Booking, Profile } from '../../types/database'
+import { GearFitLookup } from './GearFitLookup'
+import type { GearModelWithSizes } from '../../lib/gear-sizing'
+import { GEAR_TYPES, type GearType, type Booking, type Profile } from '../../types/database'
+
+// Which config gear item stands for a sizing-chart gear type, so we can tell
+// whether the diver already owns it (→ no rental lookup needed).
+function ownsGearType(type: GearType, owned: Set<string>): boolean {
+  const item = GEAR_ITEMS.find(i => i.toLowerCase() === type)
+  return item ? owned.has(item) : false
+}
 
 export interface DiverGearRow {
   booking: Booking
@@ -21,13 +30,16 @@ export interface DiverGearRow {
  * StaffOrAdminRoute and the RPC rechecks the role server-side.
  */
 export function DiverGearCard({
-  row, onProfilePatched, linkToProfile = false,
+  row, onProfilePatched, linkToProfile = false, gearModels,
 }: {
   row: DiverGearRow
   onProfilePatched: (diverId: string, patch: Partial<Profile>) => void
   /** When set, the diver's name links to their admin profile card
    *  (/admin/users?diver=<id>) — used from the Logistics day view. */
   linkToProfile?: boolean
+  /** The shop's gear sizing charts. When supplied, a rental "which fits?" lookup
+   *  is shown per gear type the diver doesn't own. */
+  gearModels?: GearModelWithSizes[]
 }) {
   const { profile, booking } = row
   const pack = gearPackList(booking)
@@ -135,6 +147,18 @@ export function DiverGearCard({
             </button>
           </div>
           {sizeError && <span className="text-xs text-red-600">{sizeError}</span>}
+          {gearModels && gearModels.length > 0 && (
+            <GearFitLookup
+              measures={{
+                height_cm: profile.height_cm ?? null,
+                weight_kg: profile.weight_kg ?? null,
+                shoe_size: profile.shoe_size ?? null,
+                gender: profile.gender ?? null,
+              }}
+              models={gearModels}
+              rentalTypes={GEAR_TYPES.filter(t => !ownsGearType(t, owned))}
+            />
+          )}
         </div>
       )}
 
