@@ -1,4 +1,4 @@
-// Integration coverage for the gear sizing chart tables (20260706000000).
+// Integration coverage for the gear sizing chart tables (20260708000000).
 // Runs against the live local Supabase stack.
 //
 // RLS contract: staff + admin READ (the logistics fit lookup runs for staff);

@@ -30,14 +30,27 @@ export function AdminNewEventPage() {
     if (relError) throw relError
     // Persist any cars picked on the create form. Allocations are keyed on the
     // dive's start_date — the same day the logistics view groups them under.
+    // Non-fatal: the event is already created, so a failed assignment (e.g. a
+    // car taken that day) must NOT throw back to the form — that would leave the
+    // event orphaned behind an error and invite a duplicate re-submit. Instead
+    // warn and still navigate to the event, where cars can be set on the edit page.
+    let carWarning = false
     if (form.type === 'dive' && form.start_date && vehicleIds.length > 0 && profile?.id) {
-      for (const vehicleId of vehicleIds) {
-        await assignVehicleToEvent({
-          vehicleId, date: form.start_date, event: { id, type: 'dive' }, createdBy: profile.id,
-        })
+      try {
+        for (const vehicleId of vehicleIds) {
+          await assignVehicleToEvent({
+            vehicleId, date: form.start_date, event: { id, type: 'dive' }, createdBy: profile.id,
+          })
+        }
+      } catch {
+        carWarning = true
       }
     }
-    toast.success(form.type === 'dive' ? 'Dive created' : 'Course created')
+    toast.success(
+      carWarning
+        ? 'Dive created — some cars were unavailable; assign them on the edit page.'
+        : form.type === 'dive' ? 'Dive created' : 'Course created',
+    )
     navigate(`/admin/events/${form.type}/${id}`)
   }
 
@@ -48,7 +61,7 @@ export function AdminNewEventPage() {
         mode="create"
         onSubmit={handleSubmit}
         onCancel={() => navigate('/admin/events')}
-        renderCreateExtras={type => type === 'dive' ? <CreateEventVehiclePicker onChange={setVehicleIds} /> : null}
+        renderCreateExtras={(type, { startDate }) => type === 'dive' ? <CreateEventVehiclePicker date={startDate} onChange={setVehicleIds} /> : null}
       />
     </div>
   )
