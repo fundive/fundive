@@ -127,5 +127,3 @@ outstanding).
   migration.
 - **Accounting export integration** — kickback receivables are owed-to-us, not
   diver-ledger transactions, so they stay out of the bookkeeping ZIP for now.
-</content>
-</invoke>
