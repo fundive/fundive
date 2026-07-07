@@ -71,5 +71,15 @@
     "vitepress": "^1.6.4",
     "vitest": "^4.1.10",
     "wrangler": "^4.107.0"
+  },
+  "overrides": {
+    "esbuild": "^0.25.0",
+    "@docsearch/react": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    },
+    "vitepress": {
+      "vite": "^6.4.3"
+    }
   }
 }
