@@ -40,14 +40,15 @@ Every UI surface reads `AppEvent`, not raw `events` rows.
 Two independent booleans on a dive event, both default `false`, both toggled in
 the admin `EventForm` (dive-only):
 
-- **`is_trip`** — surfaces the dive on the diver-facing **Scheduled Trips** page
-  (`src/pages/ScheduledTripsPage.tsx`), which filters `events` on `is_trip` and
-  drops the diver straight into that event's registration. This is a deliberate
-  admin choice per event — distinct from the calendar's *cosmetic* trip coloring,
-  which is keyword-driven via `business.tripKeywords` (see
-  [forking.md](./forking.md)). Also distinct from the **Trip Board**
-  ([trip-board.md](./trip-board.md)), which curates open-ended partner trips
-  abroad with no fixed date.
+- **`is_trip`** — a per-event admin classification marking the dive as a trip.
+  This is a deliberate admin choice per event — distinct from the calendar's
+  *cosmetic* trip coloring, which is keyword-driven via `business.tripKeywords`
+  (see [forking.md](./forking.md)). The diver-facing **Scheduled Trips** page
+  (`src/pages/ScheduledTripsPage.tsx`) is now backed by its own admin-curated
+  `scheduled_trips` table (via `list_scheduled_trips()`), **not** derived from
+  this flag — see [data-model.md](./data-model.md). Also distinct from
+  **Packages** ([packages.md](./packages.md)), which curates open-ended partner
+  travel packages abroad with no fixed date.
 - **`is_boat_dive`** — marks the dive as a boat dive (vs shore). Informational
   today; independent of `is_trip` (a trip may or may not be a boat dive).
 

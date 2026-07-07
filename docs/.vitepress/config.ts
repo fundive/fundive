@@ -39,7 +39,7 @@ export default defineConfig({
           { text: 'Events & bookings', link: '/events-and-bookings' },
           { text: 'Payments', link: '/payments' },
           { text: 'Admin', link: '/admin' },
-          { text: 'Trip board', link: '/trip-board' },
+          { text: 'Packages', link: '/packages' },
           { text: 'Trusted partners', link: '/trusted-partners' },
           { text: 'Push notifications', link: '/push-notifications' },
         ],

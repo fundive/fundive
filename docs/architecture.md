@@ -96,7 +96,7 @@ Everything a deployer can change without forking lives in three places: their
 | App identity | `fundive.config.ts` | name, tagline, support email |
 | Theme | `fundive.config.ts` | brand colors, light/dark defaults |
 | Branding assets | `brand/` | `logo.svg`, `favicon.ico`, hero images |
-| Feature toggles | `fundive.config.ts` | enable/disable ride logistics, trip board, … |
+| Feature toggles | `fundive.config.ts` | enable/disable ride logistics, packages, … |
 | Supabase | `.env` | project ref, URL, anon key, service-role key, DB password |
 | Cloudflare | `.env` | account id, worker names, custom domain, API token |
 | Web Push | `.env` | VAPID public/private keys |
