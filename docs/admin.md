@@ -28,11 +28,14 @@ Write/manage routes — gated by `AdminRoute` (admin only):
 | `/admin/events/:type/:id/edit`          | `AdminEditEventPage`    | Edit event details |
 | `/admin/rooms`                          | `AdminRoomsPage`        | Manage `rooms` rows |
 | `/admin/addons`                         | `AdminAddonsPage`       | Manage `addons` rows |
-| `/admin/travel`                         | `AdminTravelPage`       | Manage `dive_travel` rows |
+| `/admin/travel`                         | `AdminTravelPage`       | Manage **Trip Templates** (`trip_templates` rows) |
 | `/admin/prices`                         | `AdminPricesPage`       | Manage `prices` rows |
 | `/admin/users`                          | `AdminUsersPage`        | Searchable diver directory with full profile cards |
 | `/admin/duty`                           | `AdminDutyPage`         | Assign staff/admin to events; fires push to assignee |
 | `/admin/notifications`                  | `AdminNotificationsPage` | Compose + send a one-off Web-Push broadcast to all subscribed devices |
+| `/admin/packages`                       | `AdminPackagesPage`     | **Packages** referral network: curate travel packages abroad + the referral/kickback pipeline (see [packages.md](./packages.md)) |
+| `/admin/scheduled-trips`                | `AdminScheduledTripsPage` | **Scheduled Trips**: the shop's own dated trips shown on the diver Scheduled Trips tab (optionally linked to a bookable event) |
+| `/admin/trusted-partners`               | `AdminTrustedPartnersPage` | **Trusted Partners**: CRUD the unified partner registry (incl. private `contact_email`) that backs both the diver directory and Packages (see [trusted-partners.md](./trusted-partners.md)) |
 
 All routes are also wrapped by `ProtectedRoute` — see
 [authentication.md](./authentication.md#role-gating).
