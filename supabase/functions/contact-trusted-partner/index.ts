@@ -3,9 +3,10 @@
 // (so they know the business brokered it), CC's the shop inbox, and sets
 // reply-to to the diver so the partner answers them directly. No DB write.
 //
-// The partner's email is resolved server-side (service role) from partner_id —
-// it is never exposed to the client (RLS hides the trusted_partners rows from
-// divers; they only see name/region/blurb via list_trusted_partners()).
+// The partner's contact email is resolved server-side (service role) from
+// partner_id against the unified trusted_partners table — it is never exposed
+// to the client (RLS hides the rows from divers; they only see name/region/
+// blurb/website via list_trusted_partners()).
 //
 // Flow:
 //   1. Verify caller via Bearer JWT.
@@ -57,13 +58,18 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
 
+  // Resolve the partner from the unified trusted_partners table. Must be active
+  // and have a contact email (that's the gate for appearing in the directory).
   const { data: partner, error: pErr } = await admin
     .from("trusted_partners")
-    .select("name, email, active")
+    .select("name, contact_email, active")
     .eq("id", parsed.request.partnerId)
     .maybeSingle()
   if (pErr) return json({ error: safeError(pErr, "partner lookup failed") }, 500)
-  if (!partner || !partner.active) return json({ error: "partner not found" }, 404)
+  if (!partner || !partner.active || !partner.contact_email) {
+    return json({ error: "partner not found" }, 404)
+  }
+  const partnerEmail = partner.contact_email
 
   const { data: profile } = await admin
     .from("profiles").select("name, nickname").eq("id", userId).maybeSingle()
@@ -90,7 +96,7 @@ Deno.serve(async (req) => {
     })
     await transporter.sendMail({
       from:    { name: siteConfig.app.name, address: GMAIL_USER },
-      to:      partner.email,
+      to:      partnerEmail,
       cc:      COMPANY_EMAIL,
       replyTo: userEmail,
       subject,

@@ -41,7 +41,7 @@ function baseRow(overrides: Partial<EventRow> = {}): EventRow {
     second_image: null,
     gear_rental: null,
     notes: null,
-    divetravel_id: null,
+    trip_template_id: null,
     course_name: null,
     included: null,
     schedule: null,
@@ -102,7 +102,7 @@ describe('formStateFromEvent — dive', () => {
       gear_rental: 'full',
       cancel_date: '2026-06-20',
       cancel_policy: 'No refunds',
-      divetravel_id: 'dt_ref',
+      trip_template_id: 'dt_ref',
       full_payment_deadline: '2026-06-25',
       featured_image: 'https://cdn.example/hero.jpg',
       second_image: 'https://cdn.example/second.jpg',
@@ -133,7 +133,7 @@ describe('formStateFromEvent — dive', () => {
       cancel_date: '2026-06-20',
       cancel_policy: 'No refunds',
       destinationIds: ['dest1'],
-      divetravel_reference: 'dt_ref',
+      trip_template_reference: 'dt_ref',
       full_payment_deadline: '2026-06-25',
       featured_image: 'https://cdn.example/hero.jpg',
       second_image: 'https://cdn.example/second.jpg',
@@ -177,7 +177,7 @@ describe('formStateFromEvent — dive', () => {
       gear_rental: null,
       cancel_date: null,
       cancel_policy: null,
-      divetravel_id: null,
+      trip_template_id: null,
       full_payment_deadline: null,
       featured_image: null,
       second_image: null,
@@ -193,7 +193,7 @@ describe('formStateFromEvent — dive', () => {
     expect(fs.gear_rental).toBe('')
     expect(fs.cancel_date).toBe('')
     expect(fs.cancel_policy).toBe('')
-    expect(fs.divetravel_reference).toBe('')
+    expect(fs.trip_template_reference).toBe('')
     expect(fs.full_payment_deadline).toBe('')
     expect(fs.featured_image).toBe('')
     expect(fs.second_image).toBe('')
@@ -275,7 +275,7 @@ describe('formStateFromEvent — course', () => {
       nitrox_required: false,
       gear_rental: '',
       destinationIds: [],
-      divetravel_reference: '',
+      trip_template_reference: '',
     })
   })
 
@@ -345,7 +345,7 @@ describe('eventPayloadFromForm — dive', () => {
       cancel_date: '2026-06-20',
       cancel_policy: 'Policy',
       destinationIds: ['dest1'],
-      divetravel_reference: 'dt',
+      trip_template_reference: 'dt',
       full_payment_deadline: '2026-06-25',
       featured_image: '  https://cdn.example/hero.jpg  ',
       second_image: '  https://cdn.example/second.jpg  ',
@@ -377,7 +377,7 @@ describe('eventPayloadFromForm — dive', () => {
       nitrox_required: true,
       gear_rental: 'full',
       second_image: 'https://cdn.example/second.jpg',
-      divetravel_id: 'dt',
+      trip_template_id: 'dt',
       course_name: null,
       included: null,
       schedule: null,
@@ -414,7 +414,7 @@ describe('eventPayloadFromForm — dive', () => {
     expect(payload.gear_rental).toBeNull()
     expect(payload.cancel_date).toBeNull()
     expect(payload.cancel_policy).toBeNull()
-    expect(payload.divetravel_id).toBeNull()
+    expect(payload.trip_template_id).toBeNull()
     expect(payload.full_payment_deadline).toBeNull()
     expect(payload.featured_image).toBeNull()
     expect(payload.second_image).toBeNull()
@@ -504,7 +504,7 @@ describe('eventPayloadFromForm — course', () => {
       nitrox_required: false,
       gear_rental: null,
       second_image: null,
-      divetravel_id: null,
+      trip_template_id: null,
       course_name: 'PADI OW',
       included: 'Manual',
       schedule: 'Morning',

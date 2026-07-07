@@ -10,7 +10,7 @@ import { CalendarIcon } from '../icons/CalendarIcon'
 import { ChatIcon } from '../icons/ChatIcon'
 import { CrosshairIcon } from '../icons/CrosshairIcon'
 import { TrustedPartnersIcon } from '../icons/TrustedPartnersIcon'
-import { TripBoardIcon } from '../icons/TripBoardIcon'
+import { PackagesIcon } from '../icons/PackagesIcon'
 import { ScheduledTripsIcon } from '../icons/ScheduledTripsIcon'
 import { PersonIcon } from '../icons/PersonIcon'
 import { NotificationBell } from '../NotificationBell'
@@ -102,18 +102,18 @@ export function AppShell() {
             />
           )}
           <Link
-            to="/partner-connect"
+            to="/trusted-partners"
             aria-label="Trusted Partners"
             className="text-accent hover:text-red-400 transition-colors"
           >
             <TrustedPartnersIcon />
           </Link>
           <Link
-            to="/trips"
-            aria-label="Trip Board"
+            to="/packages"
+            aria-label="Packages"
             className="text-accent hover:text-red-400 transition-colors"
           >
-            <TripBoardIcon />
+            <PackagesIcon />
           </Link>
           <Link
             to="/scheduled-trips"
