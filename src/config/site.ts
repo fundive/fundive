@@ -54,6 +54,14 @@ export interface SiteTheme {
   themeColor: string
   /** PWA manifest background color (splash). */
   backgroundColor: string
+  /**
+   * Visual design variant, applied as `data-theme` on <html> at startup.
+   *   'family' — the light, family-friendly look (white cards on navy). Default.
+   *   'riced'  — the dark "riced" ocean look (frosted glass, reef/mauve neon,
+   *              mono metadata, squircle rounding, animated water caustics).
+   * Optional; omit for 'family'. See docs/forking.md.
+   */
+  design?: 'family' | 'riced'
 }
 
 export interface SiteAssets {
