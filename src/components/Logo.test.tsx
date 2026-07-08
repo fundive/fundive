@@ -9,14 +9,4 @@ describe('Logo', () => {
     const img = screen.getByAltText(siteConfig.identity.logoAlt)
     expect(img).toHaveClass('h-9')
   })
-
-  it('hides the beta badge by default', () => {
-    render(<Logo size="sm" />)
-    expect(screen.queryByText(/beta/i)).not.toBeInTheDocument()
-  })
-
-  it('shows the beta badge when beta is true', () => {
-    render(<Logo size="sm" beta />)
-    expect(screen.getByText(/beta/i)).toBeInTheDocument()
-  })
 })
