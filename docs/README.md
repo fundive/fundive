@@ -50,8 +50,8 @@ make verify    # confirm your cloud schema matches the migrations
 make deploy    # deploy both Cloudflare Workers (SPA + push cron)
 ```
 
-Deployment normally runs through GitHub Actions
-(`.github/workflows/deploy.yml`); `make deploy` is the local equivalent. See
+Deployment is local: `make deploy` ships both Cloudflare Workers using
+`CLOUDFLARE_*` + `VITE_*` from `.env.local`. See
 [deployment.md](./deployment.md).
 
 > An experimental `fundive` CLI (`npx fundive …`, wired via `package.json`

@@ -21,25 +21,25 @@ The single source of truth for what to fill in is
 final destination. Putting one in the wrong place is the most common deploy
 footgun, so the table below maps each value to where it ultimately lives.
 
-| Value | `.env.local` (local dev + local build/deploy) | Push-worker secret (`wrangler secret put`) | Edge-function secret (`supabase secrets set`) | GitHub Actions repo secret |
-| --- | :-: | :-: | :-: | :-: |
-| `VITE_SUPABASE_URL`         | yes |     |     | yes |
-| `VITE_SUPABASE_ANON_KEY`    | yes |     |     | yes |
-| `VITE_TURNSTILE_SITE_KEY`   | yes |     |     | yes |
-| `VITE_VAPID_PUBLIC_KEY` *(optional; push toggle)* | yes |     |     | yes |
-| `VITE_PUSH_WORKER_URL` *(optional)* | yes |     |     | yes |
-| `SUPABASE_PROJECT_REF`      | yes |     |     |     |
-| `SUPABASE_DB_PASSWORD`      | yes |     |     |     |
-| `SUPABASE_ACCESS_TOKEN`     | yes |     |     |     |
-| `SUPABASE_POOLER_HOST`      | yes |     |     |     |
-| `CLOUDFLARE_API_TOKEN`      | yes (local `make deploy`) |     |     | yes |
-| `CLOUDFLARE_ACCOUNT_ID`     | yes (local `make deploy`) |     |     | yes |
-| `VAPID_PUBLIC_KEY` *(push worker — same value as `VITE_VAPID_PUBLIC_KEY`, without the `VITE_` prefix)* |     | yes |     |     |
-| `VAPID_PRIVATE_KEY`         |     | yes |     |     |
-| `SUPABASE_SERVICE_ROLE_KEY` *(push worker)* |     | yes |     |     |
-| `ADMIN_TRIGGER_SECRET` / `BROADCAST_WEBHOOK_URL` *(optional)* |     | yes |     |     |
-| `GMAIL_USER` / `GMAIL_APP_PASSWORD` |     |     | yes |     |
-| `TURNSTILE_SECRET`          |     |     | yes |     |
+| Value | `.env.local` (local dev + build + deploy) | Push-worker secret (`wrangler secret put`) | Edge-function secret (`supabase secrets set`) |
+| --- | :-: | :-: | :-: |
+| `VITE_SUPABASE_URL`         | yes |     |     |
+| `VITE_SUPABASE_ANON_KEY`    | yes |     |     |
+| `VITE_TURNSTILE_SITE_KEY`   | yes |     |     |
+| `VITE_VAPID_PUBLIC_KEY` *(optional; push toggle)* | yes |     |     |
+| `VITE_PUSH_WORKER_URL` *(optional)* | yes |     |     |
+| `SUPABASE_PROJECT_REF`      | yes |     |     |
+| `SUPABASE_DB_PASSWORD`      | yes |     |     |
+| `SUPABASE_ACCESS_TOKEN`     | yes |     |     |
+| `SUPABASE_POOLER_HOST`      | yes |     |     |
+| `CLOUDFLARE_API_TOKEN`      | yes (`make deploy`) |     |     |
+| `CLOUDFLARE_ACCOUNT_ID`     | yes (`make deploy`) |     |     |
+| `VAPID_PUBLIC_KEY` *(push worker — same value as `VITE_VAPID_PUBLIC_KEY`, without the `VITE_` prefix)* |     | yes |     |
+| `VAPID_PRIVATE_KEY`         |     | yes |     |
+| `SUPABASE_SERVICE_ROLE_KEY` *(push worker)* |     | yes |     |
+| `ADMIN_TRIGGER_SECRET` / `BROADCAST_WEBHOOK_URL` *(optional)* |     | yes |     |
+| `GMAIL_USER` / `GMAIL_APP_PASSWORD` |     |     | yes |
+| `TURNSTILE_SECRET`          |     |     | yes |
 
 `VAPID_SUBJECT`, `ALLOWED_ORIGINS`, `TIMEZONE`, and `CURRENCY` are **non-secret**
 push-worker config and live in `workers/push/wrangler.toml [vars]`, not in any
@@ -66,10 +66,9 @@ deploy time.
 | `CLOUDFLARE_API_TOKEN`     | `make deploy` (wrangler) | Only needed for local deploys |
 | `CLOUDFLARE_ACCOUNT_ID`    | `make deploy` (wrangler) | Only needed for local deploys |
 
-> The build inlines `VITE_*` at build time, so a hand-run `make deploy` produces
-> a bundle pointing at whatever `.env.local` holds. The GitHub Actions deploy
-> doesn't read `.env.local` at all — it sources its `VITE_*` and `CLOUDFLARE_*`
-> from repo secrets instead.
+> The build inlines `VITE_*` at build time, so `make deploy` produces a bundle
+> pointing at whatever `.env.local` holds — make sure those are your **cloud**
+> values (not a local `127.0.0.1` stack) before deploying.
 
 ### Cloudflare push-worker secrets
 
@@ -85,23 +84,6 @@ Set via `supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" …`.
 `create-registration` uses `GMAIL_USER`, `GMAIL_APP_PASSWORD`, and
 `TURNSTILE_SECRET`. See [§ Supabase Edge Functions](#supabase-edge-functions).
 
-### GitHub Actions repo secrets
-
-Used by `.github/workflows/deploy.yml`, the **recommended** deploy path. Set
-under **Settings → Secrets and variables → Actions**.
-
-| Secret | Purpose |
-| --- | --- |
-| `CLOUDFLARE_API_TOKEN`     | Token with the "Edit Cloudflare Workers" template permission |
-| `CLOUDFLARE_ACCOUNT_ID`    | Visible in the Cloudflare dashboard sidebar |
-| `VITE_SUPABASE_URL`        | Baked into the SPA bundle at build |
-| `VITE_SUPABASE_ANON_KEY`   | Baked into the SPA bundle at build |
-| `VITE_TURNSTILE_SITE_KEY`  | Baked into the SPA bundle at build (build fails without it) |
-| `VITE_VAPID_PUBLIC_KEY`    | Optional; only the public half of the VAPID pair goes here |
-
-Do **not** put `VAPID_PRIVATE_KEY`, service-role keys, or any push
-worker secret in GitHub. Those stay on Cloudflare via `wrangler secret
-put`; the workflow only deploys code, it doesn't rotate worker secrets.
 
 ## Workers
 
@@ -112,27 +94,23 @@ Two Cloudflare Workers are deployed separately:
 | `fundive-app`   | `./wrangler.toml`              | `make deploy-app` |
 | `fundive-push`  | `./workers/push/wrangler.toml` | `make deploy-push` |
 
-There are two ways to ship them, one **recommended** and one for local use:
-
-- **Recommended — GitHub Actions.** `.github/workflows/deploy.yml` builds and
-  deploys using the `CLOUDFLARE_*` + `VITE_*` repo secrets, so no credentials
-  live on a laptop. See [§ Deploy via GitHub Actions](#deploy-via-github-actions).
-- **Local — `make deploy`.** Runs both worker deploys in sequence from your
-  machine, reading `.env.local`. Handy for a first bring-up or a hotfix.
-
-Use `make deploy-app` or `make deploy-push` to ship only one.
+`make deploy` runs both worker deploys in sequence from your machine, reading
+the `CLOUDFLARE_*` creds and `VITE_*` build vars from `.env.local` — no
+`wrangler login`, no GitHub Actions. Use `make deploy-app` or `make deploy-push`
+to ship only one. Each target first checks the Cloudflare creds are present and
+fails fast with a clear message if not.
 
 > An experimental `fundive` CLI (`npx fundive deploy`) also exists for the future
 > thin-deployment model in [architecture.md](./architecture.md). It's a skeleton
-> (SPA only) — prefer the two paths above.
+> (SPA only) — prefer `make deploy`.
 
 ### `fundive-app` (SPA)
 
-`make deploy-app` runs `npm run deploy`, which expands to:
+`make deploy-app` first checks the Cloudflare creds are present, then:
 
 ```sh
-npm run build                                       # tsc -b && vite build
-dotenv -e .env.local -- wrangler deploy             # pushes dist/ to the Worker
+npm run build                                       # tsc -b && vite build (VITE_* from .env.local)
+. ./.env.local && npx wrangler deploy                # CLOUDFLARE_API_TOKEN/ACCOUNT_ID authenticate wrangler
 ```
 
 `wrangler.toml` at the repo root:
@@ -149,28 +127,17 @@ not_found_handling = "single-page-application"
 ```
 
 `src/worker.ts` serves the built assets and falls back to `index.html` for
-unknown paths so client-side routes don't 404 on reload. On first deploy you may
-need `wrangler login` to authenticate (local deploys only; Actions uses the API
-token).
+unknown paths so client-side routes don't 404 on reload. Auth is the
+`CLOUDFLARE_API_TOKEN` from `.env.local` — no `wrangler login` needed.
 
 ### `fundive-push` (cron sender)
 
 `make deploy-push` runs `wrangler deploy` from `workers/push/` (config:
-`workers/push/wrangler.toml`, `main = "src/index.ts"`). The target installs deps
-on first run. Secrets are set separately via `wrangler secret put` — see
+`workers/push/wrangler.toml`, `main = "src/index.ts"`), sourcing the same
+`.env.local` creds so it authenticates non-interactively. The target installs
+deps on first run. The worker's own runtime secrets are set separately via
+`wrangler secret put` — see
 [push-notifications.md § Configure the worker](./push-notifications.md#4-configure-the-worker).
-
-### Deploy via GitHub Actions
-
-`.github/workflows/deploy.yml` is the recommended path. **Actions → Deploy to
-Cloudflare → Run workflow**, pick a target (`spa`, `push`, or `both`), and the
-chosen jobs run in parallel — building the bundle from repo secrets and
-deploying with wrangler.
-
-The workflow needs the repo secrets listed in
-[§ GitHub Actions repo secrets](#github-actions-repo-secrets). It does
-not push migrations, deploy edge functions, or rotate worker secrets —
-treat it as a remote `make deploy`, nothing more.
 
 ## Supabase Edge Functions
 
