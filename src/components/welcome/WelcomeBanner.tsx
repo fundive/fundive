@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { siteConfig } from '../../config/site'
+import { CARD_ELEVATED, TEXT_HEADING, TEXT_BODY } from '../../styles/tokens'
 
 // 24-hour follow-up to the WelcomeModal. Once the modal is dismissed
 // (welcomed_at stamped), this banner shows on the dashboard for the
@@ -23,11 +24,11 @@ export function WelcomeBanner({ user }: { user: User }) {
   if (!shouldShow) return null
 
   return (
-    <div className="bg-white/65 backdrop-blur-md border border-accent rounded-xl p-4 flex items-center gap-3 shadow-lg">
+    <div className={`${CARD_ELEVATED} p-4 flex items-center gap-3`}>
       <img src={siteConfig.assets.logo} alt="" aria-hidden="true" className="w-12 h-auto shrink-0" />
-      <div className="text-sm text-brand-900">
-        <p className="font-semibold">Welcome to {siteConfig.app.shortName}!</p>
-        <p className="text-brand-900 font-medium text-xs mt-0.5">
+      <div className="text-sm">
+        <p className={TEXT_HEADING}>Welcome to {siteConfig.app.shortName}!</p>
+        <p className={`${TEXT_BODY} text-xs mt-0.5`}>
           Your account is ready. Browse upcoming events on the Calendar tab, or jump into your registrations on Bookings.
         </p>
       </div>
