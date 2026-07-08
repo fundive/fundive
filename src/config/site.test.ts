@@ -30,6 +30,10 @@ describe('siteConfig', () => {
     expect(siteConfig.theme.backgroundColor).toMatch(/^#[0-9a-fA-F]{6}$/)
   })
 
+  it('uses a known design variant (or leaves it unset for the family default)', () => {
+    expect(siteConfig.theme.design ?? 'family').toMatch(/^(family|riced)$/)
+  })
+
   it('has a non-empty gear list with a price for every item', () => {
     expect(siteConfig.business.gearItems.length).toBeGreaterThan(0)
     for (const item of siteConfig.business.gearItems) {

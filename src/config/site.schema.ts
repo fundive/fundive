@@ -40,6 +40,7 @@ export const siteConfigSchema = z.object({
   theme: z.object({
     themeColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'must be a #rrggbb hex color'),
     backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'must be a #rrggbb hex color'),
+    design: z.enum(['family', 'riced']).default('family'),
   }),
   assets: z.object({
     logo: z.string().min(1),
