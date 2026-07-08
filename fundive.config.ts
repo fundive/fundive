@@ -50,9 +50,9 @@ export const siteConfig = {
   theme: {
     themeColor: '#0ea5e9',
     backgroundColor: '#0f172a',
-    // Visual design: 'family' (light, default) or 'riced' (dark ocean glass).
+    // Visual design: 'light' (default) or 'dark' (dark ocean glass).
     // See docs/forking.md.
-    design: 'family',
+    design: 'light',
   },
 
   // Drop your images into public/ at these paths (or change the paths here).

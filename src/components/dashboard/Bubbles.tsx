@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-// Ocean-themed rising bubbles — the 'family' design variant's dashboard
+// Ocean-themed rising bubbles — the 'light' design variant's dashboard
 // background. Pure canvas, no per-frame React updates; cleans up on unmount.
 //
 // Each bubble is an independent particle (random x, varied radius and rise

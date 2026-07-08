@@ -14,7 +14,7 @@ import type { AppEvent } from '../../types/database'
 // straight into that event's registration form (/register/:type/:id). Renders
 // nothing when there's no featured event coming up, so the background stays clear.
 
-const RICED = siteConfig.theme.design === 'riced'
+const DARK = siteConfig.theme.design === 'dark'
 const LOOKAHEAD_DAYS = 120
 const MAX_SHOWN = 3
 
@@ -39,7 +39,7 @@ export function FeaturedEvents() {
 
   return (
     <section aria-label="Featured trips" className="space-y-3">
-      <h2 className={`text-sm font-bold uppercase tracking-[0.15em] flex items-center gap-2 drop-shadow ${RICED ? 'text-reef-300' : 'text-white'}`}>
+      <h2 className={`text-sm font-bold uppercase tracking-[0.15em] flex items-center gap-2 drop-shadow ${DARK ? 'text-reef-300' : 'text-white'}`}>
         <span aria-hidden>★</span> Featured trips
       </h2>
       <ul className="space-y-3">
@@ -72,7 +72,7 @@ function FeaturedCard({ event: e }: { event: AppEvent }) {
         />
       ) : (
         // No photo → a themed wash so the card still reads as a hero.
-        <div className={`absolute inset-0 bg-gradient-to-br ${RICED ? 'from-reef-500/40 via-brand-800/40 to-mauve/30' : 'from-brand-600 via-brand-700 to-brand-900'}`} />
+        <div className={`absolute inset-0 bg-gradient-to-br ${DARK ? 'from-reef-500/40 via-brand-800/40 to-mauve/30' : 'from-brand-600 via-brand-700 to-brand-900'}`} />
       )}
 
       {/* Legibility scrim — dark at the bottom where the caption sits, in either
@@ -81,13 +81,13 @@ function FeaturedCard({ event: e }: { event: AppEvent }) {
 
       <div className="absolute inset-x-0 bottom-0 p-3.5">
         <p className="text-base font-bold leading-tight text-white drop-shadow-sm">{e.title}</p>
-        <p className={`mt-1 text-xs font-medium text-brand-100/90 ${RICED ? 'mono' : ''}`}>
+        <p className={`mt-1 text-xs font-medium text-brand-100/90 ${DARK ? 'mono' : ''}`}>
           {formatEventSpan(e, { withYear: true })}
           {full && <span className="text-red-300 font-semibold"> · waitlist</span>}
         </p>
       </div>
 
-      <span className={`absolute right-3 top-3 rounded-full bg-brand-950/50 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${RICED ? 'text-reef-200 group-hover:text-reef-100' : 'text-white group-hover:text-brand-100'}`}>
+      <span className={`absolute right-3 top-3 rounded-full bg-brand-950/50 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${DARK ? 'text-reef-200 group-hover:text-reef-100' : 'text-white group-hover:text-brand-100'}`}>
         Register →
       </span>
     </Link>
