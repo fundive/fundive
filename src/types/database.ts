@@ -730,7 +730,6 @@ export interface Database {
           created_at: string
           created_by: string | null
           vehicle_id: string
-          event_date: string
           event_id: string | null
           notes: string | null
         }
@@ -739,7 +738,6 @@ export interface Database {
           created_at?: string
           created_by?: string | null
           vehicle_id: string
-          event_date: string
           event_id?: string | null
           notes?: string | null
         }

@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockQueryBuilder } from '../../tests/test-utils'
 import {
   availableVehicles, allocationEventId, canRequestRide,
-  fetchVehicleAllocationsForDate, assignVehicleToEvent, unassignVehicle, fetchRideSeats,
-  moveDiveCarAllocations,
+  fetchVehiclesForEvent, fetchVehiclesForEvents,
+  assignVehicleToEvent, assignVehiclesToEvent, unassignVehicle, fetchRideSeats,
 } from './event-vehicles'
 import { supabase } from './supabase'
 import type { EventVehicle, Vehicle } from '../types/database'
@@ -17,23 +17,23 @@ const vehicle = (id: string, name: string, seats = 7, active = true): Vehicle =>
   id, name, passenger_seats: seats, active, created_at: '', created_by: null,
 })
 const alloc = (over: Partial<EventVehicle>): EventVehicle => ({
-  id: 'a', created_at: '', created_by: null, vehicle_id: 'v', event_date: '2031-01-01',
+  id: 'a', created_at: '', created_by: null, vehicle_id: 'v',
   event_id: null, notes: null, ...over,
 })
 
 describe('availableVehicles', () => {
-  it('drops cars already allocated that day', () => {
+  it('drops cars already on this event', () => {
     const fleet = [vehicle('v1', 'Delica'), vehicle('v2', 'Bus'), vehicle('v3', 'Veryca')]
-    const taken = new Set(['v2'])
-    expect(availableVehicles(fleet, taken).map(v => v.id)).toEqual(['v1', 'v3'])
+    const assigned = new Set(['v2'])
+    expect(availableVehicles(fleet, assigned).map(v => v.id)).toEqual(['v1', 'v3'])
   })
 
-  it('returns the whole fleet when nothing is allocated', () => {
+  it('returns the whole fleet when nothing is assigned', () => {
     const fleet = [vehicle('v1', 'Delica'), vehicle('v2', 'Bus')]
     expect(availableVehicles(fleet, new Set()).map(v => v.id)).toEqual(['v1', 'v2'])
   })
 
-  it('returns empty when every car is taken', () => {
+  it('returns empty when every car is already on the event', () => {
     const fleet = [vehicle('v1', 'Delica')]
     expect(availableVehicles(fleet, new Set(['v1']))).toEqual([])
   })
@@ -48,32 +48,60 @@ describe('allocationEventId', () => {
   })
 })
 
-describe('fetchVehicleAllocationsForDate', () => {
-  it('returns the rows for the date', async () => {
+describe('fetchVehiclesForEvent', () => {
+  it('queries by the dive key and returns the rows', async () => {
     const rows = [alloc({ id: 'a1', event_id: 'D1' })]
-    from.mockReturnValue(mockQueryBuilder({ data: rows }))
-    expect(await fetchVehicleAllocationsForDate('2031-01-01')).toEqual(rows)
+    const b = mockQueryBuilder({ data: rows })
+    const eq = vi.fn(() => b); b.eq = eq
+    from.mockReturnValue(b)
+    expect(await fetchVehiclesForEvent({ dive_id: 'D1' })).toEqual(rows)
+    expect(eq).toHaveBeenCalledWith('event_id', 'D1')
+  })
+  it('queries by the course key for a course', async () => {
+    const b = mockQueryBuilder({ data: [] })
+    const eq = vi.fn(() => b); b.eq = eq
+    from.mockReturnValue(b)
+    await fetchVehiclesForEvent({ course_id: 'C1' })
+    expect(eq).toHaveBeenCalledWith('event_id', 'C1')
+  })
+  it('short-circuits with no event key', async () => {
+    expect(await fetchVehiclesForEvent({})).toEqual([])
+    expect(from).not.toHaveBeenCalled()
   })
   it('surfaces a supabase error', async () => {
-    from.mockReturnValue(mockQueryBuilder({ error: { message: 'boom' } }))
-    await expect(fetchVehicleAllocationsForDate('2031-01-01')).rejects.toBeTruthy()
+    const b = mockQueryBuilder({ error: { message: 'boom' } })
+    b.eq = vi.fn(() => b)
+    from.mockReturnValue(b)
+    await expect(fetchVehiclesForEvent({ dive_id: 'D1' })).rejects.toBeTruthy()
+  })
+})
+
+describe('fetchVehiclesForEvents', () => {
+  it('gathers allocations for the given events in one query', async () => {
+    const rows = [alloc({ id: 'a1', event_id: 'D1' }), alloc({ id: 'a2', event_id: 'C1' })]
+    const b = mockQueryBuilder({ data: rows }); const inSpy = vi.fn(() => b); b.in = inSpy
+    from.mockReturnValue(b)
+    expect(await fetchVehiclesForEvents(['D1', 'C1'])).toEqual(rows)
+    expect(inSpy).toHaveBeenCalledWith('event_id', ['D1', 'C1'])
+  })
+  it('returns empty for an empty id list without querying', async () => {
+    expect(await fetchVehiclesForEvents([])).toEqual([])
+    expect(from).not.toHaveBeenCalled()
   })
 })
 
 describe('assignVehicleToEvent', () => {
-  it('writes an event-keyed row for a dive event', async () => {
+  it('writes a dive-keyed row (course key null) for a dive event', async () => {
     const builder = mockQueryBuilder({ error: null })
     const insert = vi.fn(() => builder)
     builder.insert = insert
     from.mockReturnValue(builder)
 
     await assignVehicleToEvent({
-      vehicleId: 'v1', date: '2031-01-01',
-      event: { id: 'D1', type: 'dive' }, createdBy: 'admin1',
+      vehicleId: 'v1', event: { id: 'D1', type: 'dive' }, createdBy: 'admin1',
     })
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
-      vehicle_id: 'v1', event_date: '2031-01-01',
-      event_id: 'D1', created_by: 'admin1',
+      vehicle_id: 'v1', event_id: 'D1', created_by: 'admin1',
     }))
   })
 
@@ -84,20 +112,39 @@ describe('assignVehicleToEvent', () => {
     from.mockReturnValue(builder)
 
     await assignVehicleToEvent({
-      vehicleId: 'v1', date: '2031-01-01',
-      event: { id: 'C1', type: 'course' }, createdBy: 'admin1',
+      vehicleId: 'v1', event: { id: 'C1', type: 'course' }, createdBy: 'admin1',
     })
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
-      event_id: 'C1',
+      vehicle_id: 'v1', event_id: 'C1',
     }))
   })
 
-  it('surfaces a supabase error (e.g. the car is already taken)', async () => {
+  it('surfaces a supabase error (e.g. the car is already on the event)', async () => {
     from.mockReturnValue(mockQueryBuilder({ error: { message: 'duplicate key' } }))
     await expect(assignVehicleToEvent({
-      vehicleId: 'v1', date: '2031-01-01',
-      event: { id: 'D1', type: 'dive' }, createdBy: 'admin1',
+      vehicleId: 'v1', event: { id: 'D1', type: 'dive' }, createdBy: 'admin1',
     })).rejects.toBeTruthy()
+  })
+})
+
+describe('assignVehiclesToEvent', () => {
+  it('bulk-inserts one row per vehicle', async () => {
+    const builder = mockQueryBuilder({ error: null })
+    const insert = vi.fn(() => builder)
+    builder.insert = insert
+    from.mockReturnValue(builder)
+
+    await assignVehiclesToEvent({
+      vehicleIds: ['v1', 'v2'], event: { id: 'D1', type: 'dive' }, createdBy: 'admin1',
+    })
+    expect(insert).toHaveBeenCalledWith([
+      expect.objectContaining({ vehicle_id: 'v1', event_id: 'D1' }),
+      expect.objectContaining({ vehicle_id: 'v2', event_id: 'D1' }),
+    ])
+  })
+  it('is a no-op for an empty list', async () => {
+    await assignVehiclesToEvent({ vehicleIds: [], event: { id: 'D1', type: 'dive' }, createdBy: 'a' })
+    expect(from).not.toHaveBeenCalled()
   })
 })
 
@@ -131,55 +178,9 @@ describe('fetchRideSeats', () => {
   })
 })
 
-describe('moveDiveCarAllocations', () => {
-  // One builder factory drives all three query shapes the function runs:
-  // select 'id, vehicle_id' (this dive's rows on the old date), select
-  // 'vehicle_id' (cars taken on the new date), and the per-row update/delete.
-  function evBuilder(bySelect: (cols: string | undefined) => { data: unknown; error: unknown }) {
-    let sel: string | undefined
-    const updates: string[] = []
-    const deletes: string[] = []
-    const b: Record<string, unknown> = {}
-    b.select = (cols: string) => { sel = cols; return b }
-    b.update = (patch: unknown) => { (b as { _patch?: unknown })._patch = patch; sel = 'update'; return b }
-    b.delete = () => { sel = 'delete'; return b }
-    b.eq = (col: string, val: string) => {
-      if (sel === 'update') updates.push(val)
-      if (sel === 'delete') deletes.push(val)
-      return b
-    }
-    b.then = (onF: (r: unknown) => unknown) => Promise.resolve(bySelect(sel)).then(onF)
-    return { b, updates, deletes }
-  }
-
-  it('is a no-op when the date is unchanged', async () => {
-    expect(await moveDiveCarAllocations('D1', '2031-01-01', '2031-01-01')).toEqual({ moved: 0, dropped: 0 })
-    expect(from).not.toHaveBeenCalled()
-  })
-
-  it('moves free cars and drops cars already taken on the new date', async () => {
-    const mine = [{ id: 'a1', vehicle_id: 'v1' }, { id: 'a2', vehicle_id: 'v2' }]
-    const taken = [{ vehicle_id: 'v2' }] // v2 is already on another event that day
-    const { b } = evBuilder(sel =>
-      sel === 'id, vehicle_id' ? { data: mine, error: null }
-        : sel === 'vehicle_id' ? { data: taken, error: null }
-          : { data: null, error: null })
-    from.mockReturnValue(b)
-
-    expect(await moveDiveCarAllocations('D1', '2031-01-01', '2031-02-01')).toEqual({ moved: 1, dropped: 1 })
-  })
-
-  it('reports nothing when the dive has no cars on the old date', async () => {
-    const { b } = evBuilder(sel =>
-      sel === 'id, vehicle_id' ? { data: [], error: null } : { data: [], error: null })
-    from.mockReturnValue(b)
-    expect(await moveDiveCarAllocations('D1', '2031-01-01', '2031-02-01')).toEqual({ moved: 0, dropped: 0 })
-  })
-})
-
 describe('canRequestRide', () => {
-  it('allows when no cars are assigned yet (capacity 0 = unconfigured)', () => {
-    expect(canRequestRide({ capacity: 0, claimed: 5, alreadyHasRide: false })).toBe(true)
+  it('allows when no car is assigned yet (capacity 0 = plan the van later)', () => {
+    expect(canRequestRide({ capacity: 0, claimed: 0, alreadyHasRide: false })).toBe(true)
   })
   it('allows while a seat is free', () => {
     expect(canRequestRide({ capacity: 7, claimed: 6, alreadyHasRide: false })).toBe(true)
@@ -189,5 +190,8 @@ describe('canRequestRide', () => {
   })
   it('lets a diver who already holds a ride keep it even when full', () => {
     expect(canRequestRide({ capacity: 7, claimed: 7, alreadyHasRide: true })).toBe(true)
+  })
+  it('lets a diver who already holds a ride keep it even if cars were unassigned', () => {
+    expect(canRequestRide({ capacity: 0, claimed: 0, alreadyHasRide: true })).toBe(true)
   })
 })
