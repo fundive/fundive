@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { pick } from '../../styles/tokens'
 import { personName } from '../../lib/names'
 import { GEAR_ITEMS, GEAR_ALACARTE_PRICES, isGearIncludedCourse } from '../../lib/gear'
 import { siteConfig } from '../../config/site'
@@ -786,7 +787,7 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
             </p>
 
             {leadMissingW.length > 0 && (
-              <div className="text-xs text-brand-950 font-medium bg-amber-50 border border-amber-300 rounded-lg p-3 space-y-2" aria-label="Outstanding waivers">
+              <div className={`text-xs text-brand-950 font-medium ${pick('bg-amber-50 border border-amber-300', 'bg-amber-400/10 border border-amber-400/40')} rounded-lg p-3 space-y-2`} aria-label="Outstanding waivers">
                 <p className="font-semibold text-amber-800">Waivers to sign before these events</p>
                 <p>You can still book now — sign these now or any time from your profile.</p>
                 <ul className="space-y-1">
@@ -887,7 +888,7 @@ function PaymentInstructionsBlock({ method }: { method: PaymentMethod }) {
         <p className="font-semibold text-brand-900">{instr.title}</p>
         {instr.lines.map((line, i) => <p key={i}>{line}</p>)}
       </div>
-      <div className="text-xs text-brand-950 font-medium bg-amber-50 border border-amber-300 rounded-lg p-3 space-y-1">
+      <div className={`text-xs text-brand-950 font-medium ${pick('bg-amber-50 border border-amber-300', 'bg-amber-400/10 border border-amber-400/40')} rounded-lg p-3 space-y-1`}>
         <p className="font-semibold text-brand-900">{reminder.title}</p>
         {reminder.lines.map((line, i) => <p key={i}>{line}</p>)}
       </div>
