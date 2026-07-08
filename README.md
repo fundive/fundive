@@ -146,10 +146,9 @@ Supabase project as the backend. First, point the app at **your own** Supabase
 project — apply the baseline migration with `make push` — and your own Cloudflare
 account.
 
-The **recommended** deploy path is the GitHub Actions workflow
-(`.github/workflows/deploy.yml`), which builds and ships both workers using
-`CLOUDFLARE_*` + `VITE_*` repository secrets. To deploy from your machine
-instead, run `make deploy`. Either way, see
+Deploy both workers from your machine with `make deploy`, which builds and ships
+them using the `CLOUDFLARE_*` + `VITE_*` values in `.env.local` (no
+`wrangler login` needed). See
 [`docs/deployment.md`](docs/deployment.md) for the required environment variables
 and the full flow.
 

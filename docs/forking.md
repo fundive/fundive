@@ -132,9 +132,8 @@ Then point at your own backend and ship:
 1. Create a Supabase project and apply the baseline migration: `make push`
    (needs `SUPABASE_PROJECT_REF` / `SUPABASE_DB_PASSWORD` in `.env.local`; run
    `make link` once first). `make verify` confirms the cloud schema matches.
-2. Deploy the two Cloudflare Workers. The **recommended** path is the GitHub
-   Actions workflow (`.github/workflows/deploy.yml`) sourcing `CLOUDFLARE_*` +
-   `VITE_*` from repo secrets; `make deploy` is the local equivalent.
+2. Deploy the two Cloudflare Workers with `make deploy` (reads `CLOUDFLARE_*` +
+   `VITE_*` from `.env.local`; no `wrangler login` needed).
 3. Set the push-worker secrets (`wrangler secret put`) and edge-function secrets
    (`supabase secrets set`) — see [deployment.md](./deployment.md).
 
