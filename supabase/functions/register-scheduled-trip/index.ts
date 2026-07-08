@@ -1,29 +1,28 @@
-// register-package — a signed-in diver registers for a partner-shop package.
-// Unlike the old "express interest" RPC, this builds a real order: a chosen
-// price tier, a preferred date range, add-ons (charged per day) and a room
-// (charged per night) from our catalog. It:
-//   1. Verifies the caller via Bearer JWT (app users only — no guest path).
-//   2. Validates the package is published and the tier/add-ons/room belong to it.
-//   3. Recomputes the cost estimate server-side (authoritative — the kickback is
-//      keyed on it, so a client-sent total is never trusted).
-//   4. Inserts one package_registrations row (service role), snapshotting the
-//      estimate + the package's kickback rate. Idempotent against the one-live
-//      index: a diver tapping twice gets their existing registration back.
-//   5. Emails the partner shop (FROM us, reply-to the diver) and the diver, both
-//      carrying the estimate and the "final cost set by the partner shop"
-//      disclaimer. Email failure is logged, never fatal — the registration stands.
+// register-scheduled-trip — a signed-in diver registers for one of the shop's
+// own Scheduled Trips. Builds a real order (add-ons per day + a room per night,
+// over the trip's fixed dates) and produces a cost ESTIMATE — no booking/payment;
+// the shop confirms the final cost offline. Mirrors register-package minus the
+// tier/partner/kickback. It:
+//   1. Verifies the caller via Bearer JWT (app users only).
+//   2. Validates the trip is published and the add-ons/room belong to it.
+//   3. Recomputes the estimate server-side (price + add-ons×days + room×nights,
+//      days/nights from the trip's fixed dates).
+//   4. Inserts one scheduled_trip_registrations row (idempotent on the one-live
+//      index; returns already_registered).
+//   5. Emails the shop + the diver (reply-to the diver) with the estimate.
+//      Email failure is logged, never fatal.
 //
-// Body: { package_id, tier_id, preferred_start, preferred_end, addon_ids[], room_id?, notes? }
-// Returns: 200 { registration_id, estimated_cost, estimated_currency }
-//          400 bad input · 401 bad/absent bearer · 404 package/tier not found
+// Body: { scheduled_trip_id, addon_ids[], room_id?, notes? }
+// Returns: 200 { registration_id, estimated_cost, estimated_currency, emailed }
+//          400 bad input · 401 bad/absent bearer · 404 trip not found
 
 import { createClient } from "jsr:@supabase/supabase-js@2.103.2"
 import nodemailer from "npm:nodemailer@6.9.14"
 import { corsOk, jsonResponse, safeError, bearerToken } from "../_shared/responses.ts"
 import {
-  parseRegisterPackageInput,
-  buildPackageRegistrationEmail,
-} from "../_shared/package-registration-email.ts"
+  parseRegisterScheduledTripInput,
+  buildScheduledTripRegistrationEmail,
+} from "../_shared/scheduled-trip-registration-email.ts"
 import {
   rangeDaysNights,
   buildRegistrationCharges,
@@ -60,39 +59,29 @@ Deno.serve(async (req) => {
 
   let body: unknown
   try { body = await req.json() } catch { return json({ error: "invalid body" }, 400) }
-  const parsed = parseRegisterPackageInput(body as Record<string, unknown>)
+  const parsed = parseRegisterScheduledTripInput(body as Record<string, unknown>)
   if ("error" in parsed) return json({ error: parsed.error }, 400)
   const reqData = parsed.request
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
 
-  // Package must be published; grab the catalog id allow-lists + kickback rate.
-  const { data: pkg, error: pErr } = await admin
-    .from("packages")
-    .select("id, title, status, trusted_partner_id, addon_ids, room_type_ids, kickback_rate")
-    .eq("id", reqData.packageId)
+  // Trip must be published; grab its price/dates + catalog allow-lists.
+  const { data: trip, error: tErr } = await admin
+    .from("scheduled_trips")
+    .select("id, title, status, start_date, end_date, price, currency, addon_ids, room_type_ids")
+    .eq("id", reqData.scheduledTripId)
     .maybeSingle()
-  if (pErr) return json({ error: safeError(pErr, "package lookup failed") }, 500)
-  if (!pkg) return json({ error: "package not found" }, 404)
-  if (pkg.status !== "published") return json({ error: "package is not open for registration" }, 400)
+  if (tErr) return json({ error: safeError(tErr, "trip lookup failed") }, 500)
+  if (!trip) return json({ error: "trip not found" }, 404)
+  if (trip.status !== "published") return json({ error: "trip is not open for registration" }, 400)
 
-  // The tier must belong to this package.
-  const { data: tier, error: tErr } = await admin
-    .from("package_tiers")
-    .select("id, name, price, currency, package_id")
-    .eq("id", reqData.tierId)
-    .maybeSingle()
-  if (tErr) return json({ error: safeError(tErr, "tier lookup failed") }, 500)
-  if (!tier || tier.package_id !== pkg.id) return json({ error: "tier not found for this package" }, 400)
-
-  // Add-ons / room must be within the package's allowed catalog ids.
-  const allowedAddons = new Set<string>(pkg.addon_ids ?? [])
-  const allowedRooms = new Set<string>(pkg.room_type_ids ?? [])
+  const allowedAddons = new Set<string>(trip.addon_ids ?? [])
+  const allowedRooms = new Set<string>(trip.room_type_ids ?? [])
   if (reqData.addonIds.some((id) => !allowedAddons.has(id))) {
-    return json({ error: "add-on not offered on this package" }, 400)
+    return json({ error: "add-on not offered on this trip" }, 400)
   }
   if (reqData.roomId && !allowedRooms.has(reqData.roomId)) {
-    return json({ error: "room not offered on this package" }, 400)
+    return json({ error: "room not offered on this trip" }, 400)
   }
 
   // Resolve prices from the catalog (never trust client amounts).
@@ -111,50 +100,41 @@ Deno.serve(async (req) => {
     roomRow = data ?? null
   }
 
-  const { days, nights } = rangeDaysNights(reqData.preferredStart, reqData.preferredEnd)
-  const addonItems: EstimateItem[] = addonRows.map((a) => ({
-    label: labelOf(a, "Add-on"), price: a.price ?? 0,
-  }))
+  const { days, nights } = rangeDaysNights(trip.start_date, trip.end_date)
+  const addonItems: EstimateItem[] = addonRows.map((a) => ({ label: labelOf(a, "Add-on"), price: a.price ?? 0 }))
   const roomItem: EstimateItem | null = roomRow
     ? { label: labelOf(roomRow, "Room"), price: roomRow.added_price ?? 0 }
     : null
   const charges = buildRegistrationCharges({
-    baseLabel: `Package: ${tier.name}`, basePrice: tier.price ?? 0, addons: addonItems, room: roomItem, days, nights,
+    baseLabel: "Trip", basePrice: trip.price ?? 0, addons: addonItems, room: roomItem, days, nights,
   })
   const total = estimateTotal(charges)
-  const currency = tier.currency ?? siteConfig.locale.currency
+  const currency = trip.currency ?? siteConfig.locale.currency
 
-  // Insert the registration, snapshotting the estimate + kickback rate. The
-  // one-live partial unique index makes a double-tap idempotent.
   const details = {
-    tier: { id: tier.id, name: tier.name, price: tier.price ?? 0 },
     days, nights,
     add_ons: reqData.addonIds,
     room: { option_id: reqData.roomId },
     charges, total, currency,
   }
   const insert = {
-    package_id: pkg.id,
-    tier_id: tier.id,
+    scheduled_trip_id: trip.id,
     diver_id: diverId,
-    preferred_start: reqData.preferredStart,
-    preferred_end: reqData.preferredEnd,
     estimated_cost: total,
     estimated_currency: currency,
     details,
     notes: reqData.notes || null,
-    kickback_rate: pkg.kickback_rate,
   }
 
   const { data: inserted, error: iErr } = await admin
-    .from("package_registrations").insert(insert).select("id").single()
+    .from("scheduled_trip_registrations").insert(insert).select("id").single()
   if (iErr) {
     // 23505 = the one-live unique index: return the diver's existing registration.
     if ((iErr as { code?: string }).code === "23505") {
       const { data: existing } = await admin
-        .from("package_registrations")
+        .from("scheduled_trip_registrations")
         .select("id, estimated_cost, estimated_currency")
-        .eq("package_id", pkg.id).eq("diver_id", diverId).neq("status", "cancelled")
+        .eq("scheduled_trip_id", trip.id).eq("diver_id", diverId).neq("status", "cancelled")
         .maybeSingle()
       if (existing) {
         return json({
@@ -170,25 +150,21 @@ Deno.serve(async (req) => {
   }
   const registrationId = inserted.id
 
-  // Resolve partner + diver name for the emails.
-  const { data: partner } = await admin
-    .from("trusted_partners").select("name, contact_email, active").eq("id", pkg.trusted_partner_id).maybeSingle()
   const { data: profile } = await admin
     .from("profiles").select("name, nickname").eq("id", diverId).maybeSingle()
   const diverName = [profile?.name, profile?.nickname ? `(${profile.nickname})` : null].filter(Boolean).join(" ")
+  const tripDates = trip.start_date
+    ? (trip.end_date && trip.end_date !== trip.start_date ? `${trip.start_date} to ${trip.end_date}` : trip.start_date)
+    : null
 
   let emailed = false
-  if (GMAIL_USER && GMAIL_PASS && partner?.active && partner.contact_email) {
-    const { subject, partnerText, diverText } = buildPackageRegistrationEmail({
+  if (GMAIL_USER && GMAIL_PASS) {
+    const { subject, shopText, diverText } = buildScheduledTripRegistrationEmail({
       shopName: siteConfig.identity.shopName,
-      partnerName: partner.name,
-      productTitle: pkg.title,
-      tierName: tier.name,
+      tripTitle: trip.title,
+      tripDates,
       addonLabels: addonItems.map((a) => a.label),
       roomLabel: roomItem?.label ?? null,
-      preferredStart: reqData.preferredStart,
-      preferredEnd: reqData.preferredEnd,
-      nights,
       notes: reqData.notes,
       diverName,
       diverEmail,
@@ -202,8 +178,7 @@ Deno.serve(async (req) => {
       })
       await transporter.sendMail({
         from: { name: siteConfig.identity.shopName, address: GMAIL_USER },
-        to: partner.contact_email, cc: COMPANY_EMAIL, replyTo: diverEmail,
-        subject, text: partnerText,
+        to: COMPANY_EMAIL, replyTo: diverEmail, subject, text: shopText,
       })
       if (diverEmail.toLowerCase().trim() !== COMPANY_EMAIL.toLowerCase()) {
         await transporter.sendMail({
@@ -213,8 +188,7 @@ Deno.serve(async (req) => {
       }
       emailed = true
     } catch (e) {
-      // Email is best-effort; the registration already landed.
-      console.error("register-package email failed:", (e as Error).message)
+      console.error("register-scheduled-trip email failed:", (e as Error).message)
     }
   }
 

@@ -34,7 +34,7 @@ Write/manage routes — gated by `AdminRoute` (admin only):
 | `/admin/duty`                           | `AdminDutyPage`         | Assign staff/admin to events; fires push to assignee |
 | `/admin/notifications`                  | `AdminNotificationsPage` | Compose + send a one-off Web-Push broadcast to all subscribed devices |
 | `/admin/packages`                       | `AdminPackagesPage`     | **Packages** referral network: curate travel packages abroad + the referral/kickback pipeline (see [packages.md](./packages.md)) |
-| `/admin/scheduled-trips`                | `AdminScheduledTripsPage` | **Scheduled Trips**: the shop's own dated trips shown on the diver Scheduled Trips tab (optionally linked to a bookable event) |
+| `/admin/scheduled-trips`                | `AdminScheduledTripsPage` | **Scheduled Trips**: the shop's own dated trips (price + catalog add-ons/rooms) divers register for; Trips + Registrations tabs |
 | `/admin/trusted-partners`               | `AdminTrustedPartnersPage` | **Trusted Partners**: CRUD the unified partner registry (incl. private `contact_email`) that backs both the diver directory and Packages (see [trusted-partners.md](./trusted-partners.md)) |
 
 All routes are also wrapped by `ProtectedRoute` — see
