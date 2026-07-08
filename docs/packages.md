@@ -1,129 +1,137 @@
-# Packages — partner referral network
+# Packages — partner-shop registration network
 
-A curated board of dive **travel packages abroad** that the shop vouches for.
-When a diver we refer books one of these packages at the partner shop, the
+A board of dive **packages hosted by partner shops abroad** that FunDivers
+vouches for. A diver browses a product, picks a price **tier**, a **preferred
+date range** and **add-ons / a room** from our catalog, and **registers**. That
+sends a recommendation email — from our shop — to the **partner shop** and the
+**diver**, carrying a **cost estimate**. When the diver books at the partner, the
 partner pays us a kickback (default 5%). This is a referral network, not a
-booking system — the booking and the money happen entirely at the partner shop.
-The app only:
+booking system — the booking and the money happen at the partner shop. The app:
 
-1. **curates** partners + their packages (admin),
-2. **exposes** published packages to divers (the board), and
-3. **tracks** the referral and the kickback we're owed.
+1. **curates** partner shops + their products/tiers (admin),
+2. **exposes** published products to divers (the board + register flow), and
+3. **tracks** who registered + the kickback we expect vs have been paid.
 
-It's the *push* complement to **Trusted Partners** (`TrustedPartnersPage`), which
-is the *pull* side — a diver names a destination and we email them a vetted
-shop. Packages proactively publishes specific trips abroad. Both surfaces read
-the same `trusted_partners` table (see [trusted-partners.md](./trusted-partners.md)).
+It's the *push* complement to **Trusted Partners** (`TrustedPartnersPage`), the
+*pull* side — a diver names a destination and we email them a vetted shop.
 
 > Not to be confused with **Scheduled Trips** (`ScheduledTripsPage` /
-> `scheduled_trips`), which are the shop's own dated, in-app-bookable trips.
-> Packages are open-ended, booked at the partner shop.
+> `scheduled_trips`), the shop's own dated, in-app-bookable trips. Packages are
+> open-ended and registered-for, then booked at the partner shop.
 
-## Why it's separate from bookings / payments / credits
+## Model (`20260708200000_packages_registration.sql`)
 
-Those tables model "the diver owes the shop, money flows **in**, recorded
-manually." A package referral inverts both: the money is owed **by the partner to
-us**, and the booking isn't ours to take. Reusing `bookings` would break its FK
-to the internal `events` catalog and pollute the payment ledger with a reversed
-flow. So Packages has its own tables.
+This migration replaced the old FD-XXXXXX referral-code system (dropped: the
+`referral_code` column, its `package_referrals_set_code`/`gen_referral_code`
+trigger, and the `express_package_interest` RPC).
 
-## Schema
+- **`trusted_partners`** — the vouching registry (shared with Trusted Partners).
+  `contact_email` / `default_kickback_rate` are internal; the diver-facing
+  projection hides them.
+- **`packages`** — the parent **product**. Diver-facing: `title`, `destination`,
+  `summary`, `description`, `hero_image_url`, `highlights`. References our catalog
+  via `addon_ids[]` / `room_type_ids[]` (same catalog the event register form
+  uses — `addons` / `rooms`). Internal: `kickback_rate` (the "percent set when
+  making the package", never exposed to divers), `status` (`draft → published →
+  archived`, `published_at` stamped on first publish). **No dates or single
+  price** — dates are diver-picked, price lives on tiers.
+- **`package_tiers`** — Package A/B/C: `name`, `price`, `currency`, `sort_order`.
+  One product has many tiers.
+- **`package_registrations`** — one row per diver-registration; doubles as the
+  kickback ledger. Carries `tier_id`, `preferred_start`/`preferred_end`, a frozen
+  `details` snapshot (chosen tier, per-day add-on lines, per-night room line, the
+  `charges` ChargeLine[] and estimate total), `estimated_cost` /
+  `estimated_currency`, `notes` (diver free-text), `status`
+  (`registered → completed`, or `cancelled`), and the kickback columns:
+  `kickback_rate` (snapshot), generated `kickback_amount`
+  (`round(estimated_cost * kickback_rate, 2)`), `kickback_status`
+  (`expected → paid`, `paid_at`). A partial unique index
+  (`package_registrations_one_live_idx` on `(package_id, diver_id) where status
+  <> 'cancelled'`) keeps a diver to one live registration per product; a cancel
+  frees a retry.
 
-The tables were born in the baseline (`20260703000000_baseline_schema.sql`)
-under their original "Trip Board" working name, then renamed end to end by
-`20260708030000_rename_trip_board_to_packages.sql`. The diver-facing reads moved
-from owner-privileged views to SECURITY DEFINER functions in
-`20260708020000_trip_board_definer_functions.sql`, and the hosting shop was
-folded into the shared partners table by
-`20260708080000_unify_partner_tables.sql`.
+## Cost estimate
 
-- **`trusted_partners`** — the vouching registry (one table, shared with the
-  Trusted Partners directory). `name`, `country` (nullable), `location`,
-  `website`, `logo_url`, `vouch_notes` are diver-facing; `contact_name` /
-  `contact_email` / `default_kickback_rate` / `active` are internal. A package
-  points at its hosting partner via `packages.trusted_partner_id`.
-- **`packages`** — curated packages. Publish lifecycle `status` ∈
-  `draft → published → archived`; `published_at` is stamped the first time a
-  package goes live (and preserved across re-publishes). `kickback_rate` is the
-  rate we expect for this package — **internal, never exposed to divers**.
-- **`package_referrals`** — one row per diver-interest; doubles as the lead
-  pipeline (`status` ∈ `interested → introduced → booked → completed`, plus
-  `cancelled`) and the kickback ledger (`booked_amount`, `kickback_rate`
-  snapshot, generated `kickback_amount`, `kickback_status` ∈
-  `pending → invoiced → received`).
+`src/lib/package-estimate.ts` — the estimate is **non-binding**; the final cost
+is set by the partner shop. From the diver's preferred range: `nights` = the
+span, `days` = `nights + 1`. `buildPackageCharges()` produces `ChargeLine[]`
+(reusing the bookings `ChargeLine` shape): the tier base, each **add-on × days**,
+and the **room × nights**. The client uses it for the live preview; the edge
+function recomputes it authoritatively. The two copies (client
+`src/lib/package-estimate.ts` and Deno
+`supabase/functions/_shared/package-estimate.ts`) are duplicated because the Vite
+bundle and Deno can't share a module cleanly — `package-estimate.test.ts`
+asserts they stay in sync.
 
-### Attribution by referral code
+## Registration + email (`supabase/functions/register-package/`)
 
-Each referral carries a unique `referral_code` (`FD-XXXXXX`, Crockford base32,
-no ambiguous I/L/O/U), stamped by the `package_referrals_set_code` **BEFORE
-INSERT** trigger — authoritative for every writer, including the express RPC,
-so it can never be spoofed or missing. We broker the intro and the code travels
-to the partner; when the partner reports "code FD-… booked NT$X," the admin
-finds the row by code and records the booking. `kickback_amount` is a generated
-column (`round(booked_amount * kickback_rate, 2)`), so the math is in the DB.
+Registration is **logged-in app users only** and goes through the
+`register-package` edge function (mirrors `create-registration`'s split:
+`index.ts` Deno glue + pure `_shared` helpers). It:
 
-A partial unique index (`package_referrals_one_live_idx` on `(package_id,
-diver_id) where status <> 'cancelled'`) keeps a diver to one live referral per
-package; a cancelled one frees a retry.
+1. verifies the Bearer JWT (no guest path),
+2. validates the product is published and the tier / add-ons / room belong to it,
+3. **recomputes the estimate server-side** (never trusts a client total — the
+   kickback is keyed on it),
+4. snapshots the `kickback_rate` and inserts one `package_registrations` row
+   (service role). The one-live index makes a double-tap idempotent (returns the
+   existing row), and
+5. emails the partner shop (**from** us, **cc** us, **reply-to** the diver) and
+   the diver, via `buildPackageRegistrationEmail` — the recommendation greeting
+   plus the selected items, the estimate, and the "final cost is set by the
+   partner shop" disclaimer. Email is best-effort; a mail failure never loses the
+   registration.
 
-## Access model — why the diver-facing reads go through definer functions
+## Access model — diver-facing reads go through definer functions
 
-Divers must never see the kickback columns, but they do need their own code +
-status. So **divers have no RLS policy on any base table** — base tables are
-admin-only (`is_admin()` "admin manage" policies). Diver reads are served by two
-**SECURITY DEFINER functions** (pinned `search_path`, owned by `postgres`, so
-they bypass base RLS) that each expose only safe columns and embed their own
-scope:
+Divers must never see the kickback columns, so **base tables are admin-only**
+(`is_admin()` "admin manage" policies) and diver reads go through **SECURITY
+DEFINER functions** (pinned `search_path`, owned by `postgres`):
 
-- **`list_package_board()`** — published packages joined to the hosting partner.
-  No `kickback_rate`. (`where status = 'published'`.)
-- **`list_my_package_referrals()`** — the caller's own referrals with
-  package/partner labels, none of the kickback ledger.
-  (`where diver_id = auth.uid()`.)
-
-Interest is created only through **`express_package_interest(p_package_id)`** — a
-SECURITY DEFINER RPC that validates the package is published, is idempotent
-(returns the existing live code rather than erroring on the unique index), and
-returns **just the code** so the diver never reads their row's kickback columns.
+- **`list_package_board()`** — published products whose partner is **active**,
+  joined to the partner, plus `min_price`, `tier_count` and the catalog id
+  arrays. No `kickback_rate`.
+- **`list_package_tiers(p_package_id)`** — a published product's tiers.
+- **`list_my_package_registrations()`** — the caller's own rows (`diver_id =
+  auth.uid()`) with labels + estimate, none of the kickback ledger.
+- **`cancel_my_package_registration(p_id)`** — a diver cancels their own row
+  (base table is admin-only), freeing the one-live index for a retry.
 
 ## Code map
 
 | Concern | File |
 | --- | --- |
-| Diver reads + express-interest RPC wrapper | `src/lib/packages.ts` |
-| Package-date label helper | `src/lib/package-format.ts` |
-| Admin package CRUD (+ publish stamp) | `src/lib/package-admin.ts` |
-| Admin referral pipeline + kickback rollup | `src/lib/package-referrals.ts` |
-| Diver board + detail + "I'm interested" | `src/pages/PackagesPage.tsx`, `src/pages/PackageDetailPage.tsx` |
-| Admin home (Packages / Referrals tabs) | `src/pages/admin/AdminPackagesPage.tsx` |
-| Referrals pipeline UI | `src/components/admin/AdminReferralsTab.tsx` |
+| Diver reads + register / cancel wrappers | `src/lib/packages.ts` |
+| Estimate math (client) | `src/lib/package-estimate.ts` |
+| Preferred-range date label | `src/lib/package-format.ts` |
+| Admin product + tier CRUD | `src/lib/package-admin.ts` |
+| Admin registrations + kickback rollup | `src/lib/package-registrations.ts` |
+| Diver board + detail | `src/pages/PackagesPage.tsx`, `src/pages/PackageDetailPage.tsx` |
+| Diver register wizard | `src/components/register/PackageRegisterForm.tsx` |
+| Admin home (Packages / Registrations tabs) | `src/pages/admin/AdminPackagesPage.tsx` |
+| Registrations roster + kickback tally | `src/components/admin/AdminRegistrationsTab.tsx` |
+| Register + email edge fn | `supabase/functions/register-package/` + `_shared/package-*.ts` |
 
-Routes: divers `/packages` + `/packages/:id` (linked from the header Packages
-icon); admin `/admin/packages` (linked from the Manage hub). The hosting shops
-are managed on the separate Trusted Partners admin page and picked from a
-dropdown when creating a package. The Referrals tab shows a "N new" badge (count
-of `interested` referrals) and a per-currency kickback rollup (received vs
-outstanding).
+Routes: divers `/packages` + `/packages/:id`; admin `/admin/packages` (from the
+Manage hub). The Registrations tab is the "who registered" roster (the Manage
+tracking surface) and shows a running **expected vs paid** kickback tally per
+currency, with a per-registration "Mark kickback paid" action.
 
 ## Tests
 
-- `tests/integration/packages.test.ts` — base tables admin-only, the two
-  definer functions' scoping + column hiding, `express_package_interest` (auth /
-  published / idempotent / writes caller), the one-live-referral index, the
-  generated `kickback_amount`, and the admin booking → kickback-received pipeline.
-- Unit: `src/lib/packages.test.ts`, `package-admin.test.ts`,
-  `package-referrals.test.ts`, `package-format.test.ts`; pages/components have
-  render + interaction tests.
+- `tests/integration/packages.test.ts` — base tables admin-only; the definer
+  functions' scoping + column hiding (incl. `min_price`/`tier_count`); the
+  one-live index; diver-owned cancel; the generated `kickback_amount`.
+- Unit: `src/lib/packages.test.ts`, `package-admin.test.ts` (tier reconciliation),
+  `package-registrations.test.ts` (expected/paid rollup), `package-estimate.test.ts`
+  (day/night multipliers + client/server parity), `package-format.test.ts`,
+  `supabase/functions/_shared/package-registration-email.test.ts` (parse + email);
+  pages/components have render + interaction tests.
 
 ## Deferred (not built yet)
 
-- **New-package push to divers** when a package is published, and **new-interest
-  push to admins**. The pipeline currently surfaces new interest as an in-app
-  badge count; broadcasting reuses the Web Push infra (see
-  [push-notifications.md](./push-notifications.md)) but the broadcast policy
-  (how often, opt-in) is an open product decision.
-- **Partner-facing code-verification portal** — partners report bookings by
-  email today; the schema already supports a self-serve portal later with no
-  migration.
-- **Accounting export integration** — kickback receivables are owed-to-us, not
-  diver-ledger transactions, so they stay out of the bookkeeping ZIP for now.
+- **Push on new registration** (reuse Web Push infra) — the tab surfaces new
+  registrations as a badge count today.
+- The greeting's "Other notes" vs "Diver notes" — implemented as a single
+  diver-notes field; can split into an admin/internal note later.
+- **Accounting export** — kickback receivables stay out of the bookkeeping ZIP.
