@@ -39,3 +39,4 @@ docs/.vitepress/cache
 
 # Deployment secrets — never committed
 .env
+backups/
