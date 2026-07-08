@@ -84,7 +84,7 @@ export function RegisterPage() {
   return (
     <div className="min-h-screen bg-surface-50 text-brand-900">
       <header className="bg-brand-950 border-b border-accent px-4 py-3">
-        <a href={siteConfig.urls.site} aria-label={`${siteConfig.app.logoAlt} home`}><Logo size="sm" /></a>
+        <a href={siteConfig.urls.site} aria-label={`${siteConfig.identity.logoAlt} home`}><Logo size="sm" /></a>
       </header>
 
       <main className="max-w-lg mx-auto p-4 space-y-5">
@@ -319,7 +319,7 @@ function SignInBanner() {
     <div className="bg-white/65 backdrop-blur-md border border-accent rounded-xl p-3 text-sm">
       {!open ? (
         <div className="flex items-center justify-between gap-3">
-          <span className="text-brand-900">Already have a {siteConfig.app.shortName} account?</span>
+          <span className="text-brand-900">Already have a {siteConfig.identity.shortName} account?</span>
           <button
             onClick={() => setOpen(true)}
             className="text-brand-700 font-semibold hover:underline"

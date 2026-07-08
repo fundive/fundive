@@ -23,7 +23,7 @@ import nodemailer from "npm:nodemailer@6.9.14"
 import { corsOk, jsonResponse, safeError, bearerToken } from "../_shared/responses.ts"
 import { siteConfig } from "../_shared/config.ts"
 
-const COMPANY_EMAIL = siteConfig.app.supportEmail
+const COMPANY_EMAIL = siteConfig.contact.email
 
 interface Body {
   email:         string
@@ -119,13 +119,13 @@ Deno.serve(async (req) => {
         ? `your registration for ${eventTitle}`
         : `your event registration`
       await transporter.sendMail({
-        from: { name: siteConfig.app.name, address: GMAIL_USER },
+        from: { name: siteConfig.identity.shopName, address: GMAIL_USER },
         to:      email,
         bcc:     COMPANY_EMAIL,
-        subject: `${siteConfig.app.name} — account created for you`,
+        subject: `${siteConfig.identity.shopName} — account created for you`,
         text:
           `Hi ${fullName},\n\n` +
-          `We have created a ${siteConfig.app.name} app diver account on your behalf.\n\n` +
+          `We have created a ${siteConfig.identity.shopName} app diver account on your behalf.\n\n` +
           `If you would like to access this account for all the great features on the app ` +
           `(dive logs, easy event registration, push notifications, fun games, etc.), you can ` +
           `set your own password and take it over in a minute:\n\n` +
@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
           `That's it — you'll be signed in. If the link gives you any trouble, just reply to ` +
           `this email and we'll help you out.\n\n` +
           `Otherwise no further action is required for ${eventClause}.\n\n` +
-          `— ${siteConfig.app.name}`,
+          `— ${siteConfig.identity.shopName}`,
       })
       emailSent = true
     } catch (e) {

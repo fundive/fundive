@@ -15,7 +15,7 @@ export function buildCancellationEmail(eventTitle: string): { subject: string; t
       '',
       'If you paid a deposit or the full amount, the shop will be in touch about a refund or rebooking. Reply to this email or contact us on LINE / WhatsApp with any questions.',
       '',
-      `— ${siteConfig.app.name}`,
+      `— ${siteConfig.identity.shopName}`,
     ].join('\n'),
   }
 }

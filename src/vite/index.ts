@@ -65,8 +65,8 @@ export function fundive(): Plugin {
     },
     transformIndexHtml(html) {
       const replacements: Record<string, string> = {
-        '%APP_TITLE%': siteConfig.app.name,
-        '%APP_DESCRIPTION%': siteConfig.app.description,
+        '%APP_TITLE%': siteConfig.identity.shopName,
+        '%APP_DESCRIPTION%': siteConfig.identity.description,
         '%THEME_COLOR%': siteConfig.theme.themeColor,
         '%FAVICON%': siteConfig.assets.favicon,
       }

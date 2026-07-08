@@ -31,7 +31,7 @@ export function Logo({
     <span className="inline-flex items-start gap-1">
       <img
         src={siteConfig.assets.logo}
-        alt={siteConfig.app.logoAlt}
+        alt={siteConfig.identity.logoAlt}
         className={`${SIZE_CLASS[size]} w-auto ${className}`}
       />
       {beta && (

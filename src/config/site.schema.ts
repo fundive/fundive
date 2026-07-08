@@ -12,14 +12,15 @@ const url = z.string().regex(/^https?:\/\//, 'must be an absolute http(s) URL')
 
 export const siteConfigSchema = z.object({
   configVersion: z.number().int().positive(),
-  app: z.object({
-    name: z.string().min(1),
+  identity: z.object({
+    appName: z.string().min(1),
+    shopName: z.string().min(1),
     shortName: z.string().min(1),
     description: z.string().min(1),
     logoAlt: z.string().min(1),
-    supportEmail: z.string().regex(/^[^@\s]+@[^@\s]+\.[^@\s]+$/, 'must be an email'),
   }),
   contact: z.object({
+    email: z.string().regex(/^[^@\s]+@[^@\s]+\.[^@\s]+$/, 'must be an email'),
     phone: z.string().min(1),
     address: z.string().min(1),
     mapsUrl: url,
@@ -30,7 +31,7 @@ export const siteConfigSchema = z.object({
   urls: z.object({
     site: url,
     app: url,
-    radio: url,
+    radio: url.optional(),
   }),
   locale: z.object({
     timezone: z.string().min(1),
@@ -60,6 +61,7 @@ export const siteConfigSchema = z.object({
     gearPrices: z.record(z.string(), z.number().nonnegative()),
     paymentDeadlineFallbackDays: z.number().int().positive(),
     cardSurchargePercent: z.number().nonnegative(),
+    nitroxCourseFee: z.number().nonnegative(),
     tripKeywords: z.array(z.string().min(1)),
   }),
   weatherRegion: z.object({

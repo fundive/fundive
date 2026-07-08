@@ -80,8 +80,8 @@ export function paymentConfirmationReminder(): PaymentInstructions {
   return {
     title: 'After you pay',
     lines: [
-      `Once you send your payment, please contact ${siteConfig.app.shortName} by email, LINE, or WhatsApp so we can confirm receipt.`,
-      `Keep an eye on the ${siteConfig.app.name} app for updates to your registration status, payment confirmations, and event reminders.`,
+      `Once you send your payment, please contact ${siteConfig.identity.shortName} by email, LINE, or WhatsApp so we can confirm receipt.`,
+      `Keep an eye on the ${siteConfig.identity.shopName} app for updates to your registration status, payment confirmations, and event reminders.`,
     ],
   }
 }

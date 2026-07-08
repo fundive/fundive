@@ -61,7 +61,7 @@ export function IOSInstallModal({ onDismiss }: { onDismiss: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="ios-install-title" className={`text-xl text-center ${TEXT_HEADING}`}>
-          Install {siteConfig.app.shortName} on iPhone
+          Install {siteConfig.identity.shortName} on iPhone
         </h2>
         <ol className={`text-sm space-y-3 ${TEXT_BODY}`}>
           <li>

@@ -7,7 +7,7 @@ import { siteConfig } from '../config/site'
 
 const LINE_URL = siteConfig.contact.lineUrl
 const WHATSAPP_URL = siteConfig.contact.whatsappUrl
-const SUPPORT_EMAIL = siteConfig.app.supportEmail
+const SUPPORT_EMAIL = siteConfig.contact.email
 
 // Contact tab — entry points to reach the shop. LINE / WhatsApp are
 // straight handoffs to the respective apps; the email "form" composes

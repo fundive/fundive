@@ -93,7 +93,7 @@ export function AdminAccountingPage() {
         return
       }
       const files = buildAccountingCsvs(txns, year)
-      downloadZip(`${siteConfig.app.shortName.toLowerCase()}-accounting-${year}.zip`, files)
+      downloadZip(`${siteConfig.identity.shortName.toLowerCase()}-accounting-${year}.zip`, files)
       const paid = txns.filter(t => t.status === 'paid').length
       toast.success(`Exported ${txns.length} transaction${txns.length === 1 ? '' : 's'} (${paid} paid) for ${year}.`)
     } catch (err) {

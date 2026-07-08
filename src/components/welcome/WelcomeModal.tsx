@@ -32,14 +32,14 @@ export function WelcomeModal({ user, onDismiss }: { user: User; onDismiss: () =>
     >
       <div className="bg-white/75 backdrop-blur-md rounded-2xl max-w-md w-full p-6 space-y-4 border border-accent shadow-2xl">
         <div className="flex justify-center">
-          <img src={siteConfig.assets.logo} alt={siteConfig.app.logoAlt} className="w-32 h-auto" />
+          <img src={siteConfig.assets.logo} alt={siteConfig.identity.logoAlt} className="w-32 h-auto" />
         </div>
         <h2 id="welcome-title" className="text-xl font-bold text-brand-900 text-center">
           Welcome{firstName ? `, ${firstName}` : ''}!
         </h2>
         <div className="text-sm text-brand-900 space-y-2">
           <p>
-            You're all set up with a {siteConfig.app.shortName} account. From here you can:
+            You're all set up with a {siteConfig.identity.shortName} account. From here you can:
           </p>
           <ul className="list-disc list-inside text-brand-950 font-medium space-y-1">
             <li>Browse upcoming dives and courses on the calendar</li>
@@ -47,8 +47,8 @@ export function WelcomeModal({ user, onDismiss }: { user: User; onDismiss: () =>
             <li>Keep your profile, cert card, and gear preferences up to date</li>
           </ul>
           <p className="text-brand-950 font-medium">
-            Questions about a registration? Reach the {siteConfig.app.shortName} staff at{' '}
-            <a href={`mailto:${siteConfig.app.supportEmail}`} className="text-brand-700 underline hover:text-brand-900">{siteConfig.app.supportEmail}</a>.
+            Questions about a registration? Reach the {siteConfig.identity.shortName} staff at{' '}
+            <a href={`mailto:${siteConfig.contact.email}`} className="text-brand-700 underline hover:text-brand-900">{siteConfig.contact.email}</a>.
           </p>
         </div>
         <button

@@ -6,7 +6,7 @@ import { siteConfig } from '../config/site'
 describe('Logo', () => {
   it('renders the brand image with the height preset for the given size', () => {
     render(<Logo size="sm" />)
-    const img = screen.getByAltText(siteConfig.app.logoAlt)
+    const img = screen.getByAltText(siteConfig.identity.logoAlt)
     expect(img).toHaveClass('h-9')
   })
 

@@ -50,7 +50,7 @@ describe('DashboardPage', () => {
       profile: null,
     })
     renderPage()
-    expect(screen.getByText(new RegExp(`welcome to ${siteConfig.app.shortName}`, 'i'))).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(`welcome to ${siteConfig.identity.shortName}`, 'i'))).toBeInTheDocument()
   })
 
   it('hides the WelcomeBanner once 24h have passed since welcomed_at', () => {

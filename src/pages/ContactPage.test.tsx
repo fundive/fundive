@@ -34,7 +34,7 @@ describe('ContactPage', () => {
     await user.type(screen.getByLabelText(/message/i), 'Hi there\nthanks')
     await user.click(screen.getByRole('button', { name: /send email/i }))
     expect(window.location.href).toBe(
-      `mailto:${siteConfig.app.supportEmail}?subject=Trip+question&body=Hi+there%0Athanks`,
+      `mailto:${siteConfig.contact.email}?subject=Trip+question&body=Hi+there%0Athanks`,
     )
   })
 
@@ -42,6 +42,6 @@ describe('ContactPage', () => {
     const user = userEvent.setup()
     renderWithRouter(<ContactPage />)
     await user.click(screen.getByRole('button', { name: /send email/i }))
-    expect(window.location.href).toBe(`mailto:${siteConfig.app.supportEmail}`)
+    expect(window.location.href).toBe(`mailto:${siteConfig.contact.email}`)
   })
 })
