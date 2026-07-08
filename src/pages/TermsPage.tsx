@@ -21,7 +21,7 @@ export function TermsPage() {
   return (
     <div className="min-h-screen bg-surface-50 text-brand-900">
       <header className="bg-brand-950 border-b border-accent px-4 py-3">
-        <Link to="/" aria-label={`${siteConfig.app.logoAlt} home`}><Logo size="sm" /></Link>
+        <Link to="/" aria-label={`${siteConfig.identity.logoAlt} home`}><Logo size="sm" /></Link>
       </header>
 
       <main className="max-w-2xl mx-auto p-6 space-y-6 text-sm leading-relaxed">

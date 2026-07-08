@@ -10,7 +10,7 @@ import { buildPdfBase64 } from "../_shared/pdf.ts"
 import { handleRegistration, type Deps } from "./handler.ts"
 import { siteConfig } from "../_shared/config.ts"
 
-const COMPANY_EMAIL = siteConfig.app.supportEmail
+const COMPANY_EMAIL = siteConfig.contact.email
 
 // Verifies a Cloudflare Turnstile token. Called from the handler's
 // guest path. Hard fail on missing env in production is enforced
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
     buildPdfBase64,
     env: {
       companyEmail:    COMPANY_EMAIL,
-      mailFromName:    siteConfig.app.name,
+      mailFromName:    siteConfig.identity.shopName,
       mailFromAddress: GMAIL_USER ?? "",
     },
     verifyTurnstile: (token, remoteIp) =>

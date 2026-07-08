@@ -565,7 +565,7 @@ export function NotificationsToggle() {
         <h2 className="text-sm font-semibold text-brand-900 uppercase tracking-wider">Push Notifications</h2>
         <p className="text-sm text-brand-900 font-medium">
           Your device doesn't support push notifications in this browser.
-          On iPhone/iPad, install {siteConfig.app.shortName} to your Home Screen
+          On iPhone/iPad, install {siteConfig.identity.shortName} to your Home Screen
           (Share → Add to Home Screen), open the app from there, and the toggle will appear.
         </p>
       </section>

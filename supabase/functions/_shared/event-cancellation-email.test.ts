@@ -8,7 +8,7 @@ describe('buildCancellationEmail', () => {
     expect(subject).toBe('Cancelled: Green Island Trip')
     expect(text).toContain('Green Island Trip')
     expect(text).toMatch(/cancelled/i)
-    expect(text).toContain(siteConfig.app.name)
+    expect(text).toContain(siteConfig.identity.shopName)
   })
 
   it('falls back to a generic noun when the title is blank', () => {

@@ -102,7 +102,7 @@ describe('AppShell', () => {
     routedRender()
     await user.click(screen.getByRole('button', { name: /install app/i }))
     expect(install).not.toHaveBeenCalled()
-    expect(screen.getByRole('dialog', { name: new RegExp(`install ${siteConfig.app.shortName} on iphone`, 'i') })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: new RegExp(`install ${siteConfig.identity.shortName} on iphone`, 'i') })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /got it/i }))
     expect(screen.queryByRole('dialog', { name: /install fundivers on iphone/i })).not.toBeInTheDocument()
   })

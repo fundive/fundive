@@ -16,7 +16,7 @@ import nodemailer from "npm:nodemailer@6.9.14"
 import { corsOk, jsonResponse, bearerToken } from "../_shared/responses.ts"
 import { siteConfig } from "../_shared/config.ts"
 
-const COMPANY_EMAIL = siteConfig.app.supportEmail
+const COMPANY_EMAIL = siteConfig.contact.email
 
 interface OfferEmailBody {
   offer_id: string
@@ -106,9 +106,9 @@ Deno.serve(async (req) => {
   const dateLine = startDate ? ` (${startDate})` : ""
   const text =
     `Good news — a spot just opened up for ${eventTitle}${dateLine}, and you're next in line.\n\n` +
-    `Open the ${siteConfig.app.shortName} app and tap "Accept this spot" on your booking before ${tpe} (${siteConfig.locale.timezone}). ` +
+    `Open the ${siteConfig.identity.shortName} app and tap "Accept this spot" on your booking before ${tpe} (${siteConfig.locale.timezone}). ` +
     `If we don't hear from you by then, the offer rolls to the next person on the waitlist.\n\n` +
-    `— ${siteConfig.app.name}`
+    `— ${siteConfig.identity.shopName}`
 
   try {
     const transporter = nodemailer.createTransport({
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
       auth: { user: GMAIL_USER, pass: GMAIL_PASS },
     })
     await transporter.sendMail({
-      from:    { name: siteConfig.app.name, address: GMAIL_USER },
+      from:    { name: siteConfig.identity.shopName, address: GMAIL_USER },
       to:      recipientEmail,
       bcc:     COMPANY_EMAIL,
       subject,

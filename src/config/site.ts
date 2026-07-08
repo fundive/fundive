@@ -9,20 +9,22 @@ export { CONFIG_CONTRACT_VERSION } from './contract'
 // (src/config/site.schema.ts) does the same check at runtime for the test suite
 // and the vite build guard.
 
-export interface SiteApp {
-  /** This deployment's full name, e.g. "Acme Divers". */
-  name: string
+export interface SiteIdentity {
+  /** The open-source app name (shared by all shops), e.g. "FunDive". */
+  appName: string
+  /** This shop's full name, e.g. "Acme Divers". */
+  shopName: string
   /** Short brand name for tight UI (push titles, badges). */
   shortName: string
   /** Meta description / PWA description. */
   description: string
   /** Alt text for the logo image. */
   logoAlt: string
-  /** Public support / contact email. */
-  supportEmail: string
 }
 
 export interface SiteContact {
+  /** Public support / contact email. */
+  email: string
   phone: string
   address: string
   mapsUrl: string
@@ -36,8 +38,8 @@ export interface SiteUrls {
   site: string
   /** The deployed app origin, no trailing slash. */
   app: string
-  /** External radio stream, no trailing slash. */
-  radio: string
+  /** External radio stream, no trailing slash. Optional — omit if unused. */
+  radio?: string
 }
 
 export interface SiteLocale {
@@ -91,6 +93,8 @@ export interface SiteBusiness {
   paymentDeadlineFallbackDays: number
   /** Surcharge shown for card / PayPal payment methods, as a whole percent. */
   cardSurchargePercent: number
+  /** Flat fee to add a Nitrox course to a dive registration, in shop currency. */
+  nitroxCourseFee: number
   /** Case-insensitive regex-alternation fragments that mark a dive as a "trip"
    *  (vs a local shore dive) by title — destination names, "\\bboat\\b", etc.
    *  Empty = never match by title. Used for calendar coloring. */
@@ -107,7 +111,7 @@ export interface SiteWeatherRegion {
 export interface SiteConfig {
   /** Pairs with CONFIG_CONTRACT_VERSION; bump when this contract changes. */
   configVersion: number
-  app: SiteApp
+  identity: SiteIdentity
   contact: SiteContact
   urls: SiteUrls
   locale: SiteLocale

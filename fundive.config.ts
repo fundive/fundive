@@ -14,17 +14,18 @@
 
 export const siteConfig = {
   // Leave as-is for a new deployment; only bump when the CHANGELOG says to.
-  configVersion: 2,
+  configVersion: 4,
 
-  app: {
-    name: 'Your Dive Shop',
+  identity: {
+    appName: 'FunDive',
+    shopName: 'Your Dive Shop',
     shortName: 'YourShop',
     description: 'Dive registration and logbook for Your Dive Shop',
     logoAlt: 'Your Dive Shop',
-    supportEmail: 'hello@example.com',
   },
 
   contact: {
+    email: 'hello@example.com',
     phone: '+1 555-000-0000',
     address: '123 Harbour Rd, Your City',
     mapsUrl: 'https://maps.google.com/?q=your+shop',
@@ -78,6 +79,7 @@ export const siteConfig = {
     },
     paymentDeadlineFallbackDays: 7,
     cardSurchargePercent: 5,
+    nitroxCourseFee: 6000,
     // Case-insensitive regex fragments that mark a dive as a "trip" by title
     // (destination names, "\\bboat\\b", …). Empty = never classify by title.
     tripKeywords: ['\\bboat\\b'],

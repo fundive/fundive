@@ -57,8 +57,8 @@ export function PendingPage() {
             <p className={`${TEXT_MUTED} text-sm mb-5`}>
               Your application was reviewed and not approved at this time. If
               you believe this is a mistake, please contact us at{' '}
-              <a href={`mailto:${siteConfig.app.supportEmail}`} className="underline">
-                {siteConfig.app.supportEmail}
+              <a href={`mailto:${siteConfig.contact.email}`} className="underline">
+                {siteConfig.contact.email}
               </a>.
             </p>
             <button onClick={signOut} className={`w-full ${BTN_PRIMARY}`}>

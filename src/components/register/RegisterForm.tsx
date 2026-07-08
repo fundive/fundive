@@ -1395,7 +1395,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
               <div>
                 <p className="text-sm font-semibold text-brand-900">Account</p>
                 <p className="text-xs text-brand-900 font-medium">
-                  We'll create a {siteConfig.app.shortName} account for you so you can check your booking status and sign up for future events faster.
+                  We'll create a {siteConfig.identity.shortName} account for you so you can check your booking status and sign up for future events faster.
                 </p>
               </div>
               <TextField label="Email *" type="email" value={guestEmail} onChange={setGuestEmail} required />
@@ -1508,7 +1508,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
                   </p>
                   <p className="text-xs text-brand-950 font-medium">
                     Upload a photo of your highest certification card. It's stored
-                    privately and only visible to {siteConfig.app.shortName} staff.
+                    privately and only visible to {siteConfig.identity.shortName} staff.
                   </p>
                   <label className="block cursor-pointer bg-brand-900 hover:bg-brand-950 text-white text-sm font-semibold py-2 px-3 rounded-lg text-center">
                     <input
@@ -1576,7 +1576,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
                   </p>
                   <p className="text-xs text-brand-950 font-medium">
                     Required because you marked yourself as nitrox certified. The
-                    photo is stored privately and only visible to {siteConfig.app.shortName} staff.
+                    photo is stored privately and only visible to {siteConfig.identity.shortName} staff.
                   </p>
                   <label className="block cursor-pointer bg-brand-900 hover:bg-brand-950 text-white text-sm font-semibold py-2 px-3 rounded-lg text-center">
                     <input
@@ -1613,7 +1613,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
                   </p>
                   <p className="text-xs text-brand-950 font-medium">
                     Required because you marked yourself as Deep certified. The
-                    photo is stored privately and only visible to {siteConfig.app.shortName} staff.
+                    photo is stored privately and only visible to {siteConfig.identity.shortName} staff.
                   </p>
                   <label className="block cursor-pointer bg-brand-900 hover:bg-brand-950 text-white text-sm font-semibold py-2 px-3 rounded-lg text-center">
                     <input
@@ -1661,7 +1661,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
                   />
                   <span>
                     I understand this requirement. I'll bring proof on the day, or
-                    contact {siteConfig.app.shortName} first. Without meeting the
+                    contact {siteConfig.identity.shortName} first. Without meeting the
                     prerequisite I may be denied participation, with no refund.
                   </span>
                 </label>

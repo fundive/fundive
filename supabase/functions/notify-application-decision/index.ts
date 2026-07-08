@@ -20,7 +20,7 @@ import nodemailer from "npm:nodemailer@6.9.14"
 import { corsOk, jsonResponse, safeError, bearerToken } from "../_shared/responses.ts"
 import { siteConfig } from "../_shared/config.ts"
 
-const COMPANY_EMAIL = siteConfig.app.supportEmail
+const COMPANY_EMAIL = siteConfig.contact.email
 
 interface DecisionBody {
   user_id:  string
@@ -112,15 +112,15 @@ Deno.serve(async (req) => {
         auth: { user: GMAIL_USER, pass: GMAIL_PASS },
       })
       const subject = body.decision === "approve"
-        ? `${siteConfig.app.name} — your account is approved`
-        : `${siteConfig.app.name} — application not approved`
+        ? `${siteConfig.identity.shopName} — your account is approved`
+        : `${siteConfig.identity.shopName} — application not approved`
       const text = body.decision === "approve"
-        ? `Welcome aboard! Your account has been approved. You can now log in at ${siteConfig.urls.app} and book events.\n\n— ${siteConfig.app.name}`
-        : `Hi,\n\nYour ${siteConfig.app.name} application was reviewed and not approved at this time.${
+        ? `Welcome aboard! Your account has been approved. You can now log in at ${siteConfig.urls.app} and book events.\n\n— ${siteConfig.identity.shopName}`
+        : `Hi,\n\nYour ${siteConfig.identity.shopName} application was reviewed and not approved at this time.${
             body.reason ? `\n\nReason: ${body.reason}` : ""
-          }\n\nIf you believe this is a mistake, reply to this email and we'll take another look.\n\n— ${siteConfig.app.name}`
+          }\n\nIf you believe this is a mistake, reply to this email and we'll take another look.\n\n— ${siteConfig.identity.shopName}`
       await transporter.sendMail({
-        from: { name: siteConfig.app.name, address: GMAIL_USER },
+        from: { name: siteConfig.identity.shopName, address: GMAIL_USER },
         to:      targetEmail,
         // Copy the company on rejections only — approvals are routine and
         // don't need a business-side notification.

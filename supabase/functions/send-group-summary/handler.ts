@@ -216,7 +216,7 @@ export async function handleGroupSummary(req: Request, deps: Deps): Promise<Resp
           from: fromHeader, subject, to: callerEmail,
           text:
             "Thanks for registering your group — a single summary covering everyone is attached.\n\n" +
-            `Once you've sent payment, please let us know via email, LINE, or WhatsApp so we can confirm receipt — contact details are in the attached PDF.\n\n— ${siteConfig.app.name}`,
+            `Once you've sent payment, please let us know via email, LINE, or WhatsApp so we can confirm receipt — contact details are in the attached PDF.\n\n— ${siteConfig.identity.shopName}`,
           attachments: [attach],
         })
       }

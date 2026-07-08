@@ -10,9 +10,9 @@ import { siteConfig } from './site'
 // normal person can read in 90 seconds. A proper lawyer pass is still
 // recommended before going live in anything resembling production.
 
-const email = siteConfig.app.supportEmail
-const shopName = siteConfig.app.name
-const staffName = siteConfig.app.shortName
+const email = siteConfig.contact.email
+const shopName = siteConfig.identity.shopName
+const staffName = siteConfig.identity.shortName
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

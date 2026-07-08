@@ -575,7 +575,7 @@ export async function handleRegistration(req: Request, deps: Deps): Promise<Resp
         const diverText =
           `Thanks for signing up — ${payload.eventTitle} is currently full, so we've added you to the waitlist. ` +
           `If a spot opens up, you'll receive a notification with 24 hours to claim it. No payment is needed unless and until that happens.\n\n` +
-          `Keep an eye on the ${siteConfig.app.name} app for waitlist updates and event reminders.\n\n— ${siteConfig.app.name}`
+          `Keep an eye on the ${siteConfig.identity.shopName} app for waitlist updates and event reminders.\n\n— ${siteConfig.identity.shopName}`
         await deps.transporter.sendMail({ from: fromHeader, subject, to: deps.env.companyEmail, text: companyText })
         if (registrantEmail.toLowerCase().trim() !== deps.env.companyEmail) {
           await deps.transporter.sendMail({ from: fromHeader, subject, to: registrantEmail, text: diverText })
@@ -596,7 +596,7 @@ export async function handleRegistration(req: Request, deps: Deps): Promise<Resp
             text:
               "Thanks for registering — your registration summary is attached.\n\n" +
               "Once you've sent your payment, please let us know via email, LINE, or WhatsApp so we can confirm receipt — contact details are in the attached PDF. We don't always see bank or PayPal transfers in real time, and a quick heads-up keeps your spot from falling through the cracks.\n\n" +
-              `Keep an eye on the ${siteConfig.app.name} app for updates to your registration status, payment confirmations, and event reminders.\n\n— ${siteConfig.app.name}`,
+              `Keep an eye on the ${siteConfig.identity.shopName} app for updates to your registration status, payment confirmations, and event reminders.\n\n— ${siteConfig.identity.shopName}`,
             attachments: [attach],
           })
         }

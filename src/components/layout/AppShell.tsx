@@ -84,7 +84,7 @@ export function AppShell() {
               href={siteConfig.urls.radio}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`${siteConfig.app.shortName} Radio`}
+              aria-label={`${siteConfig.identity.shortName} Radio`}
               // CSS mask makes the PNG act as a stencil for an exact red fill
               // — `filter: hue-rotate` couldn't pin a specific shade and
               // multi-color PNGs end up muddy. The PNG is square so h == w.

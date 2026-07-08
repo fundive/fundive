@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
   for (const to of uniqueEmails) {
     try {
       await transporter.sendMail({
-        from: { name: siteConfig.app.name, address: GMAIL_USER },
+        from: { name: siteConfig.identity.shopName, address: GMAIL_USER },
         to,
         subject,
         text,

@@ -9,7 +9,7 @@ import { buildGroupPdfBase64 } from "../_shared/pdf.ts"
 import { handleGroupSummary, type Deps } from "./handler.ts"
 import { siteConfig } from "../_shared/config.ts"
 
-const COMPANY_EMAIL = siteConfig.app.supportEmail
+const COMPANY_EMAIL = siteConfig.contact.email
 
 Deno.serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     buildGroupPdfBase64,
     env: {
       companyEmail:    COMPANY_EMAIL,
-      mailFromName:    siteConfig.app.name,
+      mailFromName:    siteConfig.identity.shopName,
       mailFromAddress: GMAIL_USER ?? "",
     },
   }

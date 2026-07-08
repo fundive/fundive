@@ -63,12 +63,12 @@ interface PushPayload {
 }
 
 self.addEventListener('push', (event) => {
-  let payload: PushPayload = { title: siteConfig.app.shortName }
+  let payload: PushPayload = { title: siteConfig.identity.shortName }
   if (event.data) {
     try {
       payload = event.data.json() as PushPayload
     } catch {
-      payload = { title: siteConfig.app.shortName, body: event.data.text() }
+      payload = { title: siteConfig.identity.shortName, body: event.data.text() }
     }
   }
 

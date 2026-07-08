@@ -82,9 +82,9 @@ export default defineConfig(({ command, mode }) => {
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icons/*.png'],
       manifest: {
-        name: siteConfig.app.name,
-        short_name: siteConfig.app.shortName,
-        description: siteConfig.app.description,
+        name: siteConfig.identity.shopName,
+        short_name: siteConfig.identity.shortName,
+        description: siteConfig.identity.description,
         theme_color: siteConfig.theme.themeColor,
         background_color: siteConfig.theme.backgroundColor,
         display: 'standalone',

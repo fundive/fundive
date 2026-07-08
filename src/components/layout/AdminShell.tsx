@@ -61,7 +61,7 @@ export function AdminShell() {
               href={siteConfig.urls.radio}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`${siteConfig.app.shortName} Radio`}
+              aria-label={`${siteConfig.identity.shortName} Radio`}
             >
               <img src={siteConfig.assets.broadcast} alt="" className="h-8 w-auto" />
             </a>

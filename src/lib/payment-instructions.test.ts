@@ -68,6 +68,6 @@ describe('paymentConfirmationReminder', () => {
     expect(body).toContain('line')
     expect(body).toContain('whatsapp')
     expect(body).toMatch(/confirm receipt|let us know/)
-    expect(body).toContain(`${siteConfig.app.name.toLowerCase()} app`)
+    expect(body).toContain(`${siteConfig.identity.shopName.toLowerCase()} app`)
   })
 })
