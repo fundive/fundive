@@ -287,3 +287,53 @@ img, video, canvas {
 @media (hover: none) and (pointer: coarse), (max-width: 820px) {
   .caustics { display: none; }
 }
+
+/* ── Full-parity dark retrofit ───────────────────────────────────────────────
+ * The token seam + hero surfaces cover the primary screens; this block flips the
+ * long tail of pages/components that still compose raw light utilities (white
+ * cards, dark brand ink, sky surface fills) rather than the tokens. Scoped to
+ * riced and left UNLAYERED, so these rules beat Tailwind's (layered) utilities
+ * without !important. `family` is untouched (every selector requires
+ * data-theme="riced"). Only the family-light utilities are listed — the
+ * riced-native fills (bg-white/5–15, border-white/*) and status/rainbow colors
+ * are deliberately absent, so nothing here double-applies or recolors a
+ * semantic signal. Tokens already emit dark classes under riced, so swept
+ * surfaces never carry these light utilities to begin with.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* Dark brand ink → light. */
+:root[data-theme="riced"] .text-brand-950,
+:root[data-theme="riced"] .text-brand-900 { color: var(--color-brand-50); }
+:root[data-theme="riced"] [class*="text-brand-900/"],
+:root[data-theme="riced"] [class*="text-brand-950/"] { color: color-mix(in oklab, var(--color-brand-100) 85%, transparent); }
+:root[data-theme="riced"] .text-brand-800 { color: var(--color-reef-300); }
+:root[data-theme="riced"] .placeholder\:text-brand-900::placeholder { color: color-mix(in oklab, var(--color-brand-100) 45%, transparent); }
+
+/* Translucent-white cards → frosted dark glass. Opaque + the family card alphas
+   only; the riced-native bg-white/5–15 fills are intentionally NOT listed. */
+:root[data-theme="riced"] .bg-white,
+:root[data-theme="riced"] .bg-white\/55,
+:root[data-theme="riced"] .bg-white\/65,
+:root[data-theme="riced"] .bg-white\/70,
+:root[data-theme="riced"] .bg-white\/75,
+:root[data-theme="riced"] .bg-white\/80,
+:root[data-theme="riced"] .bg-white\/85,
+:root[data-theme="riced"] .bg-white\/90 {
+  background-color: color-mix(in oklab, #0d1a2e 62%, transparent);
+}
+:root[data-theme="riced"] .hover\:bg-white\/70:hover,
+:root[data-theme="riced"] .hover\:bg-white\/90:hover {
+  background-color: color-mix(in oklab, #0d1a2e 72%, transparent);
+}
+
+/* Light sky fills → subtle light-on-dark washes. */
+:root[data-theme="riced"] .bg-surface-50  { background-color: color-mix(in oklab, #ffffff 3%, transparent); }
+:root[data-theme="riced"] .bg-surface-100 { background-color: color-mix(in oklab, #ffffff 6%, transparent); }
+:root[data-theme="riced"] .hover\:bg-surface-50:hover,
+:root[data-theme="riced"] .hover\:bg-surface-100:hover { background-color: color-mix(in oklab, #ffffff 10%, transparent); }
+
+/* Light hairlines → faint white hairlines. */
+:root[data-theme="riced"] .border-surface-100,
+:root[data-theme="riced"] .border-surface-200,
+:root[data-theme="riced"] .border-surface-300 { border-color: color-mix(in oklab, #ffffff 12%, transparent); }
+:root[data-theme="riced"] .divide-surface-200 > :not([hidden]) ~ :not([hidden]) { border-color: color-mix(in oklab, #ffffff 12%, transparent); }
