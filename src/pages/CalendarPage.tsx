@@ -8,7 +8,22 @@ import { EventDetails } from '../components/calendar/EventDetails'
 import { RegisterForm } from '../components/register/RegisterForm'
 import { MultiRegisterForm } from '../components/register/MultiRegisterForm'
 import { ShareEventButton } from '../components/ShareEventButton'
+import { siteConfig } from '../config/site'
+import { MODAL_BACKDROP, MODAL_PANEL, TEXT_HEADING, TEXT_BODY } from '../styles/tokens'
 import type { AppEvent, Booking } from '../types/database'
+
+// Design-variant class map for this page's inline surfaces (the amber
+// multi-select banner, the continue button, and the event-detail modal's
+// action buttons). The modal frame + text use the shared tokens.
+const RICED = siteConfig.theme.design === 'riced'
+const CP = {
+  multiBanner:     RICED ? 'bg-amber-400/15 border border-amber-400/50' : 'bg-amber-100 border-2 border-amber-400',
+  multiBannerText: RICED ? 'text-amber-100' : 'text-brand-950',
+  continueBtn:     RICED ? 'bg-reef-500 text-brand-950 hover:bg-reef-400' : 'bg-white text-brand-900 hover:bg-surface-50',
+  modalClose:      RICED ? 'text-brand-100/70 hover:text-white' : 'text-brand-900 hover:text-brand-900',
+  regBooked:       RICED ? 'bg-red-500/15 hover:bg-red-500/25 text-red-200 border border-red-400/40' : 'bg-surface-100 hover:bg-red-100 text-red-700 border border-accent',
+  regPrimary:      RICED ? 'bg-reef-500 hover:bg-reef-400 text-brand-950' : 'bg-brand-900 hover:bg-brand-950 text-white',
+}
 
 const TYPE_DOT: Record<AppEvent['type'], string> = {
   dive:   'bg-emerald-600',
@@ -115,8 +130,8 @@ export function CalendarPage() {
         </button>
       )}
       {user && mode === 'multi' && (
-        <div className="mb-3 bg-amber-100 border-2 border-amber-400 rounded-xl px-3 py-2 flex items-center justify-between gap-3">
-          <p className="text-xs text-brand-950 font-semibold">
+        <div className={`mb-3 ${CP.multiBanner} rounded-xl px-3 py-2 flex items-center justify-between gap-3`}>
+          <p className={`text-xs ${CP.multiBannerText} font-semibold`}>
             Multi-event mode — tap events to add. Already-booked or full events can't be added.
           </p>
         </div>
@@ -178,7 +193,7 @@ export function CalendarPage() {
                 type="button"
                 onClick={() => setMultiRegistering(cart)}
                 disabled={cart.length === 0}
-                className="text-sm bg-white text-brand-900 hover:bg-surface-50 disabled:opacity-50 font-semibold px-3 py-1.5 rounded-lg"
+                className={`text-sm ${CP.continueBtn} disabled:opacity-50 font-semibold px-3 py-1.5 rounded-lg`}
               >
                 Continue →
               </button>
@@ -188,16 +203,16 @@ export function CalendarPage() {
       )}
 
       {selected && (
-        <div className="fixed inset-0 bg-brand-900/60 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-8 pb-4 overflow-y-auto" onClick={() => setSelected(null)}>
-          <div className="bg-white/75 backdrop-blur-md border border-accent rounded-2xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className={`${MODAL_BACKDROP} flex items-start justify-center px-4 pt-8 pb-4 overflow-y-auto`} onClick={() => setSelected(null)}>
+          <div className={`${MODAL_PANEL} w-full max-w-lg p-6 space-y-4`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <span className={`text-xs px-2 py-1 rounded-full text-white ${TYPE_DOT[selected.type]}`}>
                 {TYPE_LABELS[selected.type]}
               </span>
-              <button onClick={() => setSelected(null)} className="text-brand-900 font-medium hover:text-brand-900 text-xl leading-none">×</button>
+              <button onClick={() => setSelected(null)} className={`${CP.modalClose} text-xl leading-none`}>×</button>
             </div>
-            <h2 className="text-xl font-bold text-brand-900">{selected.title}</h2>
-            <div className="text-sm text-brand-900 font-medium space-y-1">
+            <h2 className={`${TEXT_HEADING} text-xl`}>{selected.title}</h2>
+            <div className={`text-sm ${TEXT_BODY} space-y-1`}>
               <p>{formatEventSpan(selected, { style: 'long' })}</p>
               {selected.price != null && (
                 <p>💰 From {selected.currency} {selected.price.toLocaleString()}</p>
@@ -210,9 +225,7 @@ export function CalendarPage() {
               onClick={isBooked(selected) ? cancelBooking : startRegister}
               disabled={bookingLoading || (!isBooked(selected) && eventIsFull(selected))}
               className={`w-full py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 ${
-                isBooked(selected)
-                  ? 'bg-surface-100 hover:bg-red-100 text-red-700 border border-accent'
-                  : 'bg-brand-900 hover:bg-brand-950 text-white'
+                isBooked(selected) ? CP.regBooked : CP.regPrimary
               }`}
             >
               {bookingLoading ? '…' : isBooked(selected) ? 'Cancel booking' : 'Register'}
