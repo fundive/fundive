@@ -27,8 +27,8 @@ export function DashboardPage() {
 
       {/* Powered-by mark — bottom-right, clear of the bottom nav, on one row: the
           light-ink fundive logo (links to the open-source org) beside the version
-          / "beta" chip (links to the release notes). The dashboard background is
-          navy in both themes, so the light-ink logo reads on either. */}
+          chip (links to that release's notes). The dashboard background is navy
+          in both themes, so the light-ink logo reads on either. */}
       <div className="fixed bottom-20 right-4 z-40 flex items-center gap-2">
         <a
           href="https://github.com/fundive"
@@ -40,13 +40,13 @@ export function DashboardPage() {
           <img src="/fundive-logo-light.svg" alt="fundive" className="h-9 w-auto drop-shadow-lg" />
         </a>
         <a
-          href="https://github.com/fundive/fundive/releases"
+          href="https://github.com/fundive/fundive/releases/tag/v0.0.1"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="fundive release notes"
+          aria-label="fundive v0.0.1 release notes"
           className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wide text-white shadow transition-colors hover:bg-red-400"
         >
-          beta
+          v0.0.1
         </a>
       </div>
     </div>
