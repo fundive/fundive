@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react'
 import { fetchVehicles } from '../../lib/vehicles'
-import { availableVehicles, fetchAssignedVehicleIdsForDate } from '../../lib/event-vehicles'
 import type { Vehicle } from '../../types/database'
 
 interface Props {
-  /** The new event's date — cars already taken that day are hidden. */
-  date: string | null
   /** Reports the picked vehicle ids up so the create page can assign them to
    *  the new event once its row exists. */
   onChange: (vehicleIds: string[]) => void
@@ -14,13 +11,12 @@ interface Props {
 /**
  * Car assignment for the New-event form. The event row doesn't exist yet, so
  * this holds the picked vehicles in local state and hands the ids up; the page
- * persists them (event_vehicles) right after inserting the event. Cars already
- * allocated to another event on the same date are hidden (a car is exclusive per
- * date). Edit uses the DB-backed EventCarAssignment instead.
+ * persists them (event_vehicles) right after inserting the event. Cars serve any
+ * number of events here (event-level allocation), so no date filtering. Edit
+ * uses the DB-backed EventCarAssignment instead.
  */
-export function CreateEventVehiclePicker({ date, onChange }: Props) {
+export function CreateEventVehiclePicker({ onChange }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
-  const [takenIds, setTakenIds] = useState<Set<string>>(new Set())
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
@@ -28,28 +24,20 @@ export function CreateEventVehiclePicker({ date, onChange }: Props) {
     let cancelled = false
     ;(async () => {
       try {
-        const [v, taken] = await Promise.all([
-          fetchVehicles(),
-          date ? fetchAssignedVehicleIdsForDate(date) : Promise.resolve(new Set<string>()),
-        ])
-        if (!cancelled) { setVehicles(v.filter(x => x.active)); setTakenIds(taken) }
-      } catch { /* no fleet / offline — section stays empty */ }
+        const v = await fetchVehicles()
+        if (!cancelled) setVehicles(v.filter(x => x.active))
+      } catch { /* no fleet loaded — section stays empty */ }
       finally { if (!cancelled) setLoading(false) }
     })()
     return () => { cancelled = true }
-  }, [date])
+  }, [])
 
-  const available = availableVehicles(vehicles, takenIds)
-
-  // Report the AVAILABLE subset of the selection up, in an effect (not inside
-  // the state updater) so it re-syncs cleanly on remount (dive→course→dive) and
-  // after a date change. Picks that are no longer available just aren't reported
-  // (and don't render), so nothing invisible gets assigned.
+  // Report the current selection up in an effect (not inside the state updater),
+  // so it re-syncs to empty on remount (dive→course→dive type switch).
   useEffect(() => {
-    const availableIds = new Set(available.map(v => v.id))
-    onChange([...selected].filter(id => availableIds.has(id)))
+    onChange([...selected])
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, vehicles, takenIds])
+  }, [selected])
 
   function toggle(id: string) {
     setSelected(prev => {
@@ -59,7 +47,9 @@ export function CreateEventVehiclePicker({ date, onChange }: Props) {
     })
   }
 
-  const seats = available.filter(v => selected.has(v.id)).reduce((s, v) => s + v.passenger_seats, 0)
+  const seats = vehicles
+    .filter(v => selected.has(v.id))
+    .reduce((s, v) => s + v.passenger_seats, 0)
 
   return (
     <div className="space-y-2">
@@ -75,13 +65,11 @@ export function CreateEventVehiclePicker({ date, onChange }: Props) {
       </p>
       {loading ? (
         <p className="text-sm text-white/60">Loading cars…</p>
-      ) : available.length === 0 ? (
-        <p className="text-sm text-brand-950 font-medium bg-white/70 rounded-md p-2">
-          {vehicles.length === 0 ? 'No active cars in the fleet.' : 'No cars free on this date.'}
-        </p>
+      ) : vehicles.length === 0 ? (
+        <p className="text-sm text-brand-950 font-medium bg-white/70 rounded-md p-2">No active cars in the fleet.</p>
       ) : (
         <div className="space-y-1 max-h-56 overflow-y-auto bg-white/70 backdrop-blur-md border border-surface-200 rounded-md p-2">
-          {available.map(v => (
+          {vehicles.map(v => (
             <label key={v.id} className="flex items-center gap-2 text-sm text-brand-950 font-medium">
               <input
                 type="checkbox"

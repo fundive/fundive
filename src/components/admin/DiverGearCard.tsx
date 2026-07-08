@@ -53,14 +53,16 @@ export function DiverGearCard({
 }: {
   row: DiverGearRow
   onProfilePatched: (diverId: string, patch: Partial<Profile>) => void
-  /** When set, the diver's name links to their admin profile card
-   *  (/admin/users?diver=<id>) — used from the Logistics day view. */
+  // When true, the diver's name links to their admin People card. Gated by the
+  // caller because that page is admin-only, while this card also renders on the
+  // staff-accessible gear map.
   linkToProfile?: boolean
-  /** The shop's gear sizing charts. When supplied, a rental "which fits?" lookup
-   *  is shown per gear type the diver doesn't own. */
+  // The shop's gear sizing charts. When supplied, a rental "which fits?" lookup
+  // is shown per gear type the diver doesn't own.
   gearModels?: GearModelWithSizes[]
 }) {
   const { profile, booking } = row
+  const diverName = personName(profile?.name, profile?.nickname) || '(unknown)'
   const pack = gearPackList(booking)
   const toast = useToast()
   const owned = new Set(profile?.gear_owned ?? [])
@@ -111,10 +113,10 @@ export function DiverGearCard({
           <h2 className="text-sm font-semibold text-brand-900">
             {linkToProfile && profile ? (
               <Link to={`/admin/users?diver=${profile.id}`} className="hover:underline">
-                {personName(profile.name, profile.nickname) || '(unknown)'}
+                {diverName}
               </Link>
             ) : (
-              personName(profile?.name, profile?.nickname) || '(unknown)'
+              diverName
             )}
           </h2>
           {sizing && <p className="text-xs text-brand-900 font-medium">{sizing}</p>}

@@ -70,26 +70,6 @@ describe('AdminLogisticsPage', () => {
     expect(screen.getByRole('group', { name: /needs ride/i })).toBeInTheDocument()
   })
 
-  it('links each event banner to its edit page and each diver card to its profile', async () => {
-    renderPage()
-    await screen.findByText(/1 event · 2 divers/i)
-    // The event banner title links to the edit form.
-    expect(screen.getByRole('link', { name: 'Kenting fun dive' }))
-      .toHaveAttribute('href', '/admin/events/dive/e1/edit')
-    // The diver card name links to the diver's admin profile card.
-    expect(screen.getByRole('link', { name: 'Ada' }))
-      .toHaveAttribute('href', '/admin/users?diver=u1')
-  })
-
-  it('shows the event title as plain text (no edit link) for non-admin staff', async () => {
-    useAuthMock.mockReturnValue({ profile: { id: 'staff-1', role: 'staff' } })
-    renderPage()
-    await screen.findByText(/1 event · 2 divers/i)
-    expect(screen.getByText('Kenting fun dive')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Kenting fun dive' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /^edit$/i })).not.toBeInTheDocument()
-  })
-
   it('offers a per-event car picker listing the day\'s available cars', async () => {
     const vehicleRows = [{ id: 'v1', name: 'Delica', passenger_seats: 7, active: true, created_at: '', created_by: null }]
     from.mockImplementation((table: string) => {
@@ -153,14 +133,20 @@ describe('AdminLogisticsPage', () => {
       if (table === 'vehicles') return mockQueryBuilder({ data: [
         { id: 'v1', created_at: '', name: 'Delica', passenger_seats: 7, active: true, created_by: null },
       ] })
+      // The Delica is assigned to the event — divers ride only in assigned cars.
+      if (table === 'event_vehicles') return mockQueryBuilder({ data: [
+        { id: 'ev1', vehicle_id: 'v1', event_id: 'e1' },
+      ] })
       return mockQueryBuilder({ data: [] })
     })
     renderPage()
     await screen.findByText(/1 event · 2 divers/i)
 
-    // Ada rides + the on-duty staff rides too → one Delica covers both.
+    // Ada rides + the on-duty staff rides too → one Delica covers both, named.
     const overall = screen.getByText(/^overall/i).closest('section')!
-    expect(within(overall).getByText(/Take 1 vehicle — 7 seats for 2 riders/i)).toBeInTheDocument()
+    expect(await within(overall).findByText(/Take 1 vehicle — 7 seats for 2 riders/i)).toBeInTheDocument()
+    // The Delica carries Ada and Dana; nobody is ride-less. Dana also shows in
+    // the board's on-duty staff line, so match may be non-unique.
     expect(within(overall).getByText(/Delica/)).toBeInTheDocument()
     expect(within(overall).getAllByText(/Dana/).length).toBeGreaterThan(0)
     expect(within(overall).getAllByText(/Ada/).length).toBeGreaterThan(0)
@@ -174,6 +160,9 @@ describe('AdminLogisticsPage', () => {
       if (table === 'vehicles') return mockQueryBuilder({ data: [
         { id: 'v1', created_at: '', name: 'Delica', passenger_seats: 7, active: true, created_by: null },
       ] })
+      if (table === 'event_vehicles') return mockQueryBuilder({ data: [
+        { id: 'ev1', vehicle_id: 'v1', event_id: 'e1' },
+      ] })
       return mockQueryBuilder({ data: [] })
     })
     renderPage()
@@ -181,10 +170,30 @@ describe('AdminLogisticsPage', () => {
 
     const overall = screen.getByText(/^overall/i).closest('section')!
     // Ada is seated in the Delica; there's no driver assignment / warning at all.
-    expect(within(overall).getByText(/Delica/)).toBeInTheDocument()
-    expect(within(overall).getAllByText(/Ada/).length).toBeGreaterThan(0)
+    expect(await within(overall).findByText(/Delica/)).toBeInTheDocument()
+    expect(within(overall).getByText('Ada')).toBeInTheDocument()
     expect(within(overall).queryByText(/driver/i)).not.toBeInTheDocument()
     expect(within(overall).queryByText(/No seat/i)).not.toBeInTheDocument()
+  })
+
+  it('does not seat divers in a fleet car that is not assigned to their event', async () => {
+    from.mockImplementation((table: string) => {
+      if (table === 'bookings') return mockQueryBuilder({ data: bookings })
+      if (table === 'profiles') return mockQueryBuilder({ data: profiles })
+      // The Delica is active but assigned to NO event → off-limits to riders.
+      if (table === 'vehicles') return mockQueryBuilder({ data: [
+        { id: 'v1', created_at: '', name: 'Delica', passenger_seats: 7, active: true, created_by: null },
+      ] })
+      return mockQueryBuilder({ data: [] })
+    })
+    renderPage()
+    await screen.findByText(/1 event · 2 divers/i)
+
+    const overall = screen.getByText(/^overall/i).closest('section')!
+    // Ada needs a ride but no car is on her event, so she stays unseated and the
+    // unassigned Delica is not used to carry her.
+    expect(await within(overall).findByText(/No seat/i)).toBeInTheDocument()
+    expect(within(overall).queryByText(/Delica/)).not.toBeInTheDocument()
   })
 
   it('prompts to add vehicles when riders need a ride but the fleet is empty', async () => {
@@ -249,10 +258,48 @@ describe('AdminLogisticsPage', () => {
     const summary = screen.getByText(/need a ride/i)
     expect(summary).toHaveTextContent(/1 on-duty staff/i)
 
+    // Overall board names the on-duty staff and their role(s).
+    const overall = screen.getByText(/^overall/i).closest('section')!
+    const boardStaff = within(overall).getByText('On-duty staff').closest('div')!
+    expect(within(boardStaff).getByText(/Dana/)).toBeInTheDocument()
+    expect(within(boardStaff).getByText(/guide/)).toBeInTheDocument()
+
     // Per-event group lists the staff member with their role.
     const group = screen.getByRole('group', { name: /on-duty staff/i })
     expect(within(group).getByText(/Dana/)).toBeInTheDocument()
     expect(within(group).getByText(/guide/)).toBeInTheDocument()
+  })
+
+  it('links each diver gear card to their People profile for admins', async () => {
+    renderPage()
+    await screen.findByText(/1 event · 2 divers/i)
+    // Only the gear-card name is a link; the ride-plan mention of Ada is plain text.
+    expect(screen.getByRole('link', { name: 'Ada' })).toHaveAttribute('href', '/admin/users?diver=u1')
+    expect(screen.getByRole('link', { name: 'Bo' })).toHaveAttribute('href', '/admin/users?diver=u2')
+  })
+
+  it('does not link diver cards for staff (People is admin-only)', async () => {
+    useAuthMock.mockReturnValue({ profile: { id: 's-1', role: 'staff' } })
+    renderPage()
+    await screen.findByText(/1 event · 2 divers/i)
+    expect(screen.queryByRole('link', { name: 'Ada' })).not.toBeInTheDocument()
+  })
+
+  it('links each event banner — title and Edit button — to its edit page for admins', async () => {
+    renderPage()
+    await screen.findByText(/1 event · 2 divers/i)
+    const href = '/admin/events/dive/e1/edit'
+    expect(screen.getByRole('link', { name: /edit/i })).toHaveAttribute('href', href)
+    expect(screen.getByRole('link', { name: 'Kenting fun dive' })).toHaveAttribute('href', href)
+  })
+
+  it('shows the event title as plain text (no edit link) for staff', async () => {
+    useAuthMock.mockReturnValue({ profile: { id: 's-1', role: 'staff' } })
+    renderPage()
+    await screen.findByText(/1 event · 2 divers/i)
+    expect(screen.queryByRole('link', { name: /edit/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Kenting fun dive' })).not.toBeInTheDocument()
+    expect(screen.getByText('Kenting fun dive')).toBeInTheDocument()
   })
 
   it('shows delicate rentals in a separate "Handle with care" inventory, out of the gear chips', async () => {

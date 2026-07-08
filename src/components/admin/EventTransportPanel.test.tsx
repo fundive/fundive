@@ -10,7 +10,7 @@ vi.mock('../../lib/supabase', () => ({ supabase: { from: (...a: unknown[]) => fr
 
 const vehicleRows = [{ id: 'v1', name: 'Delica', passenger_seats: 7, active: true, created_at: '', created_by: null }]
 const allocationRows = [
-  { id: 'al1', vehicle_id: 'v1', event_date: '2031-05-01', event_id: 'dive_x',
+  { id: 'al1', vehicle_id: 'v1', event_id: 'dive_x',
     created_at: '', created_by: null, notes: null },
 ]
 
