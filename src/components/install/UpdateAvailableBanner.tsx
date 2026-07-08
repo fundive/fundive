@@ -9,22 +9,32 @@
 // out-of-date PWA can hit a backend API the deploy already migrated past,
 // so we want the banner to stay loud until the reload happens.
 
+import { pick } from '../../styles/tokens'
+
 interface Props {
   onUpdate: () => void
 }
+
+// An informational "go" action, not a destructive one — so a brand (not red)
+// banner with a primary-styled button: the light "light button" look in family,
+// the reef accent in riced.
+const UPDATE_BTN = pick(
+  'bg-white text-brand-800 hover:bg-surface-100',
+  'bg-reef-500 text-slate-950 hover:bg-reef-400',
+)
 
 export function UpdateAvailableBanner({ onUpdate }: Props) {
   return (
     <div
       role="alert"
       aria-live="polite"
-      className="fixed top-0 inset-x-0 z-[110] bg-accent text-white px-4 py-2 flex items-center justify-between gap-3 text-sm shadow-md"
+      className="fixed top-0 inset-x-0 z-[110] bg-brand-700 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm shadow-md"
     >
       <span className="font-semibold">A new version is available.</span>
       <button
         type="button"
         onClick={onUpdate}
-        className="bg-white text-red-700 font-semibold px-3 py-1 rounded-md hover:bg-surface-100 transition-colors"
+        className={`${UPDATE_BTN} font-semibold px-3 py-1 rounded-md transition-colors`}
       >
         Update
       </button>
