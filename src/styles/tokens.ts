@@ -21,8 +21,17 @@ import { siteConfig } from '../config/site'
 
 const RICED = siteConfig.theme.design === 'riced'
 
-/** Choose the class string for the active design variant. */
-function pick(family: string, riced: string): string {
+/** True when the 'riced' dark design variant is active. */
+export const isRiced = RICED
+
+/**
+ * Choose the class string for the active design variant. Exported for the rare
+ * inline spot that needs a theme-specific literal with no matching token — pass
+ * the exact current (family) classes first so 'family' rendering is unchanged,
+ * and the dark-theme equivalent second. Both literals stay in the source, so
+ * Tailwind's scanner generates whichever the build needs.
+ */
+export function pick(family: string, riced: string): string {
   return RICED ? riced : family
 }
 
