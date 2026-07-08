@@ -1,12 +1,12 @@
 import { siteConfig } from '../../config/site'
 import type { EventDetails as EventDetailsData } from '../../types/database'
 
-// Text flips with the design variant: dark ink on the light 'family' modal,
-// light ink on the dark-glass 'riced' modal.
-const RICED = siteConfig.theme.design === 'riced'
-const HEADING = RICED ? 'text-white' : 'text-brand-950'
-const BODY    = RICED ? 'text-brand-100/85' : 'text-brand-900/90'
-const BASE    = RICED ? 'text-brand-100' : 'text-brand-900'
+// Text flips with the design variant: dark ink on the light 'light' modal,
+// light ink on the dark-glass 'dark' modal.
+const DARK = siteConfig.theme.design === 'dark'
+const HEADING = DARK ? 'text-white' : 'text-brand-950'
+const BODY    = DARK ? 'text-brand-100/85' : 'text-brand-900/90'
+const BASE    = DARK ? 'text-brand-100' : 'text-brand-900'
 
 const TEXT_SECTIONS: Array<{ key: keyof EventDetailsData; label: string }> = [
   { key: 'description',    label: 'About this event' },

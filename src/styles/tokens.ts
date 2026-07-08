@@ -2,42 +2,42 @@
 // Components compose these instead of hard-coding class strings, so a component
 // never needs to know which design variant is active.
 //
-// DESIGN VARIANTS. Every token below is `pick(family, riced)`:
-//   • 'family' — the light, family-friendly look. Cards are translucent white
+// DESIGN VARIANTS. Every token below is `pick(light, dark)`:
+//   • 'light' — the light look. Cards are translucent white
 //     over navy water; text is dark; nav chrome is deep navy. (Matches the Wix
 //     site: light-blue surfaces, navy identity, red accent hairline.)
-//   • 'riced'  — the dark ocean look. Cards are frosted glass over a deep
+//   • 'dark'  — the dark ocean look. Cards are frosted glass over a deep
 //     ocean-night body; text is light; accents are reef teal / mauve neon.
 // The fork picks one in fundive.config.ts (`theme.design`); it is a build-time
 // constant here, so `pick()` folds to a single string per build. Both literals
 // stay in the source, so Tailwind's scanner generates utilities for whichever
 // theme is active. The palette/radius/font/body differences live in
-// src/index.css under `:root[data-theme="riced"]`.
+// src/index.css under `:root[data-theme="dark"]`.
 //
 // The categorical event-type rainbow and red status/Beta signal intentionally
 // stay on the raw Tailwind palette in both themes (not tokenized here).
 
 import { siteConfig } from '../config/site'
 
-const RICED = siteConfig.theme.design === 'riced'
+const DARK = siteConfig.theme.design === 'dark'
 
-/** True when the 'riced' dark design variant is active. */
-export const isRiced = RICED
+/** True when the 'dark' design variant is active. */
+export const isDark = DARK
 
 /**
  * Choose the class string for the active design variant. Exported for the rare
  * inline spot that needs a theme-specific literal with no matching token — pass
- * the exact current (family) classes first so 'family' rendering is unchanged,
+ * the exact current (light) classes first so 'light' rendering is unchanged,
  * and the dark-theme equivalent second. Both literals stay in the source, so
  * Tailwind's scanner generates whichever the build needs.
  */
-export function pick(family: string, riced: string): string {
-  return RICED ? riced : family
+export function pick(light: string, dark: string): string {
+  return DARK ? dark : light
 }
 
 // ── Page surfaces ──────────────────────────────────────────────────
-// family: page bg is deep navy (the "water"), cards float on top in white.
-// riced:  page is transparent — the fixed ocean body gradient (index.css) is the
+// light: page bg is deep navy (the "water"), cards float on top in white.
+// dark:  page is transparent — the fixed ocean body gradient (index.css) is the
 //         background, so every tab sits on the same water.
 export const PAGE         = pick('bg-brand-900 text-white', 'text-brand-50')
 
@@ -47,8 +47,8 @@ export const PAGE_HEADING = pick('text-white', 'text-white')
 export const PAGE_BODY    = pick('text-white/80', 'text-brand-100/80')
 
 // ── Cards & panels ─────────────────────────────────────────────────
-// family: translucent white cards over the navy water.
-// riced:  frosted glass panels; CARD_ELEVATED adds the reef neon glow.
+// light: translucent white cards over the navy water.
+// dark:  frosted glass panels; CARD_ELEVATED adds the reef neon glow.
 export const CARD          = pick(
   'bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl',
   'glass glass-hover rounded-2xl',
@@ -69,9 +69,9 @@ export const MODAL_PANEL    = pick(
 )
 
 // ── Text hierarchy on the card surface ─────────────────────────────
-// family: dark ink on translucent-white cards (must stay legible against the
+// light: dark ink on translucent-white cards (must stay legible against the
 //         navy showing through — brand-950 headings, font-medium body).
-// riced:  light ink on dark glass; muted/subtle tiers don't drop below /55.
+// dark:  light ink on dark glass; muted/subtle tiers don't drop below /55.
 export const TEXT_HEADING = pick('text-brand-950 font-bold',      'text-white font-bold')
 export const TEXT_BODY    = pick('text-brand-950 font-medium',    'text-brand-50/90 font-medium')
 export const TEXT_MUTED   = pick('text-brand-900 font-medium',    'text-brand-100/70')
@@ -90,7 +90,7 @@ export const ON_DEEP_LINK    = pick(
 
 // ── Buttons ────────────────────────────────────────────────────────
 const BUTTON_BASE = 'font-semibold py-2 rounded-lg transition-colors disabled:opacity-50'
-// Primary: family = solid navy; riced = reef teal on dark ink (reads on the glow).
+// Primary: light = solid navy; dark = reef teal on dark ink (reads on the glow).
 export const BTN_PRIMARY = `${BUTTON_BASE} ${pick('bg-brand-900 hover:bg-brand-950 text-white', 'bg-reef-500 hover:bg-reef-400 text-slate-950')}`
 export const BTN_GHOST   = `${BUTTON_BASE} ${pick('border border-brand-900 text-brand-900 hover:bg-surface-100', 'border border-white/20 text-brand-50 hover:bg-white/10')}`
 export const BTN_DANGER  = `${BUTTON_BASE} ${pick('bg-surface-100 hover:bg-red-100 text-red-700 border border-accent', 'bg-red-500/15 hover:bg-red-500/25 text-red-200 border border-red-400/40')}`
@@ -111,7 +111,7 @@ export const INPUT       = pick(
 export const INPUT_LABEL = pick('block text-sm text-brand-900 mb-1', 'block text-sm text-brand-100 mb-1')
 
 // ── Inline error notes ─────────────────────────────────────────────
-// ERROR_NOTE sits on the navy chrome; ERROR_NOTE_LIGHT inside a card. In riced
+// ERROR_NOTE sits on the navy chrome; ERROR_NOTE_LIGHT inside a card. In dark
 // both live on dark glass, so both are light-red on a translucent red wash.
 export const ERROR_NOTE       = pick(
   'text-xs text-red-200 bg-red-900/50 border border-accent rounded-md p-2',
@@ -123,8 +123,8 @@ export const ERROR_NOTE_LIGHT = pick(
 )
 
 // ── Navigation chrome ──────────────────────────────────────────────
-// family: solid navy bars with a red hairline.
-// riced:  frosted "waybar" glass bars with a white hairline.
+// light: solid navy bars with a red hairline.
+// dark:  frosted "waybar" glass bars with a white hairline.
 export const NAV_BAR    = pick(
   'bg-brand-950 border-b border-accent px-4 py-3 flex items-center justify-between',
   'waybar border-b border-white/10 px-4 py-3 flex items-center justify-between',

@@ -12,9 +12,9 @@
  * fundive.config.ts (theme/backgroundColor) — keep them in sync.
  *
  * DESIGN VARIANTS. `fundive.config.ts` picks a look via `theme.design`
- * ('family' | 'riced'); src/main.tsx stamps it as `data-theme` on <html>.
- *   • The @theme block below is the DEFAULT 'family' look (light cards on navy).
- *   • `:root[data-theme="riced"]` (further down) re-tints the brand palette to a
+ * ('light' | 'dark'); src/main.tsx stamps it as `data-theme` on <html>.
+ *   • The @theme block below is the DEFAULT 'light' look (light cards on navy).
+ *   • `:root[data-theme="dark"]` (further down) re-tints the brand palette to a
  *     dark ocean, enlarges the radius scale to squircles, swaps in Inter/mono,
  *     and turns the body into a deep ocean-night gradient.
  * The structural surface differences (white card vs frosted glass, dark ink vs
@@ -48,9 +48,9 @@
 
   --color-accent: var(--color-red-500);
 
-  /* Riced accent palette — reef teal + catppuccin neons. Referenced only by the
-     'riced' theme (token strings + component classes); declared here so the
-     utilities exist. Harmless in 'family', which never references them. */
+  /* Dark accent palette — reef teal + catppuccin neons. Referenced only by the
+     'dark' theme (token strings + component classes); declared here so the
+     utilities exist. Harmless in 'light', which never references them. */
   --color-reef-50:  #ecfdfb;
   --color-reef-100: #cffaf3;
   --color-reef-200: #a0f3e9;
@@ -69,12 +69,12 @@
   --color-green: #a6e3a1;
 }
 
-/* ── 'riced' design variant ─────────────────────────────────────────────────
+/* ── 'dark' design variant ─────────────────────────────────────────────────
  * A dark ocean look. Re-tints the brand palette to deep sea blues, enlarges the
  * radius scale to squircles, swaps in Inter + JetBrains Mono, and paints the
  * body a deep ocean-night gradient with neon corner glows. Everything keys off
  * data-theme so a fork flips looks with a single config value. */
-:root[data-theme="riced"] {
+:root[data-theme="dark"] {
   --color-brand-50:  #eff8ff;
   --color-brand-100: #dbeefe;
   --color-brand-200: #bfe1fe;
@@ -113,10 +113,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Riced body: deep ocean-night (catppuccin-crust meets midnight sea) with two
+/* Dark body: deep ocean-night (catppuccin-crust meets midnight sea) with two
    soft neon spotlights bleeding in from the corners. Fixed so it stays put
    while content scrolls; pages are transparent so it shows through. */
-:root[data-theme="riced"] body {
+:root[data-theme="dark"] body {
   font-family: var(--font-sans);
   color: var(--color-brand-50);
   background-color: #0a1120;
@@ -148,51 +148,51 @@ img, video, canvas {
   max-width: 100%;
 }
 
-/* Riced-only ambient touches: neon selection + accent-gradient scrollbar. */
-:root[data-theme="riced"] ::selection {
+/* Dark-only ambient touches: neon selection + accent-gradient scrollbar. */
+:root[data-theme="dark"] ::selection {
   background: rgba(203, 166, 247, 0.35);
   color: #fff;
 }
-:root[data-theme="riced"] * {
+:root[data-theme="dark"] * {
   scrollbar-width: thin;
   scrollbar-color: #2cd0c5 transparent;
 }
-:root[data-theme="riced"] *::-webkit-scrollbar {
+:root[data-theme="dark"] *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
-:root[data-theme="riced"] *::-webkit-scrollbar-track {
+:root[data-theme="dark"] *::-webkit-scrollbar-track {
   background: transparent;
 }
-:root[data-theme="riced"] *::-webkit-scrollbar-thumb {
+:root[data-theme="dark"] *::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #cba6f7, #2cd0c5);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
-/* Riced mobile / touch performance: the fixed body gradient forces repaints on
+/* Dark mobile / touch performance: the fixed body gradient forces repaints on
    scroll and backdrop-blur is costly on phone GPUs. On touch/narrow devices use
    a plain non-fixed gradient and swap glass blur for a near-opaque fill. */
 @media (hover: none) and (pointer: coarse), (max-width: 820px) {
-  :root[data-theme="riced"] body {
+  :root[data-theme="dark"] body {
     background-image: linear-gradient(180deg, #0e1b31 0%, #0a1120 50%, #070b16 100%);
     background-attachment: scroll;
   }
-  :root[data-theme="riced"] .glass,
-  :root[data-theme="riced"] .waybar {
+  :root[data-theme="dark"] .glass,
+  :root[data-theme="dark"] .waybar {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: color-mix(in oklab, #0d1a2e 92%, transparent);
   }
 }
 
-/* ── Riced component classes ─────────────────────────────────────────────────
- * Theme-neutral utility classes referenced only by the riced token strings and
- * hero surfaces. Defining them globally is harmless in 'family' (unused there).
+/* ── Dark component classes ─────────────────────────────────────────────────
+ * Theme-neutral utility classes referenced only by the dark token strings and
+ * hero surfaces. Defining them globally is harmless in 'light' (unused there).
  * ─────────────────────────────────────────────────────────────────────────── */
 @layer components {
-  /* Frosted "window" surface — riced glassmorphism: blurred translucent fill +
+  /* Frosted "window" surface — dark glassmorphism: blurred translucent fill +
      hairline highlight, like a Hyprland floating window. */
   .glass {
     background: color-mix(in oklab, #0d1a2e 62%, transparent);
@@ -248,7 +248,7 @@ img, video, canvas {
 
 /* Animated water caustics — two SVG fractal-noise layers drifting and pulsing to
    mimic sunlight refracting through the surface (see Caustics.tsx). Scoped to a
-   `position: relative` host (the dashboard container). Riced-only in practice. */
+   `position: relative` host (the dashboard container). Dark-only in practice. */
 .caustics {
   position: absolute;
   inset: 0;
@@ -292,48 +292,48 @@ img, video, canvas {
  * The token seam + hero surfaces cover the primary screens; this block flips the
  * long tail of pages/components that still compose raw light utilities (white
  * cards, dark brand ink, sky surface fills) rather than the tokens. Scoped to
- * riced and left UNLAYERED, so these rules beat Tailwind's (layered) utilities
- * without !important. `family` is untouched (every selector requires
- * data-theme="riced"). Only the family-light utilities are listed — the
- * riced-native fills (bg-white/5–15, border-white/*) and status/rainbow colors
+ * dark and left UNLAYERED, so these rules beat Tailwind's (layered) utilities
+ * without !important. `light` is untouched (every selector requires
+ * data-theme="dark"). Only the light utilities are listed — the
+ * dark-native fills (bg-white/5–15, border-white/*) and status/rainbow colors
  * are deliberately absent, so nothing here double-applies or recolors a
- * semantic signal. Tokens already emit dark classes under riced, so swept
+ * semantic signal. Tokens already emit dark classes under dark, so swept
  * surfaces never carry these light utilities to begin with.
  * ─────────────────────────────────────────────────────────────────────────── */
 
 /* Dark brand ink → light. */
-:root[data-theme="riced"] .text-brand-950,
-:root[data-theme="riced"] .text-brand-900 { color: var(--color-brand-50); }
-:root[data-theme="riced"] [class*="text-brand-900/"],
-:root[data-theme="riced"] [class*="text-brand-950/"] { color: color-mix(in oklab, var(--color-brand-100) 85%, transparent); }
-:root[data-theme="riced"] .text-brand-800 { color: var(--color-reef-300); }
-:root[data-theme="riced"] .placeholder\:text-brand-900::placeholder { color: color-mix(in oklab, var(--color-brand-100) 45%, transparent); }
+:root[data-theme="dark"] .text-brand-950,
+:root[data-theme="dark"] .text-brand-900 { color: var(--color-brand-50); }
+:root[data-theme="dark"] [class*="text-brand-900/"],
+:root[data-theme="dark"] [class*="text-brand-950/"] { color: color-mix(in oklab, var(--color-brand-100) 85%, transparent); }
+:root[data-theme="dark"] .text-brand-800 { color: var(--color-reef-300); }
+:root[data-theme="dark"] .placeholder\:text-brand-900::placeholder { color: color-mix(in oklab, var(--color-brand-100) 45%, transparent); }
 
-/* Translucent-white cards → frosted dark glass. Opaque + the family card alphas
-   only; the riced-native bg-white/5–15 fills are intentionally NOT listed. */
-:root[data-theme="riced"] .bg-white,
-:root[data-theme="riced"] .bg-white\/55,
-:root[data-theme="riced"] .bg-white\/65,
-:root[data-theme="riced"] .bg-white\/70,
-:root[data-theme="riced"] .bg-white\/75,
-:root[data-theme="riced"] .bg-white\/80,
-:root[data-theme="riced"] .bg-white\/85,
-:root[data-theme="riced"] .bg-white\/90 {
+/* Translucent-white cards → frosted dark glass. Opaque + the light card alphas
+   only; the dark-native bg-white/5–15 fills are intentionally NOT listed. */
+:root[data-theme="dark"] .bg-white,
+:root[data-theme="dark"] .bg-white\/55,
+:root[data-theme="dark"] .bg-white\/65,
+:root[data-theme="dark"] .bg-white\/70,
+:root[data-theme="dark"] .bg-white\/75,
+:root[data-theme="dark"] .bg-white\/80,
+:root[data-theme="dark"] .bg-white\/85,
+:root[data-theme="dark"] .bg-white\/90 {
   background-color: color-mix(in oklab, #0d1a2e 62%, transparent);
 }
-:root[data-theme="riced"] .hover\:bg-white\/70:hover,
-:root[data-theme="riced"] .hover\:bg-white\/90:hover {
+:root[data-theme="dark"] .hover\:bg-white\/70:hover,
+:root[data-theme="dark"] .hover\:bg-white\/90:hover {
   background-color: color-mix(in oklab, #0d1a2e 72%, transparent);
 }
 
 /* Light sky fills → subtle light-on-dark washes. */
-:root[data-theme="riced"] .bg-surface-50  { background-color: color-mix(in oklab, #ffffff 3%, transparent); }
-:root[data-theme="riced"] .bg-surface-100 { background-color: color-mix(in oklab, #ffffff 6%, transparent); }
-:root[data-theme="riced"] .hover\:bg-surface-50:hover,
-:root[data-theme="riced"] .hover\:bg-surface-100:hover { background-color: color-mix(in oklab, #ffffff 10%, transparent); }
+:root[data-theme="dark"] .bg-surface-50  { background-color: color-mix(in oklab, #ffffff 3%, transparent); }
+:root[data-theme="dark"] .bg-surface-100 { background-color: color-mix(in oklab, #ffffff 6%, transparent); }
+:root[data-theme="dark"] .hover\:bg-surface-50:hover,
+:root[data-theme="dark"] .hover\:bg-surface-100:hover { background-color: color-mix(in oklab, #ffffff 10%, transparent); }
 
 /* Light hairlines → faint white hairlines. */
-:root[data-theme="riced"] .border-surface-100,
-:root[data-theme="riced"] .border-surface-200,
-:root[data-theme="riced"] .border-surface-300 { border-color: color-mix(in oklab, #ffffff 12%, transparent); }
-:root[data-theme="riced"] .divide-surface-200 > :not([hidden]) ~ :not([hidden]) { border-color: color-mix(in oklab, #ffffff 12%, transparent); }
+:root[data-theme="dark"] .border-surface-100,
+:root[data-theme="dark"] .border-surface-200,
+:root[data-theme="dark"] .border-surface-300 { border-color: color-mix(in oklab, #ffffff 12%, transparent); }
+:root[data-theme="dark"] .divide-surface-200 > :not([hidden]) ~ :not([hidden]) { border-color: color-mix(in oklab, #ffffff 12%, transparent); }

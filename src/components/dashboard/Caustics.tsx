@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-// Animated water caustics — the 'riced' design variant's ambient dashboard
+// Animated water caustics — the 'dark' design variant's ambient dashboard
 // background. Two SVG fractal-noise layers, each a set of long
 // horizontally-stretched ribbons (low + anisotropic baseFrequency → wave-like
 // veins, not round particles) that slowly warp in place (baseFrequency morph =

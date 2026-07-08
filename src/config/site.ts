@@ -58,12 +58,12 @@ export interface SiteTheme {
   backgroundColor: string
   /**
    * Visual design variant, applied as `data-theme` on <html> at startup.
-   *   'family' — the light, family-friendly look (white cards on navy). Default.
-   *   'riced'  — the dark "riced" ocean look (frosted glass, reef/mauve neon,
+   *   'light' — the light look (white cards on navy). Default.
+   *   'dark'  — the dark ocean look (frosted glass, reef/mauve neon,
    *              mono metadata, squircle rounding, animated water caustics).
-   * Optional; omit for 'family'. See docs/forking.md.
+   * Optional; omit for 'light'. See docs/forking.md.
    */
-  design?: 'family' | 'riced'
+  design?: 'light' | 'dark'
 }
 
 export interface SiteAssets {

@@ -15,14 +15,14 @@ import type { AppEvent, Booking } from '../types/database'
 // Design-variant class map for this page's inline surfaces (the amber
 // multi-select banner, the continue button, and the event-detail modal's
 // action buttons). The modal frame + text use the shared tokens.
-const RICED = siteConfig.theme.design === 'riced'
+const DARK = siteConfig.theme.design === 'dark'
 const CP = {
-  multiBanner:     RICED ? 'bg-amber-400/15 border border-amber-400/50' : 'bg-amber-100 border-2 border-amber-400',
-  multiBannerText: RICED ? 'text-amber-100' : 'text-brand-950',
-  continueBtn:     RICED ? 'bg-reef-500 text-slate-950 hover:bg-reef-400' : 'bg-white text-brand-900 hover:bg-surface-50',
-  modalClose:      RICED ? 'text-brand-100/70 hover:text-white' : 'text-brand-900 hover:text-brand-900',
-  regBooked:       RICED ? 'bg-red-500/15 hover:bg-red-500/25 text-red-200 border border-red-400/40' : 'bg-surface-100 hover:bg-red-100 text-red-700 border border-accent',
-  regPrimary:      RICED ? 'bg-reef-500 hover:bg-reef-400 text-slate-950' : 'bg-brand-900 hover:bg-brand-950 text-white',
+  multiBanner:     DARK ? 'bg-amber-400/15 border border-amber-400/50' : 'bg-amber-100 border-2 border-amber-400',
+  multiBannerText: DARK ? 'text-amber-100' : 'text-brand-950',
+  continueBtn:     DARK ? 'bg-reef-500 text-slate-950 hover:bg-reef-400' : 'bg-white text-brand-900 hover:bg-surface-50',
+  modalClose:      DARK ? 'text-brand-100/70 hover:text-white' : 'text-brand-900 hover:text-brand-900',
+  regBooked:       DARK ? 'bg-red-500/15 hover:bg-red-500/25 text-red-200 border border-red-400/40' : 'bg-surface-100 hover:bg-red-100 text-red-700 border border-accent',
+  regPrimary:      DARK ? 'bg-reef-500 hover:bg-reef-400 text-slate-950' : 'bg-brand-900 hover:bg-brand-950 text-white',
 }
 
 const TYPE_DOT: Record<AppEvent['type'], string> = {

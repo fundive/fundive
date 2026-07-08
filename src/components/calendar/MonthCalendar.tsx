@@ -16,32 +16,32 @@ import type { AppEvent, StaffBusyEntry } from '../../types/database'
 
 // Design-variant class map for the calendar's own surfaces (grid, cells, list
 // cards, filter pills, dropdown). The categorical event-type bars keep their
-// raw rainbow in both themes. family = light cards on navy; riced = dark glass.
-const RICED = siteConfig.theme.design === 'riced'
+// raw rainbow in both themes. light = light cards on navy; dark = dark glass.
+const DARK = siteConfig.theme.design === 'dark'
 const CAL = {
-  grid:         RICED ? 'glass rounded-2xl' : 'bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl',
-  weekday:      RICED ? 'bg-white/5 text-brand-100/80 border-white/10' : 'bg-surface-100 text-brand-900 border-surface-200',
-  emptyCell:    RICED ? 'bg-white/[0.02] border-white/5' : 'bg-surface-50/50 border-surface-200/60',
-  cellBorder:   RICED ? 'border-white/5' : 'border-surface-200/60',
-  cellToday:    RICED ? 'bg-reef-400/10' : 'bg-red-50',
-  cellHover:    RICED ? 'hover:bg-white/5' : 'hover:bg-amber-50/60',
-  dropTarget:   RICED ? 'bg-amber-400/15' : 'bg-amber-50/70',
-  dayNumToday:  RICED ? 'text-reef-300 font-bold' : 'text-red-700 font-bold',
-  dayNum:       RICED ? 'text-brand-100/80' : 'text-brand-900',
-  listEmpty:    RICED ? 'text-brand-100/70' : 'text-brand-950',
-  listCard:     RICED ? 'glass glass-hover' : 'bg-white/70 border border-surface-200 hover:border-accent',
-  listCardHi:   RICED ? 'bg-amber-400/15 border border-amber-400/60 hover:border-amber-400' : 'bg-amber-100 border-2 border-amber-400 hover:border-amber-500',
-  listTitle:    RICED ? 'text-brand-50' : 'text-brand-900',
-  listDate:     RICED ? 'mono text-brand-100/70' : 'text-brand-900 font-medium',
-  star:         RICED ? 'text-amber-300' : 'text-red-600',
-  privateIcon:  RICED ? 'text-brand-100/70' : 'text-brand-900/70',
-  pillOn:       RICED ? 'bg-white/10 border-reef-400/50 text-reef-200' : 'bg-white border-brand-900 text-brand-900',
-  pillOff:      RICED ? 'bg-white/5 border-white/10 text-brand-100/50 font-medium line-through' : 'bg-surface-100 border-surface-200 text-brand-950 font-medium line-through',
-  menu:         RICED ? 'glass' : 'bg-white border border-accent',
-  menuItemHover: RICED ? 'hover:bg-white/10' : 'hover:bg-surface-50',
-  checkbox:     RICED ? 'accent-reef-500' : 'accent-brand-900',
-  menuText:     RICED ? 'text-brand-100' : 'text-brand-900',
-  countText:    RICED ? 'text-brand-100/60' : 'text-brand-900',
+  grid:         DARK ? 'glass rounded-2xl' : 'bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl',
+  weekday:      DARK ? 'bg-white/5 text-brand-100/80 border-white/10' : 'bg-surface-100 text-brand-900 border-surface-200',
+  emptyCell:    DARK ? 'bg-white/[0.02] border-white/5' : 'bg-surface-50/50 border-surface-200/60',
+  cellBorder:   DARK ? 'border-white/5' : 'border-surface-200/60',
+  cellToday:    DARK ? 'bg-reef-400/10' : 'bg-red-50',
+  cellHover:    DARK ? 'hover:bg-white/5' : 'hover:bg-amber-50/60',
+  dropTarget:   DARK ? 'bg-amber-400/15' : 'bg-amber-50/70',
+  dayNumToday:  DARK ? 'text-reef-300 font-bold' : 'text-red-700 font-bold',
+  dayNum:       DARK ? 'text-brand-100/80' : 'text-brand-900',
+  listEmpty:    DARK ? 'text-brand-100/70' : 'text-brand-950',
+  listCard:     DARK ? 'glass glass-hover' : 'bg-white/70 border border-surface-200 hover:border-accent',
+  listCardHi:   DARK ? 'bg-amber-400/15 border border-amber-400/60 hover:border-amber-400' : 'bg-amber-100 border-2 border-amber-400 hover:border-amber-500',
+  listTitle:    DARK ? 'text-brand-50' : 'text-brand-900',
+  listDate:     DARK ? 'mono text-brand-100/70' : 'text-brand-900 font-medium',
+  star:         DARK ? 'text-amber-300' : 'text-red-600',
+  privateIcon:  DARK ? 'text-brand-100/70' : 'text-brand-900/70',
+  pillOn:       DARK ? 'bg-white/10 border-reef-400/50 text-reef-200' : 'bg-white border-brand-900 text-brand-900',
+  pillOff:      DARK ? 'bg-white/5 border-white/10 text-brand-100/50 font-medium line-through' : 'bg-surface-100 border-surface-200 text-brand-950 font-medium line-through',
+  menu:         DARK ? 'glass' : 'bg-white border border-accent',
+  menuItemHover: DARK ? 'hover:bg-white/10' : 'hover:bg-surface-50',
+  checkbox:     DARK ? 'accent-reef-500' : 'accent-brand-900',
+  menuText:     DARK ? 'text-brand-100' : 'text-brand-900',
+  countText:    DARK ? 'text-brand-100/60' : 'text-brand-900',
 }
 
 // Shared by CalendarPage (diver) and AdminEventsPage (admin). The only
@@ -393,7 +393,7 @@ export function MonthCalendar({
           <button
             key={ev.id}
             onClick={() => onPickEvent(ev)}
-            className={`w-full text-left p-3 transition-colors ${RICED ? 'rounded-2xl' : 'backdrop-blur-md rounded-xl'} ${
+            className={`w-full text-left p-3 transition-colors ${DARK ? 'rounded-2xl' : 'backdrop-blur-md rounded-xl'} ${
               highlightedIds?.has(ev.id) ? CAL.listCardHi : CAL.listCard
             } ${ev.is_private ? 'opacity-60' : ''}`}
           >

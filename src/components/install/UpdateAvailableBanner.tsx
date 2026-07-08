@@ -16,8 +16,8 @@ interface Props {
 }
 
 // An informational "go" action, not a destructive one — so a brand (not red)
-// banner with a primary-styled button: the light "light button" look in family,
-// the reef accent in riced.
+// banner with a primary-styled button: the light "light button" look in light,
+// the reef accent in dark.
 const UPDATE_BTN = pick(
   'bg-white text-brand-800 hover:bg-surface-100',
   'bg-reef-500 text-slate-950 hover:bg-reef-400',
