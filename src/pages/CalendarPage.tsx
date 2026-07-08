@@ -19,10 +19,10 @@ const RICED = siteConfig.theme.design === 'riced'
 const CP = {
   multiBanner:     RICED ? 'bg-amber-400/15 border border-amber-400/50' : 'bg-amber-100 border-2 border-amber-400',
   multiBannerText: RICED ? 'text-amber-100' : 'text-brand-950',
-  continueBtn:     RICED ? 'bg-reef-500 text-brand-950 hover:bg-reef-400' : 'bg-white text-brand-900 hover:bg-surface-50',
+  continueBtn:     RICED ? 'bg-reef-500 text-slate-950 hover:bg-reef-400' : 'bg-white text-brand-900 hover:bg-surface-50',
   modalClose:      RICED ? 'text-brand-100/70 hover:text-white' : 'text-brand-900 hover:text-brand-900',
   regBooked:       RICED ? 'bg-red-500/15 hover:bg-red-500/25 text-red-200 border border-red-400/40' : 'bg-surface-100 hover:bg-red-100 text-red-700 border border-accent',
-  regPrimary:      RICED ? 'bg-reef-500 hover:bg-reef-400 text-brand-950' : 'bg-brand-900 hover:bg-brand-950 text-white',
+  regPrimary:      RICED ? 'bg-reef-500 hover:bg-reef-400 text-slate-950' : 'bg-brand-900 hover:bg-brand-950 text-white',
 }
 
 const TYPE_DOT: Record<AppEvent['type'], string> = {
@@ -123,7 +123,7 @@ export function CalendarPage() {
         <button
           type="button"
           onClick={() => setMode('multi')}
-          className="w-full mb-3 flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-brand-950 font-bold py-2.5 px-4 rounded-xl shadow-md border-2 border-amber-500 transition-colors"
+          className="w-full mb-3 flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-2.5 px-4 rounded-xl shadow-md border-2 border-amber-500 transition-colors"
         >
           <span className="text-lg leading-none">+</span>
           Register for multiple events

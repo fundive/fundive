@@ -91,7 +91,7 @@ export const ON_DEEP_LINK    = pick(
 // ── Buttons ────────────────────────────────────────────────────────
 const BUTTON_BASE = 'font-semibold py-2 rounded-lg transition-colors disabled:opacity-50'
 // Primary: family = solid navy; riced = reef teal on dark ink (reads on the glow).
-export const BTN_PRIMARY = `${BUTTON_BASE} ${pick('bg-brand-900 hover:bg-brand-950 text-white', 'bg-reef-500 hover:bg-reef-400 text-brand-950')}`
+export const BTN_PRIMARY = `${BUTTON_BASE} ${pick('bg-brand-900 hover:bg-brand-950 text-white', 'bg-reef-500 hover:bg-reef-400 text-slate-950')}`
 export const BTN_GHOST   = `${BUTTON_BASE} ${pick('border border-brand-900 text-brand-900 hover:bg-surface-100', 'border border-white/20 text-brand-50 hover:bg-white/10')}`
 export const BTN_DANGER  = `${BUTTON_BASE} ${pick('bg-surface-100 hover:bg-red-100 text-red-700 border border-accent', 'bg-red-500/15 hover:bg-red-500/25 text-red-200 border border-red-400/40')}`
 export const BTN_LIGHT   = `${BUTTON_BASE} ${pick('bg-white text-brand-900 hover:bg-surface-100', 'bg-white/10 hover:bg-white/20 text-brand-50 border border-white/15')}`
