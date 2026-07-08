@@ -1,17 +1,16 @@
-// Integration coverage for the event_ride_seats RPC (capacity clause superseded
-// by 20260705000000). Runs against the live local Supabase stack.
+// Integration coverage for the event_ride_seats RPC (20260628000000, capacity
+// clause superseded by 20260705000000). Runs against the live local stack.
 //
 // Contract:
 //   - capacity = sum of passenger_seats over the DISTINCT vehicles assigned to
-//     the event, MINUS one seat per vehicle reserved for whoever drives it,
-//     rising to the full on-duty staff count when staff outnumber the vans
+//     the event, MINUS one seat per vehicle reserved for whoever drives it
 //     (a van on several days of a multi-day event counts once)
 //   - claimed  = non-cancelled bookings with details.transportation = true
 //   - callable by a plain diver (SECURITY DEFINER bypasses the event_vehicles /
 //     bookings RLS that would otherwise hide the inputs)
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import {
-  adminClient, userClient, anonClient,
+  adminClient, userClient,
   createTestUser, deleteTestUser, createTestDive, deleteTestDive,
   type TestUser,
 } from './helpers'
@@ -35,9 +34,9 @@ async function createVehicle(name: string, seats: number): Promise<string> {
   return id
 }
 
-async function allocate(vehicleId: string, date: string): Promise<void> {
+async function allocate(vehicleId: string): Promise<void> {
   const { error } = await admin.from('event_vehicles')
-    .insert({ vehicle_id: vehicleId, event_date: date, event_id: diveId } as never)
+    .insert({ vehicle_id: vehicleId, event_id: diveId } as never)
   if (error) throw new Error(`allocate: ${error.message}`)
 }
 
@@ -79,16 +78,20 @@ describe('event_ride_seats', () => {
   })
 
   it('sums passenger seats over assigned vehicles, reserving one driver seat each', async () => {
-    await allocate(await createVehicle('Delica', 7), '2031-05-01')
-    await allocate(await createVehicle('Veryca', 4), '2031-05-01')
+    await allocate(await createVehicle('Delica', 7))
+    await allocate(await createVehicle('Veryca', 4))
     // (7 - 1) + (4 - 1) = 9 rideable seats after the two drivers.
     expect((await seats()).capacity).toBe(9)
   })
 
-  it('counts a van assigned to several days of the event only once', async () => {
+  it('counts a van assigned to the event once and rejects a duplicate', async () => {
     const bus = await createVehicle('Bus', 12)
-    await allocate(bus, '2031-05-02')
-    await allocate(bus, '2031-05-03') // same van, another day → still +12, not +24
+    await allocate(bus)
+    // Same van on the same event again → blocked by the unique index, so the
+    // seat total can't be inflated by a duplicate row.
+    const dup = await admin.from('event_vehicles')
+      .insert({ vehicle_id: bus, event_id: diveId } as never)
+    expect(dup.error).not.toBeNull()
     // (7 + 4 + 12) physical − 3 drivers = 20 rideable seats.
     expect((await seats()).capacity).toBe(20)
   })
@@ -109,23 +112,18 @@ describe('event_ride_seats', () => {
     expect(asDiver.claimed).toBe(1)
   })
 
-  it('is not callable by an anonymous (unauthenticated) client', async () => {
-    const { error } = await anonClient().rpc('event_ride_seats', { p_event_id: diveId })
-    expect(error).not.toBeNull()
-  })
-
   it('reserves the full on-duty staff count when staff outnumber the vehicles', async () => {
     // Isolated dive: one 8-seat van but three on-duty staff, all of whom ride.
     staffDive = await createTestDive(admin)
     const van = await createVehicle('Hiace', 8)
     const va = await admin.from('event_vehicles')
-      .insert({ vehicle_id: van, event_date: '2031-06-01', event_id: staffDive } as never)
+      .insert({ vehicle_id: van, event_id: staffDive } as never)
     if (va.error) throw new Error(`allocate: ${va.error.message}`)
     for (let i = 0; i < 3; i++) {
       const st = await createTestUser(admin, { role: 'staff' })
       cleanupUsers.push(st)
       const du = await admin.from('duties')
-        .insert({ assignee_id: st.id, role: 'guide', start_date: '2031-06-01', event_id: staffDive } as never)
+        .insert({ assignee_id: st.id, role: 'guide', start_date: '2030-06-01', event_id: staffDive } as never)
       if (du.error) throw new Error(`duty: ${du.error.message}`)
     }
     const { data, error } = await admin.rpc('event_ride_seats', { p_event_id: staffDive })

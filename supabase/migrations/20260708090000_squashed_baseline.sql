@@ -1,3 +1,9 @@
+-- ============================================================
+-- Squashed baseline (was 16 migrations: 2026-07-03 baseline + forwards).
+-- Schema + migration-seeded reference data (cert_levels, storage.buckets).
+-- NEVER edit in place once pushed.
+-- ============================================================
+
 
 
 
@@ -562,23 +568,39 @@ CREATE OR REPLACE FUNCTION "public"."event_ride_seats"("p_event_id" "uuid") RETU
     LANGUAGE "sql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
+  with fleet as (
+    select v.passenger_seats
+    from (select distinct vehicle_id from public.event_vehicles where event_id = p_event_id) ev
+    join public.vehicles v on v.id = ev.vehicle_id
+  ),
+  crew as (
+    select count(distinct assignee_id)::int as staff_count
+    from public.duties
+    where event_id = p_event_id
+  )
   select
+    greatest(
+      0,
+      coalesce((select sum(passenger_seats)::int from fleet), 0)
+        - greatest(
+            (select count(*)::int from fleet),
+            (select staff_count from crew)
+          )
+    ) as capacity,
     coalesce((
-      select sum(v.passenger_seats)::int
-      from (select distinct vehicle_id from public.event_vehicles where event_id = p_event_id) ev
-      join public.vehicles v on v.id = ev.vehicle_id
-    ), 0),
-    coalesce((
-      select count(*)::int from public.bookings
-      where status <> 'cancelled' and (details->>'transportation') = 'true' and event_id = p_event_id
-    ), 0);
+      select count(*)::int
+      from public.bookings
+      where status <> 'cancelled'
+        and (details->>'transportation') = 'true'
+        and event_id = p_event_id
+    ), 0) as claimed;
 $$;
 
 
 ALTER FUNCTION "public"."event_ride_seats"("p_event_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."express_trip_interest"("p_trip_id" "uuid") RETURNS "text"
+CREATE OR REPLACE FUNCTION "public"."express_package_interest"("p_package_id" "uuid") RETURNS "text"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
@@ -591,30 +613,30 @@ begin
     raise exception 'auth required' using errcode = 'insufficient_privilege';
   end if;
 
-  select status into v_status from public.trips where id = p_trip_id;
+  select status into v_status from public.packages where id = p_package_id;
   if v_status is null then
-    raise exception 'trip not found' using errcode = 'no_data_found';
+    raise exception 'package not found' using errcode = 'no_data_found';
   end if;
   if v_status <> 'published' then
-    raise exception 'trip is not open for interest' using errcode = 'check_violation';
+    raise exception 'package is not open for interest' using errcode = 'check_violation';
   end if;
 
-  select referral_code into v_code from public.trip_referrals
-    where trip_id = p_trip_id and diver_id = v_diver and status <> 'cancelled'
+  select referral_code into v_code from public.package_referrals
+    where package_id = p_package_id and diver_id = v_diver and status <> 'cancelled'
     limit 1;
   if v_code is not null then
     return v_code;
   end if;
 
-  insert into public.trip_referrals (trip_id, diver_id)
-    values (p_trip_id, v_diver)
+  insert into public.package_referrals (package_id, diver_id)
+    values (p_package_id, v_diver)
     returning referral_code into v_code;
   return v_code;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."express_trip_interest"("p_trip_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."express_package_interest"("p_package_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."gen_referral_code"() RETURNS "text"
@@ -630,7 +652,7 @@ begin
     for i in 1..6 loop
       code := code || substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1);
     end loop;
-    exit when not exists (select 1 from public.trip_referrals where referral_code = code);
+    exit when not exists (select 1 from public.package_referrals where referral_code = code);
   end loop;
   return code;
 end;
@@ -722,6 +744,73 @@ $$;
 ALTER FUNCTION "public"."is_staff_or_admin"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."list_my_package_referrals"() RETURNS TABLE("id" "uuid", "package_id" "uuid", "referral_code" "text", "status" "text", "created_at" timestamp with time zone, "package_title" "text", "package_destination" "text", "partner_name" "text")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select
+    r.id, r.package_id, r.referral_code, r.status, r.created_at,
+    p.title, p.destination, tp.name
+  from public.package_referrals r
+  join public.packages p           on p.id = r.package_id
+  join public.trusted_partners tp  on tp.id = p.trusted_partner_id
+  where r.diver_id = auth.uid()
+$$;
+
+
+ALTER FUNCTION "public"."list_my_package_referrals"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."list_package_board"() RETURNS TABLE("id" "uuid", "title" "text", "destination" "text", "summary" "text", "description" "text", "start_date" "date", "end_date" "date", "price" numeric, "currency" "text", "hero_image_url" "text", "highlights" "text"[], "booking_url" "text", "published_at" timestamp with time zone, "trusted_partner_id" "uuid", "partner_name" "text", "partner_country" "text", "partner_location" "text", "partner_website" "text", "partner_logo_url" "text", "partner_vouch_notes" "text")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select
+    p.id, p.title, p.destination, p.summary, p.description,
+    p.start_date, p.end_date, p.price, p.currency,
+    p.hero_image_url, p.highlights, p.booking_url, p.published_at,
+    tp.id, tp.name, tp.country, tp.location, tp.website, tp.logo_url, tp.vouch_notes
+  from public.packages p
+  join public.trusted_partners tp on tp.id = p.trusted_partner_id
+  where p.status = 'published'
+$$;
+
+
+ALTER FUNCTION "public"."list_package_board"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."list_scheduled_trips"() RETURNS TABLE("id" "uuid", "title" "text", "destination" "text", "summary" "text", "description" "text", "start_date" "date", "end_date" "date", "price" numeric, "currency" "text", "hero_image_url" "text", "highlights" "text"[], "published_at" timestamp with time zone, "event_id" "uuid", "event_kind" "text")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select
+    s.id, s.title, s.destination, s.summary, s.description,
+    s.start_date, s.end_date, s.price, s.currency,
+    s.hero_image_url, s.highlights, s.published_at,
+    s.event_id, e.kind
+  from public.scheduled_trips s
+  left join public.events e on e.id = s.event_id
+  where s.status = 'published'
+$$;
+
+
+ALTER FUNCTION "public"."list_scheduled_trips"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."list_trusted_partners"() RETURNS TABLE("id" "uuid", "name" "text", "region" "text", "blurb" "text", "website" "text")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select id, name, coalesce(location, country) as region, vouch_notes as blurb, website
+  from public.trusted_partners
+  where active and contact_email is not null
+  order by name
+$$;
+
+
+ALTER FUNCTION "public"."list_trusted_partners"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."log_orphan_auth_user"("p_user_id" "uuid", "p_email" "text", "p_reason" "text") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -769,6 +858,52 @@ $$;
 ALTER FUNCTION "public"."my_parent_account"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."notify_admins_ride_waitlist"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_event_id text;
+  v_title    text;
+  v_diver    text;
+  v_body     text;
+begin
+  -- Only fire for a live booking that is (newly) a ride-waitlist request.
+  if coalesce(new.details->>'ride_waitlisted', '') <> 'true' then
+    return new;
+  end if;
+  if coalesce(new.status, '') = 'cancelled' then
+    return new;
+  end if;
+  if tg_op = 'UPDATE' and coalesce(old.details->>'ride_waitlisted', '') = 'true' then
+    return new;
+  end if;
+
+  -- Unified events schema: one event_id (uuid); notifications.event_id is text.
+  v_event_id := new.event_id::text;
+  select coalesce(display_title, admin_title) into v_title
+  from public.events where id = new.event_id;
+
+  select nullif(trim(name), '') into v_diver
+  from public.profiles where id = new.user_id;
+
+  v_body := coalesce(v_diver, 'A diver')
+    || ' requested a ride for ' || coalesce(v_title, 'an event')
+    || ', but the shop ride is full — add a car or arrange transport.';
+
+  insert into public.notifications (user_id, title, body, url, kind, event_id)
+  select p.id, 'Ride waitlist request', v_body, '/admin/logistics', 'ride_waitlist', v_event_id
+  from public.profiles p
+  where p.role = 'admin';
+
+  return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."notify_admins_ride_waitlist"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."offer_next_waitlist_spot"("p_event_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -793,6 +928,21 @@ $$;
 
 
 ALTER FUNCTION "public"."offer_next_waitlist_spot"("p_event_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."package_referrals_set_code"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+begin
+  if new.referral_code is null or new.referral_code = '' then
+    new.referral_code := public.gen_referral_code();
+  end if;
+  return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."package_referrals_set_code"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."profiles_email_mirror_auth"() RETURNS "trigger"
@@ -1055,6 +1205,36 @@ $$;
 ALTER FUNCTION "public"."refresh_event_display_title"("p_event_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."replace_gear_model_sizes"("p_model_id" "uuid", "p_sizes" "jsonb") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+begin
+  if not public.is_admin() then
+    raise exception 'admin only' using errcode = '42501';
+  end if;
+
+  delete from public.gear_model_sizes where model_id = p_model_id;
+
+  insert into public.gear_model_sizes
+    (model_id, label, height_min, height_max, weight_min, weight_max, shoe_min, shoe_max, chest, waist, hip, sort_order)
+  select
+    p_model_id,
+    s->>'label',
+    nullif(s->>'height_min','')::numeric, nullif(s->>'height_max','')::numeric,
+    nullif(s->>'weight_min','')::numeric, nullif(s->>'weight_max','')::numeric,
+    nullif(s->>'shoe_min','')::numeric,   nullif(s->>'shoe_max','')::numeric,
+    nullif(s->>'chest',''), nullif(s->>'waist',''), nullif(s->>'hip',''),
+    coalesce(nullif(s->>'sort_order','')::int, (ord - 1)::int)
+  from jsonb_array_elements(coalesce(p_sizes, '[]'::jsonb)) with ordinality as t(s, ord)
+  where coalesce(s->>'label','') <> '';
+end;
+$$;
+
+
+ALTER FUNCTION "public"."replace_gear_model_sizes"("p_model_id" "uuid", "p_sizes" "jsonb") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."rls_auto_enable"() RETURNS "event_trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog'
@@ -1277,21 +1457,6 @@ $$;
 ALTER FUNCTION "public"."trg_bookings_refresh_event_title"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."trip_referrals_set_code"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-begin
-  if new.referral_code is null or new.referral_code = '' then
-    new.referral_code := public.gen_referral_code();
-  end if;
-  return new;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."trip_referrals_set_code"() OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."update_diver_gear_sizes"("diver_id" "uuid", "fin_size" "text", "bcd_size" "text", "wetsuit_size" "text") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -1494,36 +1659,6 @@ CREATE TABLE IF NOT EXISTS "public"."dive_logs" (
 ALTER TABLE "public"."dive_logs" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."dive_travel" (
-    "id" "uuid" NOT NULL,
-    "admin_title" "text",
-    "included" "text",
-    "not_included" "text",
-    "transportation" "text",
-    "slug" "text",
-    "event_type" "text",
-    "picture" "text",
-    "description" "text",
-    "tagline" "text",
-    "tagline_text" "text",
-    "details" "text",
-    "prerequisites" "text",
-    "itinerary" "text",
-    "event_date" "text",
-    "price" "text",
-    "sort_order" timestamp with time zone,
-    "trip_link" "text",
-    "planned_trip" boolean,
-    "details_document" "text",
-    "local_event_link" "text",
-    "local" boolean,
-    "trip" boolean
-);
-
-
-ALTER TABLE "public"."dive_travel" OWNER TO "postgres";
-
-
 CREATE TABLE IF NOT EXISTS "public"."diver_notes" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "profile_id" "uuid" NOT NULL,
@@ -1590,7 +1725,6 @@ CREATE TABLE IF NOT EXISTS "public"."event_vehicles" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_by" "uuid",
     "vehicle_id" "uuid" NOT NULL,
-    "event_date" "date" NOT NULL,
     "notes" "text",
     "event_id" "uuid",
     CONSTRAINT "event_vehicles_event_present" CHECK (("event_id" IS NOT NULL)),
@@ -1645,11 +1779,13 @@ CREATE TABLE IF NOT EXISTS "public"."events" (
     "second_image" "text",
     "gear_rental" "text",
     "notes" "text",
-    "divetravel_id" "uuid",
+    "trip_template_id" "uuid",
     "course_name" "text",
     "included" "text",
     "schedule" "text",
     "starting_at" integer,
+    "is_boat_dive" boolean DEFAULT false NOT NULL,
+    "is_trip" boolean DEFAULT false NOT NULL,
     CONSTRAINT "events_capacity_check" CHECK ((("capacity" IS NULL) OR ("capacity" >= 0))),
     CONSTRAINT "events_course_has_days" CHECK ((("kind" <> 'course'::"text") OR (("course_days" IS NOT NULL) AND (("array_length"("course_days", 1) >= 1) AND ("array_length"("course_days", 1) <= 4))))),
     CONSTRAINT "events_dive_has_start" CHECK ((("kind" <> 'dive'::"text") OR ("start_date" IS NOT NULL))),
@@ -1660,95 +1796,45 @@ CREATE TABLE IF NOT EXISTS "public"."events" (
 ALTER TABLE "public"."events" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."partner_shops" (
+CREATE TABLE IF NOT EXISTS "public"."gear_model_sizes" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "model_id" "uuid" NOT NULL,
+    "label" "text" NOT NULL,
+    "height_min" numeric,
+    "height_max" numeric,
+    "weight_min" numeric,
+    "weight_max" numeric,
+    "shoe_min" numeric,
+    "shoe_max" numeric,
+    "chest" "text",
+    "waist" "text",
+    "hip" "text",
+    "sort_order" integer DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE "public"."gear_model_sizes" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."gear_models" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "gear_type" "text" NOT NULL,
     "name" "text" NOT NULL,
-    "country" "text" NOT NULL,
-    "location" "text",
-    "website" "text",
-    "contact_name" "text",
-    "contact_email" "text",
-    "vouch_notes" "text",
-    "logo_url" "text",
-    "default_kickback_rate" numeric(5,4) DEFAULT 0.05 NOT NULL,
+    "brand" "text",
+    "gender" "text",
+    "size_unit" "text",
+    "notes" "text",
     "active" boolean DEFAULT true NOT NULL,
-    "created_by" "uuid",
-    CONSTRAINT "partner_shops_default_kickback_rate_check" CHECK ((("default_kickback_rate" >= (0)::numeric) AND ("default_kickback_rate" <= (1)::numeric)))
-);
-
-
-ALTER TABLE "public"."partner_shops" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."trip_referrals" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "sort_order" integer DEFAULT 0 NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "trip_id" "uuid" NOT NULL,
-    "diver_id" "uuid" NOT NULL,
-    "referral_code" "text" NOT NULL,
-    "status" "text" DEFAULT 'interested'::"text" NOT NULL,
-    "booked_amount" numeric(10,2),
-    "booked_currency" "text",
-    "kickback_rate" numeric(5,4),
-    "kickback_amount" numeric(12,2) GENERATED ALWAYS AS ("round"(("booked_amount" * "kickback_rate"), 2)) STORED,
-    "kickback_status" "text" DEFAULT 'pending'::"text" NOT NULL,
-    "received_at" timestamp with time zone,
-    "admin_notes" "text",
-    CONSTRAINT "trip_referrals_booked_amount_check" CHECK ((("booked_amount" IS NULL) OR ("booked_amount" >= (0)::numeric))),
-    CONSTRAINT "trip_referrals_kickback_rate_check" CHECK ((("kickback_rate" IS NULL) OR (("kickback_rate" >= (0)::numeric) AND ("kickback_rate" <= (1)::numeric)))),
-    CONSTRAINT "trip_referrals_kickback_status_check" CHECK (("kickback_status" = ANY (ARRAY['pending'::"text", 'invoiced'::"text", 'received'::"text"]))),
-    CONSTRAINT "trip_referrals_status_check" CHECK (("status" = ANY (ARRAY['interested'::"text", 'introduced'::"text", 'booked'::"text", 'completed'::"text", 'cancelled'::"text"])))
-);
-
-
-ALTER TABLE "public"."trip_referrals" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."trips" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "partner_shop_id" "uuid" NOT NULL,
-    "title" "text" NOT NULL,
-    "destination" "text" NOT NULL,
-    "summary" "text",
-    "description" "text",
-    "start_date" "date",
-    "end_date" "date",
-    "price" numeric(10,2),
-    "currency" "text" DEFAULT 'TWD'::"text" NOT NULL,
-    "hero_image_url" "text",
-    "highlights" "text"[] DEFAULT '{}'::"text"[] NOT NULL,
-    "booking_url" "text",
-    "kickback_rate" numeric(5,4) DEFAULT 0.05 NOT NULL,
-    "status" "text" DEFAULT 'draft'::"text" NOT NULL,
-    "published_at" timestamp with time zone,
     "created_by" "uuid",
-    CONSTRAINT "trips_check" CHECK ((("end_date" IS NULL) OR ("start_date" IS NULL) OR ("end_date" >= "start_date"))),
-    CONSTRAINT "trips_kickback_rate_check" CHECK ((("kickback_rate" >= (0)::numeric) AND ("kickback_rate" <= (1)::numeric))),
-    CONSTRAINT "trips_status_check" CHECK (("status" = ANY (ARRAY['draft'::"text", 'published'::"text", 'archived'::"text"])))
+    CONSTRAINT "gear_models_gear_type_check" CHECK (("gear_type" = ANY (ARRAY['wetsuit'::"text", 'bcd'::"text", 'fins'::"text"]))),
+    CONSTRAINT "gear_models_gender_check" CHECK (("gender" = ANY (ARRAY['female'::"text", 'male'::"text", 'kids'::"text"]))),
+    CONSTRAINT "gear_models_size_unit_check" CHECK (("size_unit" = ANY (ARRAY['jp'::"text", 'eu'::"text", 'us'::"text", 'uk'::"text", 'cm'::"text"])))
 );
 
 
-ALTER TABLE "public"."trips" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."my_trip_referrals" AS
- SELECT "r"."id",
-    "r"."trip_id",
-    "r"."referral_code",
-    "r"."status",
-    "r"."created_at",
-    "t"."title" AS "trip_title",
-    "t"."destination" AS "trip_destination",
-    "ps"."name" AS "partner_name"
-   FROM (("public"."trip_referrals" "r"
-     JOIN "public"."trips" "t" ON (("t"."id" = "r"."trip_id")))
-     JOIN "public"."partner_shops" "ps" ON (("ps"."id" = "t"."partner_shop_id")))
-  WHERE ("r"."diver_id" = "auth"."uid"());
-
-
-ALTER VIEW "public"."my_trip_referrals" OWNER TO "postgres";
+ALTER TABLE "public"."gear_models" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."notifications" (
@@ -1777,6 +1863,58 @@ CREATE TABLE IF NOT EXISTS "public"."orphan_auth_users" (
 
 
 ALTER TABLE "public"."orphan_auth_users" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."package_referrals" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "package_id" "uuid" NOT NULL,
+    "diver_id" "uuid" NOT NULL,
+    "referral_code" "text" NOT NULL,
+    "status" "text" DEFAULT 'interested'::"text" NOT NULL,
+    "booked_amount" numeric(10,2),
+    "booked_currency" "text",
+    "kickback_rate" numeric(5,4),
+    "kickback_amount" numeric(12,2) GENERATED ALWAYS AS ("round"(("booked_amount" * "kickback_rate"), 2)) STORED,
+    "kickback_status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "received_at" timestamp with time zone,
+    "admin_notes" "text",
+    CONSTRAINT "trip_referrals_booked_amount_check" CHECK ((("booked_amount" IS NULL) OR ("booked_amount" >= (0)::numeric))),
+    CONSTRAINT "trip_referrals_kickback_rate_check" CHECK ((("kickback_rate" IS NULL) OR (("kickback_rate" >= (0)::numeric) AND ("kickback_rate" <= (1)::numeric)))),
+    CONSTRAINT "trip_referrals_kickback_status_check" CHECK (("kickback_status" = ANY (ARRAY['pending'::"text", 'invoiced'::"text", 'received'::"text"]))),
+    CONSTRAINT "trip_referrals_status_check" CHECK (("status" = ANY (ARRAY['interested'::"text", 'introduced'::"text", 'booked'::"text", 'completed'::"text", 'cancelled'::"text"])))
+);
+
+
+ALTER TABLE "public"."package_referrals" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."packages" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "trusted_partner_id" "uuid" NOT NULL,
+    "title" "text" NOT NULL,
+    "destination" "text" NOT NULL,
+    "summary" "text",
+    "description" "text",
+    "start_date" "date",
+    "end_date" "date",
+    "price" numeric(10,2),
+    "currency" "text" DEFAULT 'TWD'::"text" NOT NULL,
+    "hero_image_url" "text",
+    "highlights" "text"[] DEFAULT '{}'::"text"[] NOT NULL,
+    "booking_url" "text",
+    "kickback_rate" numeric(5,4) DEFAULT 0.05 NOT NULL,
+    "status" "text" DEFAULT 'draft'::"text" NOT NULL,
+    "published_at" timestamp with time zone,
+    "created_by" "uuid",
+    CONSTRAINT "trips_check" CHECK ((("end_date" IS NULL) OR ("start_date" IS NULL) OR ("end_date" >= "start_date"))),
+    CONSTRAINT "trips_kickback_rate_check" CHECK ((("kickback_rate" >= (0)::numeric) AND ("kickback_rate" <= (1)::numeric))),
+    CONSTRAINT "trips_status_check" CHECK (("status" = ANY (ARRAY['draft'::"text", 'published'::"text", 'archived'::"text"])))
+);
+
+
+ALTER TABLE "public"."packages" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."payments" (
@@ -1901,6 +2039,32 @@ CREATE TABLE IF NOT EXISTS "public"."rooms" (
 ALTER TABLE "public"."rooms" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."scheduled_trips" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "title" "text" NOT NULL,
+    "destination" "text" NOT NULL,
+    "summary" "text",
+    "description" "text",
+    "start_date" "date",
+    "end_date" "date",
+    "price" numeric(10,2),
+    "currency" "text" DEFAULT 'TWD'::"text" NOT NULL,
+    "hero_image_url" "text",
+    "highlights" "text"[] DEFAULT '{}'::"text"[] NOT NULL,
+    "status" "text" DEFAULT 'draft'::"text" NOT NULL,
+    "published_at" timestamp with time zone,
+    "event_id" "uuid",
+    "created_by" "uuid",
+    CONSTRAINT "scheduled_trips_check" CHECK ((("end_date" IS NULL) OR ("start_date" IS NULL) OR ("end_date" >= "start_date"))),
+    CONSTRAINT "scheduled_trips_price_check" CHECK ((("price" IS NULL) OR ("price" >= (0)::numeric))),
+    CONSTRAINT "scheduled_trips_status_check" CHECK (("status" = ANY (ARRAY['draft'::"text", 'published'::"text", 'archived'::"text"])))
+);
+
+
+ALTER TABLE "public"."scheduled_trips" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."signup_attempts" (
     "id" bigint NOT NULL,
     "ip_hash" "bytea" NOT NULL,
@@ -1977,10 +2141,7 @@ CREATE TABLE IF NOT EXISTS "public"."travel_destinations" (
     "country" "text",
     "divetype" "text",
     "sort_order" integer,
-    "latitude" numeric,
-    "longitude" numeric,
     "international" boolean,
-    "northeast_diving" boolean,
     "location_picture" "text",
     "background_picture" "text",
     "diver_requirements" "text"
@@ -1990,33 +2151,55 @@ CREATE TABLE IF NOT EXISTS "public"."travel_destinations" (
 ALTER TABLE "public"."travel_destinations" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."trip_board" AS
- SELECT "t"."id",
-    "t"."title",
-    "t"."destination",
-    "t"."summary",
-    "t"."description",
-    "t"."start_date",
-    "t"."end_date",
-    "t"."price",
-    "t"."currency",
-    "t"."hero_image_url",
-    "t"."highlights",
-    "t"."booking_url",
-    "t"."published_at",
-    "ps"."id" AS "partner_shop_id",
-    "ps"."name" AS "partner_name",
-    "ps"."country" AS "partner_country",
-    "ps"."location" AS "partner_location",
-    "ps"."website" AS "partner_website",
-    "ps"."logo_url" AS "partner_logo_url",
-    "ps"."vouch_notes" AS "partner_vouch_notes"
-   FROM ("public"."trips" "t"
-     JOIN "public"."partner_shops" "ps" ON (("ps"."id" = "t"."partner_shop_id")))
-  WHERE ("t"."status" = 'published'::"text");
+CREATE TABLE IF NOT EXISTS "public"."trip_templates" (
+    "id" "uuid" NOT NULL,
+    "admin_title" "text",
+    "included" "text",
+    "not_included" "text",
+    "transportation" "text",
+    "slug" "text",
+    "event_type" "text",
+    "picture" "text",
+    "description" "text",
+    "tagline" "text",
+    "tagline_text" "text",
+    "details" "text",
+    "prerequisites" "text",
+    "itinerary" "text",
+    "event_date" "text",
+    "price" "text",
+    "sort_order" timestamp with time zone,
+    "trip_link" "text",
+    "planned_trip" boolean,
+    "details_document" "text",
+    "local_event_link" "text",
+    "local" boolean,
+    "trip" boolean
+);
 
 
-ALTER VIEW "public"."trip_board" OWNER TO "postgres";
+ALTER TABLE "public"."trip_templates" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."trusted_partners" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "name" "text" NOT NULL,
+    "country" "text",
+    "location" "text",
+    "website" "text",
+    "contact_name" "text",
+    "contact_email" "text",
+    "vouch_notes" "text",
+    "logo_url" "text",
+    "default_kickback_rate" numeric(5,4) DEFAULT 0.05 NOT NULL,
+    "active" boolean DEFAULT true NOT NULL,
+    "created_by" "uuid",
+    CONSTRAINT "partner_shops_default_kickback_rate_check" CHECK ((("default_kickback_rate" >= (0)::numeric) AND ("default_kickback_rate" <= (1)::numeric)))
+);
+
+
+ALTER TABLE "public"."trusted_partners" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."vehicles" (
@@ -2069,7 +2252,7 @@ ALTER TABLE ONLY "public"."signup_attempts" ALTER COLUMN "id" SET DEFAULT "nextv
 
 
 
-ALTER TABLE ONLY "public"."dive_travel"
+ALTER TABLE ONLY "public"."trip_templates"
     ADD CONSTRAINT "DiveTravel_pkey" PRIMARY KEY ("id");
 
 
@@ -2194,6 +2377,16 @@ ALTER TABLE ONLY "public"."events"
 
 
 
+ALTER TABLE ONLY "public"."gear_model_sizes"
+    ADD CONSTRAINT "gear_model_sizes_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."gear_models"
+    ADD CONSTRAINT "gear_models_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."notifications"
     ADD CONSTRAINT "notifications_pkey" PRIMARY KEY ("id");
 
@@ -2204,7 +2397,7 @@ ALTER TABLE ONLY "public"."orphan_auth_users"
 
 
 
-ALTER TABLE ONLY "public"."partner_shops"
+ALTER TABLE ONLY "public"."trusted_partners"
     ADD CONSTRAINT "partner_shops_pkey" PRIMARY KEY ("id");
 
 
@@ -2239,6 +2432,11 @@ ALTER TABLE ONLY "public"."push_subscriptions"
 
 
 
+ALTER TABLE ONLY "public"."scheduled_trips"
+    ADD CONSTRAINT "scheduled_trips_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."signup_attempts"
     ADD CONSTRAINT "signup_attempts_pkey" PRIMARY KEY ("id");
 
@@ -2249,17 +2447,17 @@ ALTER TABLE ONLY "public"."staff_availability"
 
 
 
-ALTER TABLE ONLY "public"."trip_referrals"
+ALTER TABLE ONLY "public"."package_referrals"
     ADD CONSTRAINT "trip_referrals_pkey" PRIMARY KEY ("id");
 
 
 
-ALTER TABLE ONLY "public"."trip_referrals"
+ALTER TABLE ONLY "public"."package_referrals"
     ADD CONSTRAINT "trip_referrals_referral_code_key" UNIQUE ("referral_code");
 
 
 
-ALTER TABLE ONLY "public"."trips"
+ALTER TABLE ONLY "public"."packages"
     ADD CONSTRAINT "trips_pkey" PRIMARY KEY ("id");
 
 
@@ -2351,15 +2549,11 @@ CREATE INDEX "duties_event_idx" ON "public"."duties" USING "btree" ("event_id") 
 
 
 
-CREATE INDEX "event_vehicles_date_idx" ON "public"."event_vehicles" USING "btree" ("event_date");
-
-
-
 CREATE INDEX "event_vehicles_event_idx" ON "public"."event_vehicles" USING "btree" ("event_id") WHERE ("event_id" IS NOT NULL);
 
 
 
-CREATE UNIQUE INDEX "event_vehicles_vehicle_date_uniq" ON "public"."event_vehicles" USING "btree" ("vehicle_id", "event_date");
+CREATE UNIQUE INDEX "event_vehicles_event_vehicle_uniq" ON "public"."event_vehicles" USING "btree" ("event_id", "vehicle_id");
 
 
 
@@ -2383,6 +2577,14 @@ CREATE INDEX "events_price_idx" ON "public"."events" USING "btree" ("price");
 
 
 
+CREATE INDEX "gear_model_sizes_model_idx" ON "public"."gear_model_sizes" USING "btree" ("model_id");
+
+
+
+CREATE INDEX "gear_models_type_active_idx" ON "public"."gear_models" USING "btree" ("gear_type", "active");
+
+
+
 CREATE INDEX "notifications_user_created_idx" ON "public"."notifications" USING "btree" ("user_id", "created_at" DESC);
 
 
@@ -2392,6 +2594,26 @@ CREATE INDEX "notifications_user_unread_idx" ON "public"."notifications" USING "
 
 
 CREATE INDEX "orphan_auth_users_created_idx" ON "public"."orphan_auth_users" USING "btree" ("created_at" DESC);
+
+
+
+CREATE INDEX "package_referrals_diver_idx" ON "public"."package_referrals" USING "btree" ("diver_id");
+
+
+
+CREATE UNIQUE INDEX "package_referrals_one_live_idx" ON "public"."package_referrals" USING "btree" ("package_id", "diver_id") WHERE ("status" <> 'cancelled'::"text");
+
+
+
+CREATE INDEX "package_referrals_package_idx" ON "public"."package_referrals" USING "btree" ("package_id");
+
+
+
+CREATE INDEX "packages_published_idx" ON "public"."packages" USING "btree" ("status", "start_date") WHERE ("status" = 'published'::"text");
+
+
+
+CREATE INDEX "packages_trusted_partner_idx" ON "public"."packages" USING "btree" ("trusted_partner_id");
 
 
 
@@ -2411,6 +2633,14 @@ CREATE INDEX "push_subscriptions_user_id_idx" ON "public"."push_subscriptions" U
 
 
 
+CREATE INDEX "scheduled_trips_event_idx" ON "public"."scheduled_trips" USING "btree" ("event_id");
+
+
+
+CREATE INDEX "scheduled_trips_published_idx" ON "public"."scheduled_trips" USING "btree" ("status", "start_date") WHERE ("status" = 'published'::"text");
+
+
+
 CREATE INDEX "signup_attempts_created_idx" ON "public"."signup_attempts" USING "btree" ("created_at" DESC);
 
 
@@ -2427,23 +2657,7 @@ CREATE INDEX "staff_availability_user_idx" ON "public"."staff_availability" USIN
 
 
 
-CREATE INDEX "trip_referrals_diver_idx" ON "public"."trip_referrals" USING "btree" ("diver_id");
-
-
-
-CREATE UNIQUE INDEX "trip_referrals_one_live_idx" ON "public"."trip_referrals" USING "btree" ("trip_id", "diver_id") WHERE ("status" <> 'cancelled'::"text");
-
-
-
-CREATE INDEX "trip_referrals_trip_idx" ON "public"."trip_referrals" USING "btree" ("trip_id");
-
-
-
-CREATE INDEX "trips_partner_idx" ON "public"."trips" USING "btree" ("partner_shop_id");
-
-
-
-CREATE INDEX "trips_published_idx" ON "public"."trips" USING "btree" ("status", "start_date") WHERE ("status" = 'published'::"text");
+CREATE INDEX "trusted_partners_active_idx" ON "public"."trusted_partners" USING "btree" ("active") WHERE "active";
 
 
 
@@ -2492,6 +2706,10 @@ CREATE OR REPLACE TRIGGER "duties_assignee_admin_trg" BEFORE INSERT OR UPDATE OF
 
 
 CREATE OR REPLACE TRIGGER "duties_no_busy_overlap_trg" BEFORE INSERT OR UPDATE OF "assignee_id", "start_date", "end_date" ON "public"."duties" FOR EACH ROW EXECUTE FUNCTION "public"."duties_enforce_no_busy_overlap"();
+
+
+
+CREATE OR REPLACE TRIGGER "notify_admins_ride_waitlist_trg" AFTER INSERT OR UPDATE ON "public"."bookings" FOR EACH ROW EXECUTE FUNCTION "public"."notify_admins_ride_waitlist"();
 
 
 
@@ -2551,15 +2769,15 @@ CREATE OR REPLACE TRIGGER "trg_events_normalize_title" BEFORE INSERT OR UPDATE O
 
 
 
+CREATE OR REPLACE TRIGGER "trg_package_referrals_set_code" BEFORE INSERT ON "public"."package_referrals" FOR EACH ROW EXECUTE FUNCTION "public"."package_referrals_set_code"();
+
+
+
 CREATE OR REPLACE TRIGGER "trg_profiles_one_level_family" BEFORE INSERT OR UPDATE OF "parent_account" ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."profiles_enforce_one_level_family"();
 
 
 
 CREATE OR REPLACE TRIGGER "trg_staff_availability_touch_updated_at" BEFORE UPDATE ON "public"."staff_availability" FOR EACH ROW EXECUTE FUNCTION "public"."touch_staff_availability_updated_at"();
-
-
-
-CREATE OR REPLACE TRIGGER "trg_trip_referrals_set_code" BEFORE INSERT ON "public"."trip_referrals" FOR EACH ROW EXECUTE FUNCTION "public"."trip_referrals_set_code"();
 
 
 
@@ -2734,11 +2952,6 @@ ALTER TABLE ONLY "public"."events"
 
 
 ALTER TABLE ONLY "public"."events"
-    ADD CONSTRAINT "events_divetravel_id_fkey" FOREIGN KEY ("divetravel_id") REFERENCES "public"."dive_travel"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."events"
     ADD CONSTRAINT "events_prereq_cert_id_fkey" FOREIGN KEY ("prereq_cert_id") REFERENCES "public"."cert_levels"("id") ON DELETE SET NULL;
 
 
@@ -2748,12 +2961,27 @@ ALTER TABLE ONLY "public"."events"
 
 
 
+ALTER TABLE ONLY "public"."events"
+    ADD CONSTRAINT "events_trip_template_id_fkey" FOREIGN KEY ("trip_template_id") REFERENCES "public"."trip_templates"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."gear_model_sizes"
+    ADD CONSTRAINT "gear_model_sizes_model_id_fkey" FOREIGN KEY ("model_id") REFERENCES "public"."gear_models"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."gear_models"
+    ADD CONSTRAINT "gear_models_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
 ALTER TABLE ONLY "public"."notifications"
     ADD CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
 
 
-ALTER TABLE ONLY "public"."partner_shops"
+ALTER TABLE ONLY "public"."trusted_partners"
     ADD CONSTRAINT "partner_shops_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
 
 
@@ -2793,28 +3021,38 @@ ALTER TABLE ONLY "public"."push_subscriptions"
 
 
 
+ALTER TABLE ONLY "public"."scheduled_trips"
+    ADD CONSTRAINT "scheduled_trips_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."scheduled_trips"
+    ADD CONSTRAINT "scheduled_trips_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE SET NULL;
+
+
+
 ALTER TABLE ONLY "public"."staff_availability"
     ADD CONSTRAINT "staff_availability_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
 
 
-ALTER TABLE ONLY "public"."trip_referrals"
+ALTER TABLE ONLY "public"."package_referrals"
     ADD CONSTRAINT "trip_referrals_diver_id_fkey" FOREIGN KEY ("diver_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
 
 
-ALTER TABLE ONLY "public"."trip_referrals"
-    ADD CONSTRAINT "trip_referrals_trip_id_fkey" FOREIGN KEY ("trip_id") REFERENCES "public"."trips"("id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."package_referrals"
+    ADD CONSTRAINT "trip_referrals_trip_id_fkey" FOREIGN KEY ("package_id") REFERENCES "public"."packages"("id") ON DELETE CASCADE;
 
 
 
-ALTER TABLE ONLY "public"."trips"
+ALTER TABLE ONLY "public"."packages"
     ADD CONSTRAINT "trips_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
 
 
 
-ALTER TABLE ONLY "public"."trips"
-    ADD CONSTRAINT "trips_partner_shop_id_fkey" FOREIGN KEY ("partner_shop_id") REFERENCES "public"."partner_shops"("id") ON DELETE RESTRICT;
+ALTER TABLE ONLY "public"."packages"
+    ADD CONSTRAINT "trips_partner_shop_id_fkey" FOREIGN KEY ("trusted_partner_id") REFERENCES "public"."trusted_partners"("id") ON DELETE RESTRICT;
 
 
 
@@ -3028,25 +3266,6 @@ CREATE POLICY "dive_logs: own update" ON "public"."dive_logs" FOR UPDATE TO "aut
 
 
 
-ALTER TABLE "public"."dive_travel" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "dive_travel: admin delete" ON "public"."dive_travel" FOR DELETE TO "authenticated" USING ("public"."is_admin"());
-
-
-
-CREATE POLICY "dive_travel: admin insert" ON "public"."dive_travel" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin"());
-
-
-
-CREATE POLICY "dive_travel: admin update" ON "public"."dive_travel" FOR UPDATE TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
-
-
-
-CREATE POLICY "dive_travel: public select" ON "public"."dive_travel" FOR SELECT TO "authenticated", "anon" USING (true);
-
-
-
 ALTER TABLE "public"."diver_notes" ENABLE ROW LEVEL SECURITY;
 
 
@@ -3187,6 +3406,28 @@ CREATE POLICY "events public select" ON "public"."events" FOR SELECT TO "authent
 
 
 
+ALTER TABLE "public"."gear_model_sizes" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "gear_model_sizes: admin write" ON "public"."gear_model_sizes" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+
+
+
+CREATE POLICY "gear_model_sizes: staff read" ON "public"."gear_model_sizes" FOR SELECT TO "authenticated" USING ("public"."is_staff_or_admin"());
+
+
+
+ALTER TABLE "public"."gear_models" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "gear_models: admin write" ON "public"."gear_models" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+
+
+
+CREATE POLICY "gear_models: staff read" ON "public"."gear_models" FOR SELECT TO "authenticated" USING ("public"."is_staff_or_admin"());
+
+
+
 ALTER TABLE "public"."notifications" ENABLE ROW LEVEL SECURITY;
 
 
@@ -3201,10 +3442,17 @@ CREATE POLICY "notifications: own update" ON "public"."notifications" FOR UPDATE
 ALTER TABLE "public"."orphan_auth_users" ENABLE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "public"."partner_shops" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."package_referrals" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "partner_shops: admin manage" ON "public"."partner_shops" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+CREATE POLICY "package_referrals: admin manage" ON "public"."package_referrals" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+
+
+
+ALTER TABLE "public"."packages" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "packages: admin manage" ON "public"."packages" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
 
 
 
@@ -3320,6 +3568,13 @@ CREATE POLICY "rooms: public select" ON "public"."rooms" FOR SELECT TO "authenti
 
 
 
+ALTER TABLE "public"."scheduled_trips" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "scheduled_trips: admin manage" ON "public"."scheduled_trips" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+
+
+
 ALTER TABLE "public"."signup_attempts" ENABLE ROW LEVEL SECURITY;
 
 
@@ -3361,17 +3616,29 @@ CREATE POLICY "travel_destinations: public select" ON "public"."travel_destinati
 
 
 
-ALTER TABLE "public"."trip_referrals" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."trip_templates" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "trip_referrals: admin manage" ON "public"."trip_referrals" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+CREATE POLICY "trip_templates: admin delete" ON "public"."trip_templates" FOR DELETE TO "authenticated" USING ("public"."is_admin"());
 
 
 
-ALTER TABLE "public"."trips" ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "trip_templates: admin insert" ON "public"."trip_templates" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin"());
 
 
-CREATE POLICY "trips: admin manage" ON "public"."trips" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+
+CREATE POLICY "trip_templates: admin update" ON "public"."trip_templates" FOR UPDATE TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+
+
+
+CREATE POLICY "trip_templates: public select" ON "public"."trip_templates" FOR SELECT TO "authenticated", "anon" USING (true);
+
+
+
+ALTER TABLE "public"."trusted_partners" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "trusted_partners: admin manage" ON "public"."trusted_partners" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
 
 
 
@@ -3426,6 +3693,21 @@ GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3697,16 +3979,16 @@ GRANT ALL ON FUNCTION "public"."event_confirmed_counts"("p_event_ids" "uuid"[]) 
 
 
 
-GRANT ALL ON FUNCTION "public"."event_ride_seats"("p_event_id" "uuid") TO "anon";
+REVOKE ALL ON FUNCTION "public"."event_ride_seats"("p_event_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."event_ride_seats"("p_event_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."event_ride_seats"("p_event_id" "uuid") TO "service_role";
 
 
 
-REVOKE ALL ON FUNCTION "public"."express_trip_interest"("p_trip_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."express_trip_interest"("p_trip_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."express_trip_interest"("p_trip_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."express_trip_interest"("p_trip_id" "uuid") TO "service_role";
+REVOKE ALL ON FUNCTION "public"."express_package_interest"("p_package_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."express_package_interest"("p_package_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."express_package_interest"("p_package_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."express_package_interest"("p_package_id" "uuid") TO "service_role";
 
 
 
@@ -3746,6 +4028,30 @@ GRANT ALL ON FUNCTION "public"."is_staff_or_admin"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."list_my_package_referrals"() TO "anon";
+GRANT ALL ON FUNCTION "public"."list_my_package_referrals"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."list_my_package_referrals"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."list_package_board"() TO "anon";
+GRANT ALL ON FUNCTION "public"."list_package_board"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."list_package_board"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."list_scheduled_trips"() TO "anon";
+GRANT ALL ON FUNCTION "public"."list_scheduled_trips"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."list_scheduled_trips"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."list_trusted_partners"() TO "anon";
+GRANT ALL ON FUNCTION "public"."list_trusted_partners"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."list_trusted_partners"() TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."log_orphan_auth_user"("p_user_id" "uuid", "p_email" "text", "p_reason" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."log_orphan_auth_user"("p_user_id" "uuid", "p_email" "text", "p_reason" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."log_orphan_auth_user"("p_user_id" "uuid", "p_email" "text", "p_reason" "text") TO "authenticated";
@@ -3765,9 +4071,21 @@ GRANT ALL ON FUNCTION "public"."my_parent_account"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."notify_admins_ride_waitlist"() TO "anon";
+GRANT ALL ON FUNCTION "public"."notify_admins_ride_waitlist"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."notify_admins_ride_waitlist"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."offer_next_waitlist_spot"("p_event_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."offer_next_waitlist_spot"("p_event_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."offer_next_waitlist_spot"("p_event_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."package_referrals_set_code"() TO "anon";
+GRANT ALL ON FUNCTION "public"."package_referrals_set_code"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."package_referrals_set_code"() TO "service_role";
 
 
 
@@ -3807,6 +4125,12 @@ GRANT ALL ON FUNCTION "public"."record_signup_attempt"("p_ip_hash" "bytea") TO "
 GRANT ALL ON FUNCTION "public"."refresh_event_display_title"("p_event_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."refresh_event_display_title"("p_event_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."refresh_event_display_title"("p_event_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."replace_gear_model_sizes"("p_model_id" "uuid", "p_sizes" "jsonb") TO "anon";
+GRANT ALL ON FUNCTION "public"."replace_gear_model_sizes"("p_model_id" "uuid", "p_sizes" "jsonb") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."replace_gear_model_sizes"("p_model_id" "uuid", "p_sizes" "jsonb") TO "service_role";
 
 
 
@@ -3878,15 +4202,12 @@ GRANT ALL ON FUNCTION "public"."trg_bookings_refresh_event_title"() TO "service_
 
 
 
-GRANT ALL ON FUNCTION "public"."trip_referrals_set_code"() TO "anon";
-GRANT ALL ON FUNCTION "public"."trip_referrals_set_code"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."trip_referrals_set_code"() TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."update_diver_gear_sizes"("diver_id" "uuid", "fin_size" "text", "bcd_size" "text", "wetsuit_size" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."update_diver_gear_sizes"("diver_id" "uuid", "fin_size" "text", "bcd_size" "text", "wetsuit_size" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_diver_gear_sizes"("diver_id" "uuid", "fin_size" "text", "bcd_size" "text", "wetsuit_size" "text") TO "service_role";
+
+
+
 
 
 
@@ -3965,12 +4286,6 @@ GRANT ALL ON TABLE "public"."dive_logs" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."dive_travel" TO "anon";
-GRANT ALL ON TABLE "public"."dive_travel" TO "authenticated";
-GRANT ALL ON TABLE "public"."dive_travel" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."diver_notes" TO "anon";
 GRANT ALL ON TABLE "public"."diver_notes" TO "authenticated";
 GRANT ALL ON TABLE "public"."diver_notes" TO "service_role";
@@ -4019,27 +4334,15 @@ GRANT ALL ON TABLE "public"."events" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."partner_shops" TO "anon";
-GRANT ALL ON TABLE "public"."partner_shops" TO "authenticated";
-GRANT ALL ON TABLE "public"."partner_shops" TO "service_role";
+GRANT ALL ON TABLE "public"."gear_model_sizes" TO "anon";
+GRANT ALL ON TABLE "public"."gear_model_sizes" TO "authenticated";
+GRANT ALL ON TABLE "public"."gear_model_sizes" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."trip_referrals" TO "anon";
-GRANT ALL ON TABLE "public"."trip_referrals" TO "authenticated";
-GRANT ALL ON TABLE "public"."trip_referrals" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."trips" TO "anon";
-GRANT ALL ON TABLE "public"."trips" TO "authenticated";
-GRANT ALL ON TABLE "public"."trips" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."my_trip_referrals" TO "anon";
-GRANT ALL ON TABLE "public"."my_trip_referrals" TO "authenticated";
-GRANT ALL ON TABLE "public"."my_trip_referrals" TO "service_role";
+GRANT ALL ON TABLE "public"."gear_models" TO "anon";
+GRANT ALL ON TABLE "public"."gear_models" TO "authenticated";
+GRANT ALL ON TABLE "public"."gear_models" TO "service_role";
 
 
 
@@ -4052,6 +4355,18 @@ GRANT ALL ON TABLE "public"."notifications" TO "service_role";
 GRANT ALL ON TABLE "public"."orphan_auth_users" TO "anon";
 GRANT ALL ON TABLE "public"."orphan_auth_users" TO "authenticated";
 GRANT ALL ON TABLE "public"."orphan_auth_users" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."package_referrals" TO "anon";
+GRANT ALL ON TABLE "public"."package_referrals" TO "authenticated";
+GRANT ALL ON TABLE "public"."package_referrals" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."packages" TO "anon";
+GRANT ALL ON TABLE "public"."packages" TO "authenticated";
+GRANT ALL ON TABLE "public"."packages" TO "service_role";
 
 
 
@@ -4091,6 +4406,12 @@ GRANT ALL ON TABLE "public"."rooms" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."scheduled_trips" TO "anon";
+GRANT ALL ON TABLE "public"."scheduled_trips" TO "authenticated";
+GRANT ALL ON TABLE "public"."scheduled_trips" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."signup_attempts" TO "anon";
 GRANT ALL ON TABLE "public"."signup_attempts" TO "authenticated";
 GRANT ALL ON TABLE "public"."signup_attempts" TO "service_role";
@@ -4121,9 +4442,15 @@ GRANT ALL ON TABLE "public"."travel_destinations" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."trip_board" TO "anon";
-GRANT ALL ON TABLE "public"."trip_board" TO "authenticated";
-GRANT ALL ON TABLE "public"."trip_board" TO "service_role";
+GRANT ALL ON TABLE "public"."trip_templates" TO "anon";
+GRANT ALL ON TABLE "public"."trip_templates" TO "authenticated";
+GRANT ALL ON TABLE "public"."trip_templates" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."trusted_partners" TO "anon";
+GRANT ALL ON TABLE "public"."trusted_partners" TO "authenticated";
+GRANT ALL ON TABLE "public"."trusted_partners" TO "service_role";
 
 
 
@@ -4388,20 +4715,7 @@ CREATE POLICY "nitrox-cards: update own" ON "storage"."objects" FOR UPDATE TO "a
 
 
 
--- ── Storage buckets ──────────────────────────────────────────────────────
-insert into storage.buckets (id, name, public) values
-  ('cert-cards',   'cert-cards',   false),
-  ('nitrox-cards', 'nitrox-cards', false),
-  ('deep-cards',   'deep-cards',   false)
-on conflict (id) do nothing;
-
--- ── Seeded reference data: GENERIC cert_levels only ──────────────────────
--- Standard PADI/SSI/SDI/TDI certification levels every dive shop needs. The
--- shop-specific catalog (dive_travel / travel_destinations /
--- cancellation_policies) is intentionally NOT seeded: a fresh deployment
--- starts empty and the shop adds its own via the admin UI.
--- session_replication_role=replica defers FK checks for cert_levels'
--- self-referential padi_equivalent_id during the load.
+-- ── Migration-seeded reference data ─────────────────────────
 set session_replication_role = replica;
 INSERT INTO public.cert_levels VALUES ('abfe1ba8-e2f7-460a-8246-2cb62120d268', 'instructor', 'Instructor', '教練', 5, '2026-07-01 14:35:02.936225+00', '2026-07-01 14:35:02.936225+00', 'PADI', 'abfe1ba8-e2f7-460a-8246-2cb62120d268') ON CONFLICT DO NOTHING;
 INSERT INTO public.cert_levels VALUES ('095097a8-4053-4d8c-9456-1e1ce4468c04', 'sdi_open_water', 'Open Water Scuba Diver', NULL, 1, '2026-07-01 14:35:03.337304+00', '2026-07-01 14:35:03.337304+00', 'SDI', 'f7596e96-4af7-4e5c-acf5-d26a86b99ce0') ON CONFLICT DO NOTHING;
@@ -4457,11 +4771,7 @@ INSERT INTO public.cert_levels VALUES ('2996514c-459a-4265-8244-2642c18c800f', '
 INSERT INTO public.cert_levels VALUES ('eecf0d82-c143-4c0d-bc20-435da79b1b42', 'msdt', 'MSDT', NULL, 6, '2026-07-01 14:35:03.361878+00', '2026-07-01 14:35:03.361878+00', 'PADI', 'eecf0d82-c143-4c0d-bc20-435da79b1b42') ON CONFLICT DO NOTHING;
 INSERT INTO public.cert_levels VALUES ('57d8c248-d60d-4346-b83a-af9974006875', 'idc_staff', 'IDC Staff', NULL, 7, '2026-07-01 14:35:03.361878+00', '2026-07-01 14:35:03.361878+00', 'PADI', '57d8c248-d60d-4346-b83a-af9974006875') ON CONFLICT DO NOTHING;
 INSERT INTO public.cert_levels VALUES ('e514c92f-da13-4f75-93b3-7a3f58b98ee5', 'course_director', 'Course Director', NULL, 8, '2026-07-01 14:35:03.361878+00', '2026-07-01 14:35:03.361878+00', 'PADI', 'e514c92f-da13-4f75-93b3-7a3f58b98ee5') ON CONFLICT DO NOTHING;
-
-
---
--- PostgreSQL database dump complete
---
-
-
+INSERT INTO storage.buckets VALUES ('cert-cards', 'cert-cards', NULL, '2026-07-08 04:19:35.977959+00', '2026-07-08 04:19:35.977959+00', false, false, NULL, NULL, NULL, 'STANDARD') ON CONFLICT DO NOTHING;
+INSERT INTO storage.buckets VALUES ('nitrox-cards', 'nitrox-cards', NULL, '2026-07-08 04:19:35.977959+00', '2026-07-08 04:19:35.977959+00', false, false, NULL, NULL, NULL, 'STANDARD') ON CONFLICT DO NOTHING;
+INSERT INTO storage.buckets VALUES ('deep-cards', 'deep-cards', NULL, '2026-07-08 04:19:35.977959+00', '2026-07-08 04:19:35.977959+00', false, false, NULL, NULL, NULL, 'STANDARD') ON CONFLICT DO NOTHING;
 set session_replication_role = origin;
