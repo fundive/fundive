@@ -72,7 +72,7 @@ export interface EventFormProps {
   submitLabel?: string
   /** Create-mode only: extra fields (e.g. a car picker) whose values the page
    *  persists after the event row exists. Given the current event type. */
-  renderCreateExtras?: (type: 'dive' | 'course', opts: { startDate: string | null }) => ReactNode
+  renderCreateExtras?: (type: 'dive' | 'course') => ReactNode
 }
 
 export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, renderCreateExtras }: EventFormProps) {
@@ -821,7 +821,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
         )}
       </Section>
 
-      {mode === 'create' && renderCreateExtras && renderCreateExtras(form.type, { startDate: form.start_date || null })}
+      {mode === 'create' && renderCreateExtras?.(form.type)}
 
       {error && (
         <p className="text-sm text-red-200 bg-red-900/50 border border-accent rounded-md p-2">{error}</p>

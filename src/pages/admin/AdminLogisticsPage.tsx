@@ -20,8 +20,8 @@ import { EventVehicleGroup } from '../../components/admin/EventVehicleGroup'
 import { fetchVehicles } from '../../lib/vehicles'
 import { fetchGearModelsWithSizes } from '../../lib/gear-models'
 import type { GearModelWithSizes } from '../../lib/gear-sizing'
-import { fetchVehicleAllocationsForDate, availableVehicles, allocationEventId } from '../../lib/event-vehicles'
-import { planFleet, type Rider } from '../../lib/vehicle-planning'
+import { fetchVehiclesForEvents, availableVehicles, allocationEventId } from '../../lib/event-vehicles'
+import { planFleet, type Rider, type SeatingPlan, type FleetVehicle } from '../../lib/vehicle-planning'
 import { useAuth } from '../../hooks/useAuth'
 import type { AppEvent, Booking, BookingDetails, Credit, Duty, EventVehicle, Payment, Profile, Vehicle } from '../../types/database'
 
@@ -43,12 +43,12 @@ export function AdminLogisticsPage() {
   const { profile } = useAuth()
   const isAdmin = profile?.role === 'admin'
   const [tab, setTab] = useState<Tab>('today')
+  const [otherDay, setOtherDay] = useState('')
   // The shop's gear sizing charts, loaded once for the rental fit lookup.
   const [gearModels, setGearModels] = useState<GearModelWithSizes[]>([])
   useEffect(() => {
     fetchGearModelsWithSizes().then(setGearModels).catch(() => { /* charts are optional */ })
   }, [])
-  const [otherDay, setOtherDay] = useState('')
   // null = not loaded yet; [] = loaded, no event-days in range.
   const [upcomingDays, setUpcomingDays] = useState<string[] | null>(null)
   // null = loading; [] = loaded, no events that day.
@@ -61,9 +61,9 @@ export function AdminLogisticsPage() {
   // The whole transport fleet — loaded once. Active vehicles plan rides; the
   // full list (incl. retired) names cars in existing allocations.
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
-  // Car-to-event allocations for the selected day (one row per car per event).
+  // Car-to-event allocations for the day's events (one row per car per event).
   const [allocations, setAllocations] = useState<EventVehicle[]>([])
-  // Bumped after an assign/unassign to refetch the day's allocations.
+  // Bumped after an assign/unassign to refetch the allocations.
   const [allocReload, setAllocReload] = useState(0)
 
   const todayKey = useMemo(
@@ -89,23 +89,25 @@ export function AdminLogisticsPage() {
     return () => { cancelled = true }
   }, [])
 
-  // Car allocations for the selected day — refetched when the day changes or
-  // after an assign/unassign (allocReload).
+  // Car allocations for the day's events — refetched when the events change or
+  // after an assign/unassign (allocReload). Allocations are keyed by event now,
+  // so we ask for exactly the events shown.
   useEffect(() => {
-    if (!dayKey) {
+    if (!groups || groups.length === 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAllocations([])
       return
     }
+    const eventIds = groups.map(g => g.event.id)
     let cancelled = false
     ;(async () => {
       try {
-        const rows = await fetchVehicleAllocationsForDate(dayKey)
+        const rows = await fetchVehiclesForEvents(eventIds)
         if (!cancelled) setAllocations(rows)
       } catch { if (!cancelled) setAllocations([]) }
     })()
     return () => { cancelled = true }
-  }, [dayKey, allocReload])
+  }, [groups, allocReload])
 
   // Populate the "Other day" dropdown with upcoming days that actually have
   // events, so the admin never picks a dead day.
@@ -265,25 +267,24 @@ export function AdminLogisticsPage() {
   // the shop's prep list sits next to gear + handle-with-care in the summary.
   const overallAddons = addonTotals(allRows, addonTitles)
   const transport = splitByTransport(allRows)
-  // Named riders for the seat-by-seat ride plan. Divers who need a ride...
-  const diverRiders: Rider[] = transport.needsRide.map(r => ({
-    id: r.profile?.id ?? r.booking.id,
-    name: personName(r.profile?.name, r.profile?.nickname) || '(no profile)',
-    kind: 'diver',
-  }))
-  // ...and each on-duty staff member once, regardless of how many of the day's
-  // events they cover, so the ride count isn't double-counted.
+  // Each on-duty staff member once, regardless of how many of the day's events
+  // they cover, so the board's staff count isn't double-counted.
   const staffRiders: Rider[] = []
-  const seenStaff = new Set<string>()
+  // Day-wide on-duty staff for the overall board — one entry per person even
+  // when they cover several of the day's events, with all the roles they hold.
+  const dayStaff: { key: string; name: string; roles: string[] }[] = []
+  const staffIndex = new Map<string, number>()
   for (const s of (groups ?? []).flatMap(g => g.staff)) {
     const key = s.profile?.id ?? s.dutyId
-    if (seenStaff.has(key)) continue
-    seenStaff.add(key)
-    staffRiders.push({
-      id: key,
-      name: personName(s.profile?.name, s.profile?.nickname) || '(staff)',
-      kind: 'staff',
-    })
+    let i = staffIndex.get(key)
+    if (i === undefined) {
+      i = dayStaff.length
+      staffIndex.set(key, i)
+      const name = personName(s.profile?.name, s.profile?.nickname) || '(staff)'
+      dayStaff.push({ key, name, roles: [] })
+      staffRiders.push({ id: key, name, kind: 'staff' })
+    }
+    if (!dayStaff[i].roles.includes(s.role)) dayStaff[i].roles.push(s.role)
   }
   const onDutyStaffCount = staffRiders.length
   // Divers who still owe — for the whole-day summary and each event's list.
@@ -304,10 +305,6 @@ export function AdminLogisticsPage() {
   // `vehicles` only to name existing allocations.
   const activeVehicles = vehicles.filter(v => v.active)
   const vehicleMap = new Map(vehicles.map(v => [v.id, v]))
-  // Every car already on some event that day — exclusivity removes these from
-  // every event's "assign a car" picker.
-  const allocatedVehicleIds = new Set(allocations.map(a => a.vehicle_id))
-  const availableCars = availableVehicles(activeVehicles, allocatedVehicleIds)
   // Allocations grouped by the event they're on, for the per-event car block.
   const allocByEvent = new Map<string, EventVehicle[]>()
   for (const a of allocations) {
@@ -317,13 +314,37 @@ export function AdminLogisticsPage() {
     arr.push(a)
     allocByEvent.set(eid, arr)
   }
-  // Ride plan: seat everyone who travels in the fleet — divers who need a ride
-  // plus all on-duty staff. No driver assignment; all seats are physical seats.
-  const fleetPlan = planFleet(
-    activeVehicles.map(v => ({ name: v.name, passenger_seats: v.passenger_seats })),
-    diverRiders,
-    staffRiders,
-  )
+  // Ride plan follows the per-event car assignments: each event's ride-needing
+  // divers and on-duty staff are seated ONLY in the cars assigned to that event
+  // (a diver can't ride in a car that isn't on their event). Staff covering
+  // several of the day's events are seated once — in the first event they turn
+  // up in — so the day total counts each body once. The overall plan is the sum
+  // of these per-event seatings, so assigning/unassigning a car reshuffles the
+  // divers and refreshes this section.
+  const seatedStaff = new Set<string>()
+  const fleetPlan = combinePlans((groups ?? []).map(g => {
+    const eventDivers: Rider[] = splitByTransport(g.rows).needsRide.map(r => ({
+      id: r.profile?.id ?? r.booking.id,
+      name: personName(r.profile?.name, r.profile?.nickname) || '(no profile)',
+      kind: 'diver',
+    }))
+    const eventStaff: Rider[] = []
+    for (const s of g.staff) {
+      const key = s.profile?.id ?? s.dutyId
+      if (seatedStaff.has(key)) continue
+      seatedStaff.add(key)
+      eventStaff.push({
+        id: key,
+        name: personName(s.profile?.name, s.profile?.nickname) || '(staff)',
+        kind: 'staff',
+      })
+    }
+    const fleet: FleetVehicle[] = (allocByEvent.get(g.event.id) ?? [])
+      .map(a => vehicleMap.get(a.vehicle_id))
+      .filter((v): v is Vehicle => !!v)
+      .map(v => ({ name: v.name, passenger_seats: v.passenger_seats }))
+    return planFleet(fleet, eventDivers, eventStaff)
+  }))
 
   const promptForDay = tab === 'other' && !otherDay
 
@@ -371,6 +392,19 @@ export function AdminLogisticsPage() {
             <p className="text-sm text-brand-900 font-medium">
               {groups.length} event{groups.length === 1 ? '' : 's'} · {allRows.length} diver{allRows.length === 1 ? '' : 's'}
             </p>
+            {dayStaff.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">On-duty staff</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {dayStaff.map(s => (
+                    <span key={s.key} className="text-xs px-2 py-0.5 rounded-full border border-brand-900 text-brand-900 font-medium">
+                      {s.name}
+                      {s.roles.length > 0 && <span className="font-normal text-brand-950"> · {s.roles.join(', ')}</span>}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             {allRows.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">Payments</p>
@@ -445,7 +479,10 @@ export function AdminLogisticsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="text-base font-semibold break-words">
                     {isAdmin ? (
-                      <Link to={`/admin/events/${g.event.type}/${g.event.id}/edit`} className="hover:underline">
+                      <Link
+                        to={`/admin/events/${g.event.type}/${g.event.id}/edit`}
+                        className="hover:underline"
+                      >
                         {g.event.title}
                       </Link>
                     ) : (
@@ -469,9 +506,11 @@ export function AdminLogisticsPage() {
               <StaffDutyGroup rows={g.staff} />
               <EventVehicleGroup
                 event={g.event}
-                dayKey={dayKey}
                 allocations={allocByEvent.get(g.event.id) ?? []}
-                available={availableCars}
+                available={availableVehicles(
+                  activeVehicles,
+                  new Set((allocByEvent.get(g.event.id) ?? []).map(a => a.vehicle_id)),
+                )}
                 vehicleMap={vehicleMap}
                 riders={splitByTransport(g.rows).needsRide.length
                   + new Set(g.staff.map(s => s.profile?.id ?? s.dutyId)).size}
@@ -486,7 +525,7 @@ export function AdminLogisticsPage() {
                 <p className="text-xs text-brand-950/70 font-medium italic pl-1">No active registrants.</p>
               ) : (
                 g.rows.map(r => (
-                  <DiverGearCard key={r.booking.id} row={r} onProfilePatched={patchProfile} linkToProfile gearModels={gearModels} />
+                  <DiverGearCard key={r.booking.id} row={r} onProfilePatched={patchProfile} linkToProfile={isAdmin} gearModels={gearModels} />
                 ))
               )}
             </section>
@@ -495,6 +534,27 @@ export function AdminLogisticsPage() {
       )}
     </div>
   )
+}
+
+// Fold the per-event seatings into one day-wide plan for the overall board:
+// every car taken across the day with who's aboard, plus anyone left without a
+// seat in their own event's cars.
+function combinePlans(plans: SeatingPlan[]): SeatingPlan {
+  const cars = plans.flatMap(p => p.cars)
+  const unseated = plans.flatMap(p => p.unseated)
+  const divers = plans.reduce((s, p) => s + p.divers, 0)
+  const staff = plans.reduce((s, p) => s + p.staff, 0)
+  return {
+    cars,
+    unseated,
+    divers,
+    staff,
+    riders: divers + staff,
+    seats: plans.reduce((s, p) => s + p.seats, 0),
+    vehiclesNeeded: cars.length,
+    fits: unseated.length === 0,
+    shortfall: unseated.length,
+  }
 }
 
 function DayTab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
