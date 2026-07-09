@@ -5,6 +5,7 @@ import { fetchEventsInRange, formatEventSpan, isPastEvent, eventIsFull } from '.
 import { resolveImageUrl } from '../../lib/images'
 import { siteConfig } from '../../config/site'
 import { CARD_ELEVATED } from '../../styles/tokens'
+import { t } from '../../i18n'
 import type { AppEvent } from '../../types/database'
 
 // Highlights upcoming events the admin has flagged `featured`, floated over the
@@ -38,9 +39,9 @@ export function FeaturedEvents() {
   if (events.length === 0) return null
 
   return (
-    <section aria-label="Featured trips" className="space-y-3">
+    <section aria-label={t.dashboard.featuredTrips} className="space-y-3">
       <h2 className={`text-sm font-bold uppercase tracking-[0.15em] flex items-center gap-2 drop-shadow ${DARK ? 'text-reef-300' : 'text-white'}`}>
-        <span aria-hidden>★</span> Featured trips
+        <span aria-hidden>★</span> {t.dashboard.featuredTrips}
       </h2>
       <ul className="space-y-3">
         {events.map(e => (
@@ -83,12 +84,12 @@ function FeaturedCard({ event: e }: { event: AppEvent }) {
         <p className="text-base font-bold leading-tight text-white drop-shadow-sm">{e.title}</p>
         <p className={`mt-1 text-xs font-medium text-brand-100/90 ${DARK ? 'mono' : ''}`}>
           {formatEventSpan(e, { withYear: true })}
-          {full && <span className="text-red-300 font-semibold"> · waitlist</span>}
+          {full && <span className="text-red-300 font-semibold"> · {t.dashboard.waitlist}</span>}
         </p>
       </div>
 
       <span className={`absolute right-3 top-3 rounded-full bg-brand-950/50 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm transition-colors ${DARK ? 'text-reef-200 group-hover:text-reef-100' : 'text-white group-hover:text-brand-100'}`}>
-        Register →
+        {t.common.register} →
       </span>
     </Link>
   )
