@@ -309,6 +309,17 @@ img, video, canvas {
 :root[data-theme="dark"] .text-brand-800 { color: var(--color-reef-300); }
 :root[data-theme="dark"] .placeholder\:text-brand-900::placeholder { color: color-mix(in oklab, var(--color-brand-100) 45%, transparent); }
 
+/* Native <select> dropdowns render their options in an OS popup with a white
+   background, but the option text inherits the select's `color` — which the
+   brand-ink flip above turns near-white, giving white-on-white options in every
+   native dropdown. Pin options to dark ink on a white sheet so the open list
+   stays legible in the dark theme, regardless of the closed control's text. */
+:root[data-theme="dark"] option,
+:root[data-theme="dark"] optgroup {
+  color: var(--color-brand-950);
+  background-color: #ffffff;
+}
+
 /* Translucent-white cards → frosted dark glass. Opaque + the light card alphas
    only; the dark-native bg-white/5–15 fills are intentionally NOT listed. */
 :root[data-theme="dark"] .bg-white,
