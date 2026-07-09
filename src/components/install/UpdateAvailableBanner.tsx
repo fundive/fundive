@@ -11,6 +11,8 @@
 
 import { pick } from '../../styles/tokens'
 
+import { t } from '../../i18n'
+
 interface Props {
   onUpdate: () => void
 }
@@ -30,13 +32,13 @@ export function UpdateAvailableBanner({ onUpdate }: Props) {
       aria-live="polite"
       className="fixed top-0 inset-x-0 z-[110] bg-brand-700 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm shadow-md"
     >
-      <span className="font-semibold">A new version is available.</span>
+      <span className="font-semibold">{t.install.updateAvailable}</span>
       <button
         type="button"
         onClick={onUpdate}
         className={`${UPDATE_BTN} font-semibold px-3 py-1 rounded-md transition-colors`}
       >
-        Update
+        {t.install.update}
       </button>
     </div>
   )
