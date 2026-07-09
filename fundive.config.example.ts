@@ -15,7 +15,7 @@ import { defineConfig } from 'fundive/config'
 
 export const siteConfig = defineConfig({
   // Bump only when the platform CHANGELOG says to.
-  configVersion: 4,
+  configVersion: 5,
 
   identity: {
     appName: 'FunDive',
@@ -46,6 +46,8 @@ export const siteConfig = defineConfig({
     timezone: 'Asia/Taipei',
     currency: 'USD',
     currencyLabel: 'USD',
+    // The one language the whole app renders in. 'en' | 'zh-TW' | 'ja'.
+    language: 'en',
   },
 
   theme: {
