@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { annualWaivers, annualWaiverStatus, fetchDiverSignatures, type AnnualWaiverStatus } from '../../lib/waivers'
+import { annualWaivers, annualWaiverStatus, fetchDiverSignatures, fetchWaivers, type AnnualWaiverStatus } from '../../lib/waivers'
 import { WaiverSignDialog } from '../waivers/WaiverSignDialog'
 import type { WaiverDef } from '../../config/waivers'
 import type { WaiverSignature } from '../../types/database'
@@ -10,14 +10,15 @@ import type { WaiverSignature } from '../../types/database'
 // button that opens the shared e-signature dialog.
 export function MyWaivers({ diverId }: { diverId: string }) {
   const [signatures, setSignatures] = useState<WaiverSignature[] | null>(null)
+  const [catalog, setCatalog] = useState<WaiverDef[]>([])
   const [signing, setSigning] = useState<WaiverDef | null>(null)
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
-        const rows = await fetchDiverSignatures(diverId)
-        if (!cancelled) setSignatures(rows)
+        const [rows, waivers] = await Promise.all([fetchDiverSignatures(diverId), fetchWaivers()])
+        if (!cancelled) { setSignatures(rows); setCatalog(waivers) }
       } catch {
         if (!cancelled) setSignatures([])
       }
@@ -34,7 +35,7 @@ export function MyWaivers({ diverId }: { diverId: string }) {
     }
   }
 
-  const waivers = annualWaivers()
+  const waivers = annualWaivers(catalog)
   const now = new Date()
 
   return (
