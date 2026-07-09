@@ -15,6 +15,7 @@ import { ScheduledTripsIcon } from '../icons/ScheduledTripsIcon'
 import { PersonIcon } from '../icons/PersonIcon'
 import { NotificationBell } from '../NotificationBell'
 import { siteConfig } from '../../config/site'
+import { t } from '../../i18n'
 import {
   PAGE, NAV_BAR, NAV_BOTTOM, BTN_LIGHT,
   ON_DEEP_MUTED, ON_DEEP_SUBTLE, ON_DEEP_BODY,
@@ -44,15 +45,15 @@ function RecordsIcon() {
 }
 
 const baseNavItems: Array<{ to: string; label: string; icon: React.ReactNode }> = [
-  { to: '/calendar', label: 'Calendar', icon: <CalendarIcon /> },
-  { to: '/records',  label: 'Records',  icon: <RecordsIcon /> },
-  { to: '/profile',  label: 'Profile',  icon: <PersonIcon /> },
-  { to: '/contact',  label: 'Contact',  icon: <ChatIcon /> },
+  { to: '/calendar', label: t.nav.calendar, icon: <CalendarIcon /> },
+  { to: '/records',  label: t.nav.records,  icon: <RecordsIcon /> },
+  { to: '/profile',  label: t.nav.profile,  icon: <PersonIcon /> },
+  { to: '/contact',  label: t.nav.contact,  icon: <ChatIcon /> },
 ]
 
 // "Duty" appears for staff/admin only — divers never have rows in
 // duties (the assignee trigger blocks them).
-const dutyNavItem = { to: '/duties', label: 'Duty', icon: <CrosshairIcon /> }
+const dutyNavItem = { to: '/duties', label: t.nav.duty, icon: <CrosshairIcon /> }
 
 export function AppShell() {
   const { user, profile, signOut } = useAuth()
@@ -84,7 +85,7 @@ export function AppShell() {
               href={siteConfig.urls.radio}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`${siteConfig.identity.shortName} Radio`}
+              aria-label={t.shell.radio(siteConfig.identity.shortName)}
               // CSS mask makes the PNG act as a stencil for an exact red fill
               // — `filter: hue-rotate` couldn't pin a specific shade and
               // multi-color PNGs end up muddy. The PNG is square so h == w.
@@ -103,34 +104,34 @@ export function AppShell() {
           )}
           <Link
             to="/trusted-partners"
-            aria-label="Trusted Partners"
+            aria-label={t.shell.trustedPartners}
             className="text-accent hover:text-red-400 transition-colors"
           >
             <TrustedPartnersIcon />
           </Link>
           <Link
             to="/packages"
-            aria-label="Packages"
+            aria-label={t.shell.packages}
             className="text-accent hover:text-red-400 transition-colors"
           >
             <PackagesIcon />
           </Link>
           <Link
             to="/scheduled-trips"
-            aria-label="Scheduled Trips"
+            aria-label={t.shell.scheduledTrips}
             className="text-accent hover:text-red-400 transition-colors"
           >
             <ScheduledTripsIcon />
           </Link>
           <NotificationBell />
         </div>
-        <Link to="/dashboard" aria-label="Home" className="shrink-0">
+        <Link to="/dashboard" aria-label={t.shell.home} className="shrink-0">
           <Logo size="sm" />
         </Link>
         <div className="flex-1 flex items-center justify-end gap-3">
           {showInstallButton && (
             <button onClick={handleInstallClick} className={`text-xs px-2 py-1 rounded-md ${BTN_LIGHT}`}>
-              Install app
+              {t.shell.installApp}
             </button>
           )}
           {profile?.role === 'admin' || profile?.role === 'staff' ? (
@@ -141,7 +142,7 @@ export function AppShell() {
             <span className={`text-sm ${ON_DEEP_BODY}`}>{personName(profile?.name, profile?.nickname)}</span>
           )}
           <button onClick={handleSignOut} className={`text-xs ${ON_DEEP_MUTED} hover:text-white`}>
-            Sign out
+            {t.common.signOut}
           </button>
         </div>
       </header>

@@ -10,6 +10,7 @@ dive into source.
 | [self-hosting.md](./self-hosting.md)                   | Non-technical step-by-step: fork → Supabase → Cloudflare → live app, first admin, go-live checklist |
 | [architecture.md](./architecture.md)                   | Platform-as-dependency model, `defineConfig` + `.env` surface, the `fundive` CLI, runtime boundaries, versioning contract |
 | [forking.md](./forking.md)                             | Forking for a new shop: `fundive.config.ts` fields, branding assets in `public/`, `terms.tsx`, env vars, fork-to-deploy |
+| [i18n.md](./i18n.md)                                   | Shop-facing language: `locale.language`, the `src/i18n` message catalogs, adding strings and languages |
 | [data-model.md](./data-model.md)                       | Every table, the unified `events` model, catalog reference tables |
 | [authentication.md](./authentication.md)               | Sign-up trigger, `useAuth`, role gating, `ProtectedRoute` / `AdminRoute` |
 | [events-and-bookings.md](./events-and-bookings.md)     | Calendar rendering, register-form wizard, `bookings.details` JSONB shape |
@@ -31,7 +32,9 @@ dive into source.
   `fundive.config.ts`, `.env.local`, and the branding assets under `public/` —
   never hardcoded in `src/`. See [forking.md](./forking.md) and
   [architecture.md](./architecture.md#the-customization-boundary).
-- **No i18n.** The platform is English-only.
+- **One language per deployment.** Shop-facing UI text is chosen by
+  `locale.language` in `fundive.config.ts` and lives in the `src/i18n`
+  message catalogs, not as inline literals. See [i18n.md](./i18n.md).
 - **Unified `events` table.** Dives and courses are one `events` table with a
   `kind` discriminator; bookings/duties/admin_notes/vehicles/waivers reference it
   by a single `event_id → events(id)`.

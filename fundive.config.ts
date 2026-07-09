@@ -14,7 +14,7 @@
 
 export const siteConfig = {
   // Leave as-is for a new deployment; only bump when the CHANGELOG says to.
-  configVersion: 4,
+  configVersion: 5,
 
   identity: {
     appName: 'FunDive',
@@ -45,6 +45,8 @@ export const siteConfig = {
     timezone: 'Asia/Taipei',
     currency: 'USD',
     currencyLabel: 'USD',
+    // The one language the whole app renders in. 'en' | 'zh-TW' | 'ja'.
+    language: 'en',
   },
 
   theme: {
