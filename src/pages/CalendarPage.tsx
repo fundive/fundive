@@ -10,6 +10,7 @@ import { MultiRegisterForm } from '../components/register/MultiRegisterForm'
 import { ShareEventButton } from '../components/ShareEventButton'
 import { siteConfig } from '../config/site'
 import { MODAL_BACKDROP, MODAL_PANEL, TEXT_HEADING, TEXT_BODY } from '../styles/tokens'
+import { t } from '../i18n'
 import type { AppEvent, Booking } from '../types/database'
 
 // Design-variant class map for this page's inline surfaces (the amber
@@ -30,8 +31,8 @@ const TYPE_DOT: Record<AppEvent['type'], string> = {
   course: 'bg-surface-500',
 }
 const TYPE_LABELS: Record<AppEvent['type'], string> = {
-  dive:   'Dive',
-  course: 'Course',
+  dive:   t.calendar.typeDive,
+  course: t.calendar.typeCourse,
 }
 
 function bookingMatches(b: Booking, ev: AppEvent) {
@@ -126,13 +127,13 @@ export function CalendarPage() {
           className="w-full mb-3 flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-2.5 px-4 rounded-xl shadow-md border-2 border-amber-500 transition-colors"
         >
           <span className="text-lg leading-none">+</span>
-          Register for multiple events
+          {t.calendar.registerMultiple}
         </button>
       )}
       {user && mode === 'multi' && (
         <div className={`mb-3 ${CP.multiBanner} rounded-xl px-3 py-2 flex items-center justify-between gap-3`}>
           <p className={`text-xs ${CP.multiBannerText} font-semibold`}>
-            Multi-event mode — tap events to add. Already-booked or full events can't be added.
+            {t.calendar.multiModeHint}
           </p>
         </div>
       )}
@@ -152,15 +153,15 @@ export function CalendarPage() {
         }}
         renderListBadge={ev => {
           if (isBooked(ev)) {
-            return <span className="text-xs text-red-600 font-semibold">Booked</span>
+            return <span className="text-xs text-red-600 font-semibold">{t.calendar.booked}</span>
           }
           if (mode === 'multi') {
             if (eventIsFull(ev)) {
-              return <span className="text-xs text-brand-950/60 font-medium">Full</span>
+              return <span className="text-xs text-brand-950/60 font-medium">{t.calendar.full}</span>
             }
             return cartIds.has(ev.id)
-              ? <span className="text-xs text-emerald-700 font-semibold">Added</span>
-              : <span className="text-xs text-brand-900 font-medium">+ Add</span>
+              ? <span className="text-xs text-emerald-700 font-semibold">{t.calendar.added}</span>
+              : <span className="text-xs text-brand-900 font-medium">{t.calendar.add}</span>
           }
           return null
         }}
@@ -173,7 +174,7 @@ export function CalendarPage() {
           <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
             <div className="text-white text-sm">
               <p className="font-semibold">
-                {cart.length} event{cart.length === 1 ? '' : 's'} selected
+                {t.calendar.eventsSelected(cart.length)}
               </p>
               {cart.length > 0 && (
                 <p className="text-xs text-white/80 truncate max-w-[18rem]">
@@ -187,7 +188,7 @@ export function CalendarPage() {
                 onClick={exitMulti}
                 className="text-xs text-white/80 hover:text-white px-2 py-1.5"
               >
-                Cancel
+                {t.common.cancel}
               </button>
               <button
                 type="button"
@@ -195,7 +196,7 @@ export function CalendarPage() {
                 disabled={cart.length === 0}
                 className={`text-sm ${CP.continueBtn} disabled:opacity-50 font-semibold px-3 py-1.5 rounded-lg`}
               >
-                Continue →
+                {t.common.continue} →
               </button>
             </div>
           </div>
@@ -215,7 +216,7 @@ export function CalendarPage() {
             <div className={`text-sm ${TEXT_BODY} space-y-1`}>
               <p>{formatEventSpan(selected, { style: 'long' })}</p>
               {selected.price != null && (
-                <p>💰 From {selected.currency} {selected.price.toLocaleString()}</p>
+                <p>💰 {t.calendar.priceFrom(`${selected.currency} ${selected.price.toLocaleString()}`)}</p>
               )}
               {/* Capacity status is part of selected.title (set by the
                   display_title trigger). No separate badge needed. */}
@@ -228,11 +229,11 @@ export function CalendarPage() {
                 isBooked(selected) ? CP.regBooked : CP.regPrimary
               }`}
             >
-              {bookingLoading ? '…' : isBooked(selected) ? 'Cancel booking' : 'Register'}
+              {bookingLoading ? '…' : isBooked(selected) ? t.calendar.cancelBooking : t.common.register}
             </button>
             <ShareEventButton
               event={selected}
-              label="Share link with friends"
+              label={t.calendar.shareWithFriends}
               className="w-full py-2 rounded-xl text-sm font-semibold bg-surface-700 hover:bg-surface-800 text-white transition-colors"
             />
           </div>
