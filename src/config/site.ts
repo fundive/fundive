@@ -12,6 +12,10 @@ export { CONFIG_CONTRACT_VERSION } from './contract'
 export interface SiteIdentity {
   /** The open-source app name (shared by all shops), e.g. "FunDive". */
   appName: string
+  /** Short marketing line printed on the registration PDF. Blank = omit the
+   *  line. Must be WinAnsi-encodable (no CJK) — the PDF renders with jsPDF's
+   *  built-in helvetica, which has no CJK glyphs. */
+  tagline: string
   /** This shop's full name, e.g. "Acme Divers". */
   shopName: string
   /** Short brand name for tight UI (push titles, badges). */
