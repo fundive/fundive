@@ -82,16 +82,26 @@ Swap the files in place (keeping the paths) or point the config keys at new
 paths. Also replace any social / OG preview image you reference so link previews
 show your brand, not FunDivers TW.
 
-## 3. Terms of Use & privacy — `src/config/terms.tsx`
+## 3. Terms of Use & privacy — written in the app, not in code
 
-[`src/config/terms.tsx`](https://github.com/fundive/fundive/blob/main/src/config/terms.tsx) is a shop-specific seam:
-rewrite its copy to match your own legal posture. It reads `app.name`,
-`app.shortName`, and `app.supportEmail` from your config, so those interpolate
-automatically. The page chrome and the versioned re-acceptance flow live in core
-and don't change per shop — but bump `CURRENT_TERMS_VERSION`
-([`src/lib/terms-version.ts`](https://github.com/fundive/fundive/blob/main/src/lib/terms-version.ts)) whenever you change
-the wording materially, so every diver is re-prompted to accept. A lawyer pass is
-recommended before going live.
+Your Terms of Use live in the database, not in a source file. Sign in as an
+admin and go to **Manage → Terms of Use**.
+
+- The editor starts empty. **Load starter template** fills it with a
+  fill-in-the-blanks draft, with your shop name and contact email already
+  interpolated from `fundive.config.ts`. Every clause you must decide for
+  yourself is marked `TODO` — replace all of them, and delete the disclaimer
+  block at the top before publishing.
+- The body is **Markdown**: headings, lists, bold, italic, code and `http(s)`
+  links. Raw HTML is never rendered, so a stray `<script>` shows up as literal
+  text rather than running.
+- Tick **material change** when the substance changes. That bumps the version
+  and every diver is asked to accept again on their next visit. Leave it
+  unticked for a typo, so nobody is interrupted.
+
+A fresh install shows an empty Terms page until you write one — deliberately,
+so you never ship someone else's legal text. A lawyer pass is recommended
+before going live.
 
 ## 4. Infrastructure credentials — `.env.local`
 

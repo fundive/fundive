@@ -36,6 +36,17 @@ Write/manage routes — gated by `AdminRoute` (admin only):
 | `/admin/packages`                       | `AdminPackagesPage`     | **Packages** referral network: curate travel packages abroad + the referral/kickback pipeline (see [packages.md](./packages.md)) |
 | `/admin/scheduled-trips`                | `AdminScheduledTripsPage` | **Scheduled Trips**: the shop's own dated trips (price + catalog add-ons/rooms) divers register for; Trips + Registrations tabs |
 | `/admin/trusted-partners`               | `AdminTrustedPartnersPage` | **Trusted Partners**: CRUD the unified partner registry (incl. private `contact_email`) that backs both the diver directory and Packages (see [trusted-partners.md](./trusted-partners.md)) |
+| `/admin/destinations`                   | `AdminDestinationsPage` | Manage `travel_destinations` rows (dive sites / regions) |
+| `/admin/vehicles`                       | `AdminVehiclesPage`     | The shop's transport fleet: seats per vehicle, active/retired |
+| `/admin/gear-sizing`                    | `AdminGearSizingPage`   | Wetsuit / BCD / fin sizing charts that drive the logistics fit lookup |
+| `/admin/waivers`                        | `AdminWaiversPage`      | Shop-authored waivers: text or uploaded PDF, per-event attach, e-signed by divers |
+| `/admin/cancellation-policies`          | `AdminCancellationPoliciesPage` | Shop-authored cancellation policies, attached per event |
+| `/admin/terms`                          | `AdminTermsPage`        | The shop's Terms of Use: one Markdown document, versioned. Ticking **material change** bumps the version, and every diver re-accepts on their next visit |
+| `/admin/applications`                   | `AdminApplicationsPage` | Approve or reject pending diver accounts |
+| `/admin/logistics`                      | `AdminLogisticsPage`    | Day-of board: who is diving, what to pack, who owes money, who rides in which car |
+| `/admin/dashboard`                      | `AdminDashboardPage`    | Revenue, bookings, fill rate |
+| `/admin/history`                        | `AdminHistoryPage`      | Season-over-season comparison against a weather baseline |
+| `/admin/accounting`                     | `AdminAccountingPage`   | Fiscal-year transaction CSV export |
 
 All routes are also wrapped by `ProtectedRoute` — see
 [authentication.md](./authentication.md#role-gating).

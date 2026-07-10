@@ -81,8 +81,10 @@ save.
 2. **Images in `public/`** — replace the logo and icons with yours (drag your
    files in via GitHub's **Add file → Upload files**, keeping the same file
    names). The list of images is in [`forking.md`](forking.md).
-3. **`src/config/terms.tsx`** — your Terms of Use / privacy wording. Have someone
-   check the legal side before you go live.
+3. **Terms of Use** — written inside the app, not in code. Once you are running,
+   sign in as an admin and open **Manage → Terms of Use**, then click
+   **Load starter template** and fill in every `TODO`. Have someone check the
+   legal side before you go live.
 
 ## Part 4 · Get an anti-spam key (Cloudflare Turnstile)
 

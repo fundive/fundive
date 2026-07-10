@@ -265,3 +265,64 @@ Small feature or bug fix:
   delete an applied migration file. Recovery from truly bad migrations
   is a restore from Supabase's point-in-time backup (dashboard →
   Database → Backups).
+
+## Adopting an existing Supabase project
+
+If your deployment's database was built from a *different* repo — a shop's own
+fork, before it started tracking the platform — the schema is already right but
+the migration registry disagrees, and `supabase db push` refuses:
+
+```
+Remote migration versions not found in local migrations directory.
+```
+
+The registry (`supabase_migrations.schema_migrations`) lists migration files this
+repo does not have, and does not list this repo's squashed baseline. Nothing is
+wrong with your data. Fix the registry, not the schema:
+
+```sh
+npm run db:backup-prod                                   # always, first
+scripts/adopt-existing-deployment.sh --baseline <version>          # dry run
+scripts/adopt-existing-deployment.sh --baseline <version> --apply
+npm run db:push                                          # applies only what's new
+```
+
+`<version>` is this repo's squashed baseline — the timestamp of the first file in
+`supabase/migrations/`. The script:
+
+1. reads `supabase migration list` and computes the **remote-only** versions,
+   then marks them `reverted` (their objects stay in the database, untouched);
+2. marks your baseline `applied` **without running it** — the tables already
+   exist, and re-creating them would fail;
+3. touches nothing else. `db push` then applies only the genuinely new files.
+
+It edits the registry table only: never your schema, never your data.
+
+Rehearse it against a restored snapshot before you point it at production:
+
+```sh
+ADOPT_DB_URL=postgresql://postgres:postgres@127.0.0.1:64322/postgres \
+  scripts/adopt-existing-deployment.sh --baseline <version> --apply
+```
+
+**One thing the script cannot decide for you.** Migrations that existed only in
+the old repo leave their database objects behind — triggers, functions, columns
+nothing in this repo references any more. They keep working; they are simply no
+longer tracked. Review what the reverted migrations created and, if you no longer
+want those objects, write a forward migration that drops them.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` gates every push and PR to `main` with four parallel
+jobs: `eslint`, `tsc -b`, the `unit` vitest project, and `deno check` over the
+edge functions.
+
+The Deno job exists because `supabase/functions/` is in **no** tsconfig — `tsc`
+never looks at it. It type-checks every edge module whose import graph is free of
+`npm:` / `jsr:` specifiers (resolving those drags in the whole frontend
+dependency tree and reports errors from unrelated `@types`). The taint set is
+computed, not hardcoded, and the job fails if fewer than ten modules qualify — so
+a refactor cannot quietly reduce it to checking nothing.
+
+Integration and security suites are **not** in CI: they need the local Supabase
+stack. Run them with `make test`.
