@@ -283,9 +283,12 @@ export interface Database {
       // agreed_to_terms_version (caller-supplied) on the caller's
       // profile. Called by the re-acceptance UI on TermsPage when
       // RequireCurrentTerms detects a stale version.
+      // No arguments on purpose: the server reads public.terms.version itself,
+      // so a modified client can't consent to a version it was never shown.
+      // Returns the version actually recorded (20260710120000).
       accept_current_terms: {
-        Args: { p_version: number }
-        Returns: void
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       // Defined in 20260603020000_profile_delete_cascade_and_admin_rpc.sql.
       // Admin-only. Deletes auth.users for the target id; the existing
@@ -1354,6 +1357,29 @@ export interface Database {
           tagline_text?: string | null
         }
         Update: Partial<Database['public']['Tables']['trip_templates']['Insert']>
+        Relationships: []
+      }
+      // Shop-authored Terms of Use (20260710120000). Exactly one row: `singleton`
+      // is a constant-true primary key. Only an admin may UPDATE it; nobody may
+      // insert or delete, so there is no Insert type worth exposing.
+      terms: {
+        Row: {
+          singleton: true
+          title: string
+          /** Markdown. Rendered read-only; never injected as HTML. */
+          body: string
+          /** Bumped only on a material change; gates RequireCurrentTerms. */
+          version: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: never
+        Update: {
+          title?: string
+          body?: string
+          version?: number
+          updated_by?: string | null
+        }
         Relationships: []
       }
       cancellation_policies: {

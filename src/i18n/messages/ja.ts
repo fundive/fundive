@@ -754,6 +754,7 @@ export const ja: Messages = {
     signingIn: '…',
   },
   terms: {
+    notPublished: 'ショップはまだ利用規約を公開していません。',
     back: '‹ 戻る',
     updatedTitle: '利用規約を更新しました',
     updatedBody: '更新後の規約を以下でご確認ください。アプリのご利用を続けるには同意が必要です。',

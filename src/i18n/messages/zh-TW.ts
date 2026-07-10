@@ -755,6 +755,7 @@ export const zhTW: Messages = {
     signingIn: '…',
   },
   terms: {
+    notPublished: '店家尚未發佈使用條款。',
     back: '‹ 返回',
     updatedTitle: '我們的使用條款已更新',
     updatedBody: '請閱讀以下更新後的條款。您需要同意後才能繼續使用本應用程式。',
