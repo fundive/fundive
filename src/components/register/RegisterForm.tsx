@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { pick } from '../../styles/tokens'
 import { personName } from '../../lib/names'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '../../lib/supabase'
@@ -439,7 +438,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
   // Open Water / DSD courses bundle gear into the fee — we record the fact
   // in the booking but don't prompt. Every other course (AOW, EANx, Deep,
   // Rescue, ...) lets the diver rent, same as a dive. Dives expose the rent
-  // toggle when the admin filled in gear_rental_info on the event.
+  // toggle when the admin filled in gear_rental_info on the dive event.
   const gearIncluded = event.type === 'course' && isGearIncludedCourse(event.title)
   const showGearRentChoice =
     (event.type === 'dive' && !!event.gear_rental_info) ||
@@ -593,7 +592,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
   const needsCertPhoto = !uncertified && certLevel.trim() !== '' && !hasCertCardOnFile && !certFile
   const certPhotoBlocked = !isOnBehalfOf && needsCertPhoto && !certCardAck
 
-  // Event prerequisites resolved from the event row (a required cert and/or a
+  // Event prerequisites resolved from the catalog row (a required cert and/or a
   // minimum logged-dive count). When the diver's self-reported profile falls
   // short we warn and let them acknowledge (bring proof) rather than hard-block
   // — the server applies the same rule via the prereq_acked_at stamp.
@@ -787,7 +786,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
     let cancelled = false
     ;(async () => {
       const { data } = await supabase
-        .from('events')
+        .from('events' as never)
         .select('prereq_cert_id, req_dives')
         .eq('id', event.id)
         .maybeSingle()
@@ -796,7 +795,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
       let certName: string | null = null
       if (row.prereq_cert_id) {
         const { data: cl } = await supabase
-          .from('cert_levels')
+          .from('cert_levels' as never)
           .select('name')
           .eq('id', row.prereq_cert_id)
           .maybeSingle()
@@ -813,7 +812,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
       }
     })()
     return () => { cancelled = true }
-  }, [event.id, isOnBehalfOf])
+  }, [event.type, event.id, isOnBehalfOf])
 
   // Waivers the diver still needs for this event. Only computed for a diver
   // registering themselves (the e-signature is signed as auth.uid(), so it
@@ -883,8 +882,8 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
       claimed: rideSeats.claimed,
       alreadyHasRide: initialDetails?.transportation === true,
     })
-  // The diver may still opt into a ride when the cars are full — it lands on a
-  // ride waitlist and notifies admins (they add a car or arrange transport).
+  // The diver opted into a ride with no free seat left → a ride-waitlist
+  // request. The booking still goes through; the shop is notified to add a car.
   const rideWaitlisted = needsTransport === true && !rideAllowed
   const subTotal = base + gearCost + roomCost + addonsCost + transportCost + ((showNitroxAddon && addNitroxCourse) ? NITROX_COURSE_FEE : 0)
 
@@ -947,7 +946,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
       transport: transportCost,
       nitroxCourse: (showNitroxAddon && addNitroxCourse) ? NITROX_COURSE_FEE : 0,
       surcharge: paymentSurcharge > 0
-        ? { label: payingDepositOnly ? t.register.payment.cardSurchargeDeposit : t.register.payment.cardSurcharge, amount: total - subTotal }
+        ? { label: t.chargeLines.surcharge(siteConfig.business.cardSurchargePercent, payingDepositOnly), amount: total - subTotal }
         : null,
     })
   }, [base, showGearRentChoice, gearChoice, gearItems, diveDays, showRooms, roomId, rooms, roomCost,
@@ -1140,9 +1139,9 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
       const msg = await readFunctionsError(error, isGuest)
       // Lost-response recovery: a retried request may have actually landed the
       // first time, so the server now reports a duplicate. For a diver booking
-      // themselves we confirm by reading the booking back and treating it as
-      // success rather than a scary error. (Guests fall through to the existing
-      // "already registered → sign in" hint.)
+      // themselves we can confirm by reading the booking back and treating it
+      // as success rather than a scary error. (Guests fall through to the
+      // existing "already registered → sign in" hint.)
       if (!isGuest && !actingOnBehalfOf && userId && /already .*active booking|already registered/i.test(msg)) {
         const recovered = await fetchOwnBooking(userId, event)
         if (recovered) {
@@ -1826,16 +1825,19 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
                 {transportIncluded && rideAllowed && (
                   <span className="block text-xs text-brand-950 font-medium">{t.register.transport.included}</span>
                 )}
-                {!rideAllowed && (
-                  <span className={`block text-xs font-semibold ${rideWaitlisted ? 'text-amber-700' : 'text-brand-950/70'}`}>
-                    {rideWaitlisted
-                      ? t.register.transport.waitlistedSolo
-                      : t.register.transport.selectToWaitlist}
-                  </span>
-                )}
                 {rideAllowed && rideSeats != null && rideSeats.capacity > 0 && (
                   <span className="block text-xs text-brand-950/70 font-medium">
                     {t.register.transport.seatsLeft(rideSeats.available)}
+                  </span>
+                )}
+                {!rideAllowed && (
+                  <span className={`block text-xs font-semibold ${rideWaitlisted ? 'text-amber-700' : 'text-brand-950/70'}`}>
+                    {rideSeats != null && rideSeats.capacity > 0
+                      ? t.register.transport.rideFullSolo
+                      : t.register.transport.rideNotSetup}{' '}
+                    {rideWaitlisted
+                      ? t.register.transport.waitlistedSolo
+                      : t.register.transport.selectToWaitlist}
                   </span>
                 )}
               </span>
@@ -1894,8 +1896,8 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
                 <span className="flex-1">
                   <span className="block">
                     {method === 'bank_transfer' && t.register.payment.methodBankTransfer}
-                    {method === 'paypal' && t.register.payment.methodPaypal}
-                    {method === 'credit_card' && t.register.payment.methodCreditCard}
+                    {method === 'paypal' && t.register.payment.methodPaypal(siteConfig.business.cardSurchargePercent)}
+                    {method === 'credit_card' && t.register.payment.methodCreditCard(siteConfig.business.cardSurchargePercent)}
                     {method === 'cash' && t.register.payment.methodCash}
                   </span>
                 </span>
@@ -1946,7 +1948,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
           </div>
 
           {creditEligible && availableCredit > 0 && (
-            <label className={`flex items-start gap-2 text-sm text-brand-950 font-medium ${pick('bg-emerald-50 border border-emerald-400', 'bg-emerald-400/10 border border-emerald-400/40')} rounded-lg p-3`}>
+            <label className="flex items-start gap-2 text-sm text-brand-950 font-medium bg-emerald-400/10 border border-emerald-400/40 rounded-lg p-3">
               <input
                 type="checkbox"
                 checked={useAccountCredit}
@@ -2030,7 +2032,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
           )}
 
           {waiverEligible && missingW && missingW.length > 0 && (
-            <div className={`text-xs text-brand-950 font-medium ${pick('bg-amber-50 border border-amber-300', 'bg-amber-400/10 border border-amber-400/40')} rounded-lg p-3 space-y-2`} aria-label={t.register.waivers.ariaOutstanding}>
+            <div className="text-xs text-brand-950 font-medium bg-amber-400/10 border border-amber-400/40 rounded-lg p-3 space-y-2" aria-label={t.register.waivers.ariaOutstanding}>
               <p className="font-semibold text-amber-800">
                 {t.register.waivers.toSignBefore(event.type)}
               </p>

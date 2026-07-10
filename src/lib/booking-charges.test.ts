@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { buildCharges, chargesTotal, resolveCharges, NITROX_COURSE_FEE } from './booking-charges'
 import { GEAR_ALACARTE_PRICES } from './gear'
 import type { AppEvent, BookingDetails } from '../types/database'
+import { siteConfig } from '../config/site'
+import { t } from '../i18n'
 
 describe('buildCharges', () => {
   it('always emits a base line and drops zero/empty lines', () => {
@@ -69,10 +71,8 @@ describe('resolveCharges', () => {
       roomPrices: new Map([['r1', { label: 'Deluxe', amount: 1500 }]]),
       addonPrices: new Map([['a1', { label: 'Camera', amount: 300 }]]),
     })
-    // base + (BCD + Dive computer) x2 days + room 1500 + addon 300 + transport 1300 + nitrox
-    // (gear prices come from the shop config, so derive them rather than hardcoding).
-    const gearPerDay = GEAR_ALACARTE_PRICES['BCD'] + GEAR_ALACARTE_PRICES['Dive computer']
-    expect(chargesTotal(lines)).toBe(2800 + gearPerDay * 2 + 1500 + 300 + 1300 + NITROX_COURSE_FEE)
+    // base + (BCD 400 + DiveComputer 250) x2 days + room 1500 + addon 300 + transport 1300 + nitrox 6000
+    expect(chargesTotal(lines)).toBe(2800 + (400 + 250) * 2 + 1500 + 300 + 1300 + NITROX_COURSE_FEE)
     expect(lines.find(l => l.kind === 'gear')?.label).toBe('Gear: BCD (x2 days)')
   })
 
@@ -131,5 +131,32 @@ describe('resolveCharges', () => {
   it('returns [] when details or event is missing', () => {
     expect(resolveCharges({ details: null, event })).toEqual([])
     expect(resolveCharges({ details: { payment_method: 'cash' }, event: null })).toEqual([])
+  })
+})
+
+// The card surcharge rate lives in business.cardSurchargePercent. It was
+// hardcoded as "5%" in four separate places (this module, pdf.ts, and two
+// catalog keys), so a fork on a different rate silently showed divers, and
+// printed on their PDF, a percentage the shop does not charge.
+describe('card surcharge label tracks the configured rate', () => {
+  it('interpolates the config percent, not a literal 5', () => {
+    const pct = siteConfig.business.cardSurchargePercent
+    expect(t.chargeLines.surcharge(pct, false)).toContain(`${pct}%`)
+    expect(t.chargeLines.surcharge(pct, true)).toContain(`${pct}%`)
+    // Distinguishable: the deposit-only variant says so.
+    expect(t.chargeLines.surcharge(pct, true)).not.toBe(t.chargeLines.surcharge(pct, false))
+  })
+
+  it('no catalog string bakes a surcharge percentage in', () => {
+    const suspects = [
+      t.chargeLines.surcharge(7, false),
+      t.chargeLines.surcharge(7, true),
+      t.register.payment.methodPaypal(7),
+      t.register.payment.methodCreditCard(7),
+    ]
+    for (const s of suspects) {
+      expect(s).toContain('7%')
+      expect(s).not.toMatch(/\b5%/)
+    }
   })
 })
