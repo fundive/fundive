@@ -56,9 +56,9 @@ export const siteConfig = defineConfig({
   theme: {
     themeColor: '#0ea5e9',
     backgroundColor: '#0f172a',
-    // Visual design: 'family' (light, default) or 'riced' (dark ocean glass).
-    // See docs/forking.md. Omit for 'family'.
-    design: 'family',
+    // Visual design: 'light' (default) or 'dark' (dark ocean glass).
+    // See docs/forking.md. Omit for 'light'.
+    design: 'light',
   },
 
   // Drop your images into public/ at these paths (or change the paths here).

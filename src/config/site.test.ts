@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { siteConfig, CONFIG_CONTRACT_VERSION } from './site'
 import { siteConfigSchema, assertValidSiteConfig } from './site.schema'
+import { siteConfig as exampleConfig } from '../../fundive.config.example'
 
 // Guards the fork's fundive.config.ts against the SiteConfig contract. If a shop
 // mistypes or omits a field, or ships a stale configVersion, this fails in CI
@@ -63,6 +64,17 @@ describe('siteConfig', () => {
       .not.toThrow()
     expect(() => assertValidSiteConfig(withManifest({ ...siteConfig.business.boatManifest, notes: [''] })))
       .toThrow()
+  })
+
+  // The example is the fork onboarding path (`cp fundive.config.example.ts
+  // fundive.config.ts`), so it must stay valid at the current contract. It did
+  // not: the theme variants were renamed light/dark and the template still said
+  // `design: 'family'`, so a fresh deployment's very first `fundive build` died
+  // on config validation. Nothing tested it. Now something does.
+  it('ships an example config valid at the current contract version', () => {
+    const example = exampleConfig as unknown
+    expect(() => assertValidSiteConfig(example)).not.toThrow()
+    expect(exampleConfig.configVersion).toBe(CONFIG_CONTRACT_VERSION)
   })
 
   it('rejects a config with an out-of-range configVersion', () => {
