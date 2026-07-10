@@ -71,8 +71,10 @@ describe('resolveCharges', () => {
       roomPrices: new Map([['r1', { label: 'Deluxe', amount: 1500 }]]),
       addonPrices: new Map([['a1', { label: 'Camera', amount: 300 }]]),
     })
-    // base + (BCD 400 + DiveComputer 250) x2 days + room 1500 + addon 300 + transport 1300 + nitrox 6000
-    expect(chargesTotal(lines)).toBe(2800 + (400 + 250) * 2 + 1500 + 300 + 1300 + NITROX_COURSE_FEE)
+    // base + (BCD + Dive computer) x2 days + room 1500 + addon 300 + transport 1300 + nitrox
+    // (gear prices come from the shop config, so derive them rather than hardcoding).
+    const gearPerDay = GEAR_ALACARTE_PRICES['BCD'] + GEAR_ALACARTE_PRICES['Dive computer']
+    expect(chargesTotal(lines)).toBe(2800 + gearPerDay * 2 + 1500 + 300 + 1300 + NITROX_COURSE_FEE)
     expect(lines.find(l => l.kind === 'gear')?.label).toBe('Gear: BCD (x2 days)')
   })
 
@@ -133,6 +135,7 @@ describe('resolveCharges', () => {
     expect(resolveCharges({ details: { payment_method: 'cash' }, event: null })).toEqual([])
   })
 })
+
 
 // The card surcharge rate lives in business.cardSurchargePercent. It was
 // hardcoded as "5%" in four separate places (this module, pdf.ts, and two
