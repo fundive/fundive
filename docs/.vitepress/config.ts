@@ -23,6 +23,7 @@ export default defineConfig({
           { text: 'Self-hosting walkthrough', link: '/self-hosting' },
           { text: 'Forking for your shop', link: '/forking' },
           { text: 'Deployment', link: '/deployment' },
+          { text: 'Deployment repo', link: '/deployment-repo' },
         ],
       },
       {

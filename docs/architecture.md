@@ -48,13 +48,25 @@ my-dive-shop/
   .env                  # infra credentials + secrets  — GITIGNORED
   .env.example          # documents required vars (committed)
   fundive.config.ts     # branding, theme, feature toggles
-  brand/                # logo.svg, favicon.ico, hero images, …
-  catalog/              # optional: seed data for dive sites / courses / prices
+  brand/                # PLANNED: logo.svg, favicon.ico, hero images, …
+  catalog/              # PLANNED: seed data for dive sites / courses / prices
   .github/workflows/    # CI that runs the platform CLI with their secrets
   .gitignore            # ignores .env and build output
 ```
 
+`brand/` and `catalog/` are not read by anything yet. Today `assets.*` in the
+config resolve against the platform's own `public/`.
+
 ### Consuming the platform (git dependency)
+
+::: warning Not finished yet
+The command surface below exists and works from a clone of the platform repo, but
+a deployment repo that installs `fundive` as a dependency cannot run most of it
+today — the CLI shells out to `vite` / `wrangler` / `supabase`, which are the
+platform's `devDependencies`. `brand/` and `catalog/` are not implemented either.
+[deployment-repo.md](./deployment-repo.md) lists exactly what works, what fails,
+and what has to change. Until then, [fork the platform](./forking.md).
+:::
 
 Deployments pin the platform as a **git dependency** on a release tag — no npm
 registry involved:
