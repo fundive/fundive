@@ -12,6 +12,8 @@ export interface Terms {
   title: string
   body: string
   version: number
+  /** ISO timestamp of the last admin save. */
+  updatedAt: string
 }
 
 let cache: Promise<Terms | null> | null = null
@@ -19,7 +21,7 @@ let cache: Promise<Terms | null> | null = null
 export function fetchTerms(): Promise<Terms | null> {
   if (!cache) {
     cache = (async () => {
-      const { data, error } = await supabase.from('terms').select('title, body, version').single()
+      const { data, error } = await supabase.from('terms').select('title, body, version, updated_at').single()
       if (error || !data) {
         // A read failure must not lock every diver out of the app: callers treat
         // null as "unknown" and let them through rather than bouncing. Drop the
@@ -27,7 +29,8 @@ export function fetchTerms(): Promise<Terms | null> {
         cache = null
         return null
       }
-      return data as Terms
+      const { updated_at, ...rest } = data
+      return { ...rest, updatedAt: updated_at }
     })()
   }
   return cache

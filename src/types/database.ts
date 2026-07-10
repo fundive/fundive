@@ -427,7 +427,7 @@ export interface Database {
           agreed_to_terms_at: string | null
           /** Version of the Terms of Use the user agreed to (server-stamped
            *  by handle_new_user / accept_current_terms). When the SPA's
-           *  CURRENT_TERMS_VERSION constant exceeds this, RequireCurrentTerms
+           *  live public.terms.version exceeds this, RequireCurrentTerms
            *  bounces the user to /terms for re-acceptance. Null = never
            *  consented. */
           agreed_to_terms_version: number | null
