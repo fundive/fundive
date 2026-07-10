@@ -1367,6 +1367,8 @@ export const en = {
     eventForm: {
       totalPart: (amount: number, cur: string) => `total: ${amount} ${cur}`,
       depositPart: (amount: number, cur: string) => `deposit: ${amount} ${cur}`,
+      transportPart: (amount: number, cur: string) => `transport: +${amount} ${cur}`,
+      transportIncluded: 'transport: included',
       untitledDive: '(untitled dive)',
       untitledCourse: '(untitled course)',
       adminTitleRequired: 'Admin title is required.',
@@ -1603,6 +1605,7 @@ export const en = {
       noCarAssigned: 'No car assigned yet.',
       unassignAria: (name: string) => `Unassign ${name}`,
       carFallback: 'car',
+      unknownCar: '(unknown car)',
       assignACar: 'Assign a car',
       selectACar: 'Select a car…',
       cancelledHidden: 'Cancelled bookings hidden.',
