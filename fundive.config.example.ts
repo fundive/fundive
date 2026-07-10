@@ -15,9 +15,12 @@ import { defineConfig } from 'fundive/config'
 
 export const siteConfig = defineConfig({
   // Bump only when the platform CHANGELOG says to.
-  configVersion: 6,
+  configVersion: 7,
 
   identity: {
+    // Printed in italics on the registration PDF. Leave blank to omit it.
+    // No CJK: the PDF font (jsPDF helvetica) has no CJK glyphs.
+    tagline: '',
     appName: 'FunDive',
     shopName: 'Your Dive Shop',
     shortName: 'YourShop',

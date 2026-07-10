@@ -14,9 +14,12 @@
 
 export const siteConfig = {
   // Leave as-is for a new deployment; only bump when the CHANGELOG says to.
-  configVersion: 6,
+  configVersion: 7,
 
   identity: {
+    // Printed in italics on the registration PDF. Leave blank to omit it.
+    // No CJK: the PDF font (jsPDF helvetica) has no CJK glyphs.
+    tagline: '',
     appName: 'FunDive',
     shopName: 'Your Dive Shop',
     shortName: 'YourShop',

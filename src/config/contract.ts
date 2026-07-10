@@ -6,4 +6,4 @@
 // Bump when the SiteConfig contract changes in a way that requires a deployment
 // to migrate its fundive.config.ts. The build compares this against
 // siteConfig.configVersion and fails loudly on a mismatch.
-export const CONFIG_CONTRACT_VERSION = 6
+export const CONFIG_CONTRACT_VERSION = 7
