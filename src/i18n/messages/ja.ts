@@ -970,7 +970,7 @@ export const ja: Messages = {
         slug: 'スラッグ', slugPh: '公開サイトで使う URL スラッグ',
         locationPicture: 'ロケーション画像（URL）',
         backgroundPicture: '背景画像（URL）',
-        picturePh: 'wix:image://… または https://…',
+        picturePh: 'https://…',
       },
     },
     waivers: {

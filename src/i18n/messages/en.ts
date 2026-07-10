@@ -978,7 +978,7 @@ export const en = {
         slug: 'Slug', slugPh: 'URL slug used by the public site',
         locationPicture: 'Location picture (URL)',
         backgroundPicture: 'Background picture (URL)',
-        picturePh: 'wix:image://… or https://…',
+        picturePh: 'https://…',
       },
     },
     waivers: {
