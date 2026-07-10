@@ -762,6 +762,7 @@ export const en = {
     signingIn: '…',
   },
   terms: {
+    notPublished: 'The shop has not published its terms yet.',
     back: '‹ back',
     updatedTitle: 'Our Terms of Use have been updated',
     updatedBody: "Please read the updated terms below. You'll need to accept them to continue using the app.",
