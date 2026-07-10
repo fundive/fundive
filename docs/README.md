@@ -9,7 +9,7 @@ dive into source.
 | --- | --- |
 | [self-hosting.md](./self-hosting.md)                   | Non-technical step-by-step: fork → Supabase → Cloudflare → live app, first admin, go-live checklist |
 | [architecture.md](./architecture.md)                   | Platform-as-dependency model, `defineConfig` + `.env` surface, the `fundive` CLI, runtime boundaries, versioning contract |
-| [forking.md](./forking.md)                             | Forking for a new shop: `fundive.config.ts` fields, branding assets in `public/`, `terms.tsx`, env vars, fork-to-deploy |
+| [forking.md](./forking.md)                             | Forking for a new shop: `fundive.config.ts` fields, branding assets in `public/`, Terms of Use, env vars, fork-to-deploy |
 | [i18n.md](./i18n.md)                                   | Shop-facing language: `locale.language`, the `src/i18n` message catalogs, adding strings and languages |
 | [data-model.md](./data-model.md)                       | Every table, the unified `events` model, catalog reference tables |
 | [authentication.md](./authentication.md)               | Sign-up trigger, `useAuth`, role gating, `ProtectedRoute` / `AdminRoute` |

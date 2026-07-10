@@ -70,6 +70,15 @@ it('does a thing', async () => {
 - `adminClient()` — `createClient()` with the service-role key
   (bypasses RLS). Use for fixture setup / teardown.
 - `anonClient()` — anon key, unauthenticated.
+
+`tests/setup.integration.ts` pulls fresh local keys from `supabase status` and
+also points the app's own module-level client (`src/lib/supabase.ts`, which reads
+`import.meta.env.VITE_*`) at the same stack. Without that bridge it would pick up
+`.env`'s `VITE_SUPABASE_ANON_KEY=dummy-anon-key-for-build` — a placeholder that
+only exists to satisfy the build-time required-env check — and every read through
+that client would fail auth. The lib helpers swallow the error and return `[]`, so
+the tests exercising `src/lib/*` fail with a baffling `expected false to be true`
+rather than an auth message. If you see that shape of failure, suspect the keys.
 - `userClient(email, password)` — signs in as a real auth user.
 - `createTestUser({ role })` — creates a one-off `test_<rand>@example.test`
   account with email pre-confirmed; optionally promotes to admin.
