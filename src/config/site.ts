@@ -94,6 +94,17 @@ export interface SiteFeatures {
   broadcast: boolean
 }
 
+/** Pre-fill for the admin boat-manifest export. The chartered vessel varies per
+ *  trip, so these are only defaults — the admin's last-used values are
+ *  remembered in localStorage. Leave blank if the shop never charters a boat. */
+export interface SiteBoatManifest {
+  boatName: string
+  registration: string
+  /** Standard pre-trip instructions, one per line, in the shop's own language.
+   *  Reproduced verbatim on the manifest; never translated. */
+  notes: string[]
+}
+
 export interface SiteBusiness {
   /** Rental-gear checklist, shared by the profile and register forms. */
   gearItems: string[]
@@ -109,6 +120,8 @@ export interface SiteBusiness {
    *  (vs a local shore dive) by title — destination names, "\\bboat\\b", etc.
    *  Empty = never match by title. Used for calendar coloring. */
   tripKeywords: string[]
+  /** Defaults pre-filled into the admin boat-manifest export modal. */
+  boatManifest: SiteBoatManifest
 }
 
 /** The single reference location for the admin weather / BI baseline. */

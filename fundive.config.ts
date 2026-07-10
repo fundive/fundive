@@ -14,7 +14,7 @@
 
 export const siteConfig = {
   // Leave as-is for a new deployment; only bump when the CHANGELOG says to.
-  configVersion: 5,
+  configVersion: 6,
 
   identity: {
     appName: 'FunDive',
@@ -85,6 +85,9 @@ export const siteConfig = {
     // Case-insensitive regex fragments that mark a dive as a "trip" by title
     // (destination names, "\\bboat\\b", …). Empty = never classify by title.
     tripKeywords: ['\\bboat\\b'],
+    // Pre-fills the admin boat-manifest export. Leave blank if the shop never
+    // charters a boat; notes are printed verbatim, in the shop's own language.
+    boatManifest: { boatName: '', registration: '', notes: [] },
   },
 
   // Home dive region for the admin weather baseline (decimal degrees).
