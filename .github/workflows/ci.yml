@@ -1,0 +1,120 @@
+# Pre-merge gate. Fails the branch in GitHub on any regression that
+# `make check` would catch locally — eslint, tsc, or the unit test project.
+#
+# Runs on:
+#   - direct push to main (direct commits / fast-forwards)
+#   - PR targeting main (before merge)
+#
+# Integration + security probe suites are NOT in this workflow — they require
+# the local Supabase stack (Docker). When CI grows a Supabase step, add an
+# `integration` job here that depends on it.
+#
+# The jobs run in parallel so a single failure shows alongside the others, not
+# in series. In-flight runs for the same ref are cancelled when a new commit
+# lands so a long queue can't shadow newer fixes.
+#
+# Actions are pinned by commit SHA, not tag: a tag can be moved to point at new
+# code, and these jobs run on every PR from any contributor.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    name: tsc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc -b
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci
+        working-directory: workers/push
+      - run: npx vitest run --project unit
+
+  # `supabase/functions/` is in NO tsconfig, so `npx tsc -b` never looks at it.
+  # The Deno edge modules are only type-checked here.
+  #
+  # Modules that reach a `npm:` / `jsr:` specifier — directly or through an
+  # import — are skipped: resolving them pulls the whole frontend dependency
+  # tree and reports errors from unrelated @types, which is noise rather than
+  # signal. The taint set is computed, not hardcoded, so a new npm import can't
+  # silently shrink coverage; the step prints exactly what it checked.
+  edge-typecheck:
+    name: deno check (edge functions)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: denoland/setup-deno@e95548e56dfa95d4e1a28d6f422fafe75c4c26fb # v2.0.3
+        with:
+          deno-version: v2.x
+      - name: Type-check every npm-free edge module
+        run: |
+          python3 - <<'EOF' > /tmp/clean.txt
+          import re, os, pathlib, subprocess
+          files = subprocess.run(
+              "find supabase/functions -name '*.ts' ! -name '*.test.ts'",
+              shell=True, capture_output=True, text=True).stdout.split()
+          imports, npm = {}, set()
+          for f in files:
+              s = pathlib.Path(f).read_text()
+              if re.search(r'from "(npm|jsr):', s):
+                  npm.add(f)
+              imports[f] = {
+                  os.path.normpath(os.path.join(os.path.dirname(f), m.group(1)))
+                  for m in re.finditer(r'from "(\.[^"]+\.ts)"', s)
+              }
+          tainted, changed = set(npm), True
+          while changed:
+              changed = False
+              for f, deps in imports.items():
+                  if f not in tainted and deps & tainted:
+                      tainted.add(f); changed = True
+          print("\n".join(sorted(set(files) - tainted)))
+          EOF
+          count=$(wc -l < /tmp/clean.txt)
+          echo "type-checking $count npm-free edge module(s):"
+          sed 's/^/  /' /tmp/clean.txt
+          # A refactor that taints everything must fail loudly, not pass vacuously.
+          if [ "$count" -lt 10 ]; then
+            echo "::error::only $count edge modules are npm-free; expected >= 10. Did an import land in _shared?"
+            exit 1
+          fi
+          xargs deno check < /tmp/clean.txt
