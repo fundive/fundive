@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { pick } from '../../styles/tokens'
 import { personName } from '../../lib/names'
 import { GEAR_ITEMS, GEAR_ALACARTE_PRICES, isGearIncludedCourse } from '../../lib/gear'
 import { siteConfig } from '../../config/site'
@@ -221,7 +220,7 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
         gearDays: days,
         transport: transportCost,
         nitroxCourse: nitroxFee,
-        surcharge: surchargeCost > 0 ? { label: t.register.payment.cardSurcharge, amount: surchargeCost } : null,
+        surcharge: surchargeCost > 0 ? { label: t.chargeLines.surcharge(siteConfig.business.cardSurchargePercent, false), amount: surchargeCost } : null,
       })
       return { base, gearCost, transportCost, nitroxFee, surchargeCost, total, charges }
     })
@@ -293,8 +292,7 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
         ? (childById.get(targetForDiverId) ?? profile)
         : profile
       const showNitroxAddon = ev.nitrox_required && !(targetProfile?.nitrox_certified ?? false)
-      // Opting into a ride while the assigned cars are full lands on a ride
-      // waitlist (the booking stands) and notifies admins.
+
       const evSeats = rideSeatsByEvent[ev.id]
       const rideAllowed = ev.type !== 'dive' || !evSeats
         ? true
@@ -608,6 +606,8 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
                 const rideAllowed = ev.type !== 'dive' || !evSeats
                   ? true
                   : canRequestRide({ capacity: evSeats.capacity, claimed: evSeats.claimed, alreadyHasRide: false })
+                // Opting into a full ride → a ride-waitlist request (booking
+                // still stands; the shop is notified to add a car).
                 const rideWaitlisted = c.needsTransport === true && !rideAllowed
                 const targetForDiverId = forDiverByEvent[ev.id] ?? null
                 const targetProfile = targetForDiverId
@@ -677,15 +677,18 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
                           {transportIncluded && rideAllowed && (
                             <span className="block text-xs text-brand-950 font-medium">{t.register.transport.included}</span>
                           )}
+                          {rideAllowed && evSeats && evSeats.capacity > 0 && (
+                            <span className="block text-xs text-brand-950/70 font-medium">{t.register.transport.seatsLeft(evSeats.available)}</span>
+                          )}
                           {!rideAllowed && (
                             <span className={`block text-xs font-semibold ${rideWaitlisted ? 'text-amber-700' : 'text-brand-950/70'}`}>
+                              {evSeats && evSeats.capacity > 0
+                                ? t.register.multi.rideFull
+                                : t.register.transport.rideNotSetup}{' '}
                               {rideWaitlisted
                                 ? t.register.multi.rideWaitlisted
                                 : t.register.transport.selectToWaitlist}
                             </span>
-                          )}
-                          {rideAllowed && evSeats && evSeats.capacity > 0 && (
-                            <span className="block text-xs text-brand-950/70 font-medium">{t.register.transport.seatsLeft(evSeats.available)}</span>
                           )}
                         </span>
                       </label>
@@ -716,8 +719,8 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
                   <input type="radio" name="payment" checked={payment === method} onChange={() => setPayment(method)} className="accent-brand-900 mt-1" />
                   <span className="flex-1">
                     {method === 'bank_transfer' && t.register.payment.methodBankTransfer}
-                    {method === 'paypal' && t.register.payment.methodPaypal}
-                    {method === 'credit_card' && t.register.payment.methodCreditCard}
+                    {method === 'paypal' && t.register.payment.methodPaypal(siteConfig.business.cardSurchargePercent)}
+                    {method === 'credit_card' && t.register.payment.methodCreditCard(siteConfig.business.cardSurchargePercent)}
                     {method === 'cash' && t.register.payment.methodCash}
                   </span>
                 </label>
@@ -786,7 +789,7 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
             </p>
 
             {leadMissingW.length > 0 && (
-              <div className={`text-xs text-brand-950 font-medium ${pick('bg-amber-50 border border-amber-300', 'bg-amber-400/10 border border-amber-400/40')} rounded-lg p-3 space-y-2`} aria-label={t.register.waivers.ariaOutstanding}>
+              <div className="text-xs text-brand-950 font-medium bg-amber-400/10 border border-amber-400/40 rounded-lg p-3 space-y-2" aria-label={t.register.waivers.ariaOutstanding}>
                 <p className="font-semibold text-amber-800">{t.register.multi.waiversToSign}</p>
                 <p>{t.register.multi.waiversStillBook}</p>
                 <ul className="space-y-1">
@@ -887,7 +890,7 @@ function PaymentInstructionsBlock({ method }: { method: PaymentMethod }) {
         <p className="font-semibold text-brand-900">{instr.title}</p>
         {instr.lines.map((line, i) => <p key={i}>{line}</p>)}
       </div>
-      <div className={`text-xs text-brand-950 font-medium ${pick('bg-amber-50 border border-amber-300', 'bg-amber-400/10 border border-amber-400/40')} rounded-lg p-3 space-y-1`}>
+      <div className="text-xs text-brand-950 font-medium bg-amber-400/10 border border-amber-400/40 rounded-lg p-3 space-y-1">
         <p className="font-semibold text-brand-900">{reminder.title}</p>
         {reminder.lines.map((line, i) => <p key={i}>{line}</p>)}
       </div>
