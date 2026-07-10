@@ -971,7 +971,7 @@ export const zhTW: Messages = {
         slug: '網址代稱', slugPh: '公開網站使用的 URL slug',
         locationPicture: '地點圖片（URL）',
         backgroundPicture: '背景圖片（URL）',
-        picturePh: 'wix:image://… 或 https://…',
+        picturePh: 'https://…',
       },
     },
     waivers: {
