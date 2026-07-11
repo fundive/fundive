@@ -32,6 +32,7 @@ export const siteConfigSchema = z.object({
   urls: z.object({
     site: url,
     app: url,
+    eventPage: url.nullable(),
     radio: url.optional(),
   }),
   locale: z.object({

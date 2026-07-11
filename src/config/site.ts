@@ -44,6 +44,12 @@ export interface SiteUrls {
   app: string
   /** External radio stream, no trailing slash. Optional — omit if unused. */
   radio?: string
+  /**
+   * Public event-page URL template used by the share-link button; `{id}` is
+   * replaced with the event id. null → the shop has no shareable event page,
+   * so the share affordance hides itself.
+   */
+  eventPage: string | null
 }
 
 /**
