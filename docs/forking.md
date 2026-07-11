@@ -29,17 +29,34 @@ Walking the fields:
 | `app.supportEmail` | Where registration mail and support requests go. |
 | `contact.*` | Phone, address, Google Maps URL, LINE / WhatsApp links, PayPal link. Leave a link empty to hide it. |
 | `urls.site` / `app` / `radio` | Your marketing site, the app origin, and (optional) radio stream. No trailing slashes. |
-| `urls.eventPage` | Template for the public event page the share button links to; `{id}` is replaced with the event id (e.g. `https://www.example.com/events/{id}`). Set to `null` to hide the share button entirely. |
+| `urls.eventPage` | Template for the public event page the share button links to; `{id}` is replaced with the event id (e.g. `https://www.example.com/events/{id}`). Only used when `features.eventSharing` is on. See the **Event sharing** note below. |
 | `locale.timezone` | IANA zone, e.g. `Asia/Taipei` or `America/Los_Angeles`. |
 | `locale.currency` / `currencyLabel` | ISO code and the label shown in the UI. |
 | `theme.themeColor` / `backgroundColor` | **PWA manifest** colors (browser chrome + splash). See the note below about the in-app brand palette. |
 | `theme.design` | Visual design variant: `'family'` (default — light cards on navy) or `'riced'` (dark ocean glass). See the note below. Omit for `family`. |
 | `assets.*` | Paths to your branding files under `public/` — see §2. |
 | `features.radio` / `push` / `broadcast` | Toggle optional features off if you don't run them. |
+| `features.eventSharing` | Optional "share this event" button, **off by default**. See the **Event sharing** note below before turning it on. |
 | `business.gearItems` / `gearPrices` | Your rental gear list and per-item prices. |
 | `business.paymentDeadlineFallbackDays` / `cardSurchargePercent` | Payment defaults. |
 | `business.tripKeywords` | Case-insensitive regex fragments that classify a dive as a "trip" by title. Empty = never. |
 | `weatherRegion` | Lat/long + label for the admin weather baseline. |
+
+> **Event sharing (optional, off by default).** The in-app "share this event"
+> button copies a link to a public event page **on your own website** — the app
+> does not host one. It is entirely opt-in and requires web-dev work you do
+> yourself:
+> 1. Build event pages on `urls.site` (or wherever), and address each one by the
+>    **app's event id** — the UUID from the `events` table. The app only knows
+>    that id; it cannot map to your own slugs.
+> 2. Set `urls.eventPage` to a template with an `{id}` placeholder, e.g.
+>    `https://www.example.com/events/{id}`.
+> 3. Set `features.eventSharing: true`.
+>
+> If any of those is missing the button simply doesn't render — there is no
+> fallback, and nothing breaks. Leave the feature off unless you have built and
+> connected those pages. FunDivers uses this to link a synced Wix event page;
+> that Wix wiring is FunDivers' own, not part of FunDive.
 
 > **Brand color palette.** `theme.*` in the config only sets the PWA manifest
 > theme/background colors. The in-app brand palette (`brand-*`, `surface-*`,
