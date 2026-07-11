@@ -38,7 +38,7 @@ There are **two** entry points:
 No auto-login after signup: the confirmation screen directs them back
 to `/login`.
 
-### `/register` and `/register/:type/:id` — one-shot signup + booking
+### `/register` and `/register/:id` — one-shot signup + booking
 
 Public funnel for visitors arriving from fundiverstw.com or a Wix
 calendar deep-link. `RegisterPage` renders `RegisterForm`. On submit
@@ -105,19 +105,19 @@ authoritative list):
 
 ```
 /login /signup /forgot-password /reset-password /terms
-/register /register/:type/:id            (public, no auth)
+/register /register/:id            (public, no auth)
 <ProtectedRoute>
   <AppShell>       /dashboard /calendar /map /bookings /payments
                    /profile /duties
   /minigame/eel-snake
   <StaffOrAdminRoute>
     <AdminShell>   /admin /admin/events
-                   /admin/events/:type/:id
-                   /admin/events/:type/:id/gear-map
+                   /admin/events/:id
+                   /admin/events/:id/gear-map
   <AdminRoute>
     <AdminShell>   /admin/new /admin/new/event /admin/rooms
                    /admin/addons /admin/travel /admin/prices
-                   /admin/events/:type/:id/edit /admin/users
+                   /admin/events/:id/edit /admin/users
                    /admin/duty /admin/notifications
 ```
 

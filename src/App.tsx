@@ -61,7 +61,7 @@ import { AdminWaiversPage } from './pages/admin/AdminWaiversPage'
 import { AdminTermsPage } from './pages/admin/AdminTermsPage'
 import { AdminCancellationPoliciesPage } from './pages/admin/AdminCancellationPoliciesPage'
 
-// Public registration flow — /register (pick an event) and /register/:type/:id
+// Public registration flow — /register (pick an event) and /register/:id
 // (deep-link from Wix calendar) both render RegisterPage. Outside ProtectedRoute
 // so cold visitors don't hit an auth wall; lazy-loaded so the cold path doesn't
 // pay for the full PWA bundle.
@@ -90,7 +90,7 @@ export default function App() {
           }
         />
         <Route
-          path="/register/:type/:id"
+          path="/register/:id"
           element={
             <Suspense fallback={<RegisterLoading />}>
               <RegisterPage />
@@ -127,8 +127,8 @@ export default function App() {
               <Route element={<AdminShell />}>
                 <Route path="/admin" element={<DashboardPage />} />
                 <Route path="/admin/events" element={<AdminEventsPage />} />
-                <Route path="/admin/events/:type/:id" element={<AdminEventDetailPage />} />
-                <Route path="/admin/events/:type/:id/gear-map" element={<AdminGearMapPage />} />
+                <Route path="/admin/events/:id" element={<AdminEventDetailPage />} />
+                <Route path="/admin/events/:id/gear-map" element={<AdminGearMapPage />} />
                 <Route path="/admin/logistics" element={<AdminLogisticsPage />} />
               </Route>
             </Route>
@@ -142,7 +142,7 @@ export default function App() {
                 <Route path="/admin/travel" element={<AdminTravelPage />} />
                 <Route path="/admin/destinations" element={<AdminDestinationsPage />} />
                 <Route path="/admin/prices" element={<AdminPricesPage />} />
-                <Route path="/admin/events/:type/:id/edit" element={<AdminEditEventPage />} />
+                <Route path="/admin/events/:id/edit" element={<AdminEditEventPage />} />
                 <Route path="/admin/users" element={<AdminUsersPage />} />
                 <Route path="/admin/applications" element={<AdminApplicationsPage />} />
                 <Route path="/admin/duty" element={<AdminDutyPage />} />
