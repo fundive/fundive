@@ -86,7 +86,7 @@ describe('LoginPage', () => {
     await user.type(byName('password'), 'adminadmin')
     await user.click(screen.getByRole('button', { name: /sign in/i }))
 
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/admin'))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/admin/logistics'))
   })
 
   it('navigates a staff member to /admin/events after sign-in', async () => {
@@ -130,7 +130,7 @@ describe('LoginPage', () => {
     await user.type(byName('password'), 'secret123')
     await user.click(screen.getByRole('button', { name: /sign in/i }))
 
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/admin'))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/admin/logistics'))
   })
 
   it('surfaces auth error and does not navigate', async () => {
