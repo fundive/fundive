@@ -76,6 +76,9 @@ export const siteConfig = {
     radio: false,
     push: true,
     broadcast: false,
+    // Optional. Requires your own event pages on urls.site keyed by the app's
+    // event id (see urls.eventPage). Left off — most forks won't have this.
+    eventSharing: false,
   },
 
   business: {
