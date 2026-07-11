@@ -15,7 +15,7 @@ import { defineConfig } from 'fundive/config'
 
 export const siteConfig = defineConfig({
   // Bump only when the platform CHANGELOG says to.
-  configVersion: 7,
+  configVersion: 8,
 
   identity: {
     // Printed in italics on the registration PDF. Leave blank to omit it.
@@ -42,6 +42,7 @@ export const siteConfig = defineConfig({
   urls: {
     site: 'https://www.example.com',
     app: 'https://app.example.com',
+    eventPage: 'https://www.example.com/events/{id}',
     radio: 'https://radio.example.com',
   },
 

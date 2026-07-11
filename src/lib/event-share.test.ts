@@ -1,15 +1,26 @@
-import { describe, it, expect } from 'vitest'
-import { wixEventUrl } from './event-share'
-import { siteConfig } from '../config/site'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-describe('wixEventUrl', () => {
-  it('uses plural /dives/ for dive events', () => {
-    expect(wixEventUrl({ id: '23e16bcd-6855-4013-8ed6-32976981a78a', type: 'dive' }))
-      .toBe(`${siteConfig.urls.site}/dives/23e16bcd-6855-4013-8ed6-32976981a78a`)
+const { urls } = vi.hoisted(() => ({
+  urls: { site: 'https://shop.test', eventPage: 'https://shop.test/events/{id}' as string | null },
+}))
+vi.mock('../config/site', () => ({ siteConfig: { urls } }))
+
+import { eventShareUrl } from './event-share'
+
+describe('eventShareUrl', () => {
+  beforeEach(() => { urls.eventPage = 'https://shop.test/events/{id}' })
+
+  it('interpolates the id into the configured event-page template', () => {
+    expect(eventShareUrl('23e16bcd-6855-4013-8ed6-32976981a78a'))
+      .toBe('https://shop.test/events/23e16bcd-6855-4013-8ed6-32976981a78a')
   })
 
-  it('uses singular /course/ for course events (Wix inconsistency, not a typo)', () => {
-    expect(wixEventUrl({ id: '49383375-610a-408a-894a-a0767d55f99e', type: 'course' }))
-      .toBe(`${siteConfig.urls.site}/course/49383375-610a-408a-894a-a0767d55f99e`)
+  it('returns null when the shop configures no event page', () => {
+    urls.eventPage = null
+    expect(eventShareUrl('23e16bcd-6855-4013-8ed6-32976981a78a')).toBeNull()
+  })
+
+  it('url-encodes the id so odd ids cannot break the path', () => {
+    expect(eventShareUrl('a/b?c')).toBe('https://shop.test/events/a%2Fb%3Fc')
   })
 })

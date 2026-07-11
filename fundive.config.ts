@@ -14,7 +14,7 @@
 
 export const siteConfig = {
   // Leave as-is for a new deployment; only bump when the CHANGELOG says to.
-  configVersion: 7,
+  configVersion: 8,
 
   identity: {
     // Printed in italics on the registration PDF. Leave blank to omit it.
@@ -41,6 +41,7 @@ export const siteConfig = {
   urls: {
     site: 'https://www.example.com',
     app: 'https://app.example.com',
+    eventPage: 'https://www.example.com/events/{id}',
     radio: 'https://radio.example.com',
   },
 
