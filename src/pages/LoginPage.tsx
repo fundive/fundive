@@ -51,7 +51,7 @@ export function LoginPage() {
       if (profile?.status) status = profile.status
     }
     if (role === 'diver' && status !== 'active') navigate('/pending')
-    else navigate(role === 'admin' ? '/admin' : role === 'staff' ? '/admin/events' : '/calendar')
+    else navigate(role === 'admin' ? '/admin/logistics' : role === 'staff' ? '/admin/events' : '/calendar')
   }
 
   function fill(account: typeof DEV_ACCOUNTS[number]) {
