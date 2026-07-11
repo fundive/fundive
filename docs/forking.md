@@ -29,6 +29,7 @@ Walking the fields:
 | `app.supportEmail` | Where registration mail and support requests go. |
 | `contact.*` | Phone, address, Google Maps URL, LINE / WhatsApp links, PayPal link. Leave a link empty to hide it. |
 | `urls.site` / `app` / `radio` | Your marketing site, the app origin, and (optional) radio stream. No trailing slashes. |
+| `urls.eventPage` | Template for the public event page the share button links to; `{id}` is replaced with the event id (e.g. `https://www.example.com/events/{id}`). Set to `null` to hide the share button entirely. |
 | `locale.timezone` | IANA zone, e.g. `Asia/Taipei` or `America/Los_Angeles`. |
 | `locale.currency` / `currencyLabel` | ISO code and the label shown in the UI. |
 | `theme.themeColor` / `backgroundColor` | **PWA manifest** colors (browser chrome + splash). See the note below about the in-app brand palette. |
