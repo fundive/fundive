@@ -75,6 +75,15 @@ export function AdminShell() {
               <img src={siteConfig.assets.broadcast} alt="" className="h-8 w-auto" />
             </a>
           )}
+          {displayRefundCount != null && displayRefundCount > 0 && (
+            <Link
+              to="/admin/refunds"
+              className="text-xs font-semibold bg-accent text-white px-2 py-0.5 rounded-full hover:bg-red-400"
+              aria-label={t.shell.pendingRefundsAria(displayRefundCount)}
+            >
+              {t.shell.pendingRefunds(displayRefundCount)}
+            </Link>
+          )}
         </div>
         <Link to="/admin" aria-label={t.shell.adminHome} className="shrink-0">
           <Logo size="sm" />
@@ -87,15 +96,6 @@ export function AdminShell() {
               aria-label={t.shell.pendingApplications(displayPendingCount)}
             >
               {t.shell.pending(displayPendingCount)}
-            </Link>
-          )}
-          {displayRefundCount != null && displayRefundCount > 0 && (
-            <Link
-              to="/admin/refunds"
-              className="text-xs font-semibold bg-accent text-white px-2 py-0.5 rounded-full hover:bg-red-400"
-              aria-label={t.shell.pendingRefundsAria(displayRefundCount)}
-            >
-              {t.shell.pendingRefunds(displayRefundCount)}
             </Link>
           )}
           <Link to="/calendar" className="text-sm font-semibold text-amber-300 hover:text-amber-200">
