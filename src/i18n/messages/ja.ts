@@ -19,6 +19,11 @@ export const ja: Messages = {
     cancel: 'キャンセル',
     continue: '次へ',
     register: '申し込む',
+    contentStatus: {
+      draft: '下書き',
+      published: '公開',
+      archived: 'アーカイブ',
+    },
   },
   shell: {
     trustedPartners: '提携ショップ',
@@ -859,6 +864,15 @@ export const ja: Messages = {
     saving: '保存中…',
     setNewPassword: '新しいパスワードを設定',
     backToSignIn: 'ログインに戻る',
+  },
+  pending: {
+    rejectedTitle: '申請は承認されませんでした',
+    rejectedBodyPrefix: 'あなたの申請は審査されましたが、今回は承認されませんでした。何かの間違いだと思われる場合は、こちらまでご連絡ください：',
+    rejectedBodySuffix: '。',
+    submittedTitle: '申請を送信しました',
+    submittedBody: 'ありがとうございます — プロフィールは審査待ちの状態です。管理者が間もなくアカウントを承認し、承認後にメールが届きます。一度サインアウトして、後ほどご確認いただけます。',
+    reviewTitle: '申請を審査中',
+    reviewBody: '下の必須項目を入力して保存してください — 管理者が申請を審査し、承認後にメールが届きます。',
   },
   admin: {
     manage: {

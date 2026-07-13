@@ -214,7 +214,7 @@ function ConfirmModal({
       <h2 id="vehicle-confirm-title" className="text-lg font-bold text-brand-900">{title}</h2>
       <p className="text-sm text-brand-900/80">{body}</p>
       <div className="flex justify-end gap-2 pt-1">
-        <button type="button" onClick={onClose} className="text-sm font-semibold text-brand-900 px-3 py-1.5">Cancel</button>
+        <button type="button" onClick={onClose} className="text-sm font-semibold text-brand-900 px-3 py-1.5">{t.common.cancel}</button>
         <button type="button" onClick={onConfirm}
           className="text-sm font-semibold bg-red-700 hover:bg-red-800 text-white px-4 py-1.5 rounded-lg">{confirmLabel}</button>
       </div>

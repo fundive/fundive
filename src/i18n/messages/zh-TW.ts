@@ -20,6 +20,11 @@ export const zhTW: Messages = {
     cancel: '取消',
     continue: '繼續',
     register: '報名',
+    contentStatus: {
+      draft: '草稿',
+      published: '已發布',
+      archived: '已封存',
+    },
   },
   shell: {
     trustedPartners: '合作夥伴',
@@ -860,6 +865,15 @@ export const zhTW: Messages = {
     saving: '儲存中…',
     setNewPassword: '設定新密碼',
     backToSignIn: '返回登入',
+  },
+  pending: {
+    rejectedTitle: '申請未通過',
+    rejectedBodyPrefix: '您的申請已審核，目前未獲通過。如果您認為這是誤判，請透過以下方式與我們聯繫：',
+    rejectedBodySuffix: '。',
+    submittedTitle: '申請已送出',
+    submittedBody: '感謝您 — 您的個人資料已進入審核佇列。管理員將盡快核准您的帳號，核准後您會收到電子郵件通知。您可以先登出，稍後再回來查看。',
+    reviewTitle: '申請審核中',
+    reviewBody: '請填寫下方必填欄位並儲存 — 管理員將審核您的申請，核准後您會收到電子郵件通知。',
   },
   admin: {
     manage: {
