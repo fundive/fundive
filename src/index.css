@@ -306,7 +306,16 @@ img, video, canvas {
 :root[data-theme="dark"] .text-brand-900 { color: var(--color-brand-50); }
 :root[data-theme="dark"] [class*="text-brand-900/"],
 :root[data-theme="dark"] [class*="text-brand-950/"] { color: color-mix(in oklab, var(--color-brand-100) 85%, transparent); }
-:root[data-theme="dark"] .text-brand-800 { color: var(--color-reef-300); }
+/* brand 600–800 are link/label/icon ink (mid-navy on light). In dark they were
+ * left un-retrofitted and fell to the dark-palette mid-blues (~2.7:1) — a dim
+ * clash next to the near-white brand-900 headings. Flip the whole link/emphasis
+ * family to the same reef accent brand-800 already uses. */
+:root[data-theme="dark"] .text-brand-800,
+:root[data-theme="dark"] .text-brand-700,
+:root[data-theme="dark"] .text-brand-600 { color: var(--color-reef-300); }
+:root[data-theme="dark"] [class*="text-brand-800/"],
+:root[data-theme="dark"] [class*="text-brand-700/"],
+:root[data-theme="dark"] [class*="text-brand-600/"] { color: color-mix(in oklab, var(--color-reef-300) 85%, transparent); }
 :root[data-theme="dark"] .placeholder\:text-brand-900::placeholder { color: color-mix(in oklab, var(--color-brand-100) 45%, transparent); }
 
 /* Native <select> dropdowns render their options in an OS popup with a white
