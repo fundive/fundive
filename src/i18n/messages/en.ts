@@ -27,6 +27,11 @@ export const en = {
     cancel: 'Cancel',
     continue: 'Continue',
     register: 'Register',
+    contentStatus: {
+      draft: 'Draft',
+      published: 'Published',
+      archived: 'Archived',
+    },
   },
   shell: {
     trustedPartners: 'Trusted Partners',
@@ -867,6 +872,15 @@ export const en = {
     saving: 'Saving…',
     setNewPassword: 'Set new password',
     backToSignIn: 'Back to sign in',
+  },
+  pending: {
+    rejectedTitle: 'Application not approved',
+    rejectedBodyPrefix: 'Your application was reviewed and not approved at this time. If you believe this is a mistake, please contact us at',
+    rejectedBodySuffix: '.',
+    submittedTitle: 'Application submitted',
+    submittedBody: 'Thanks — your profile is in the review queue. An admin will approve your account shortly and you\'ll receive an email once you\'re in. You can sign out and check back later.',
+    reviewTitle: 'Application under review',
+    reviewBody: 'Fill in the required fields below and save — an admin will review your application and you\'ll receive an email once you\'re approved.',
   },
   admin: {
     manage: {

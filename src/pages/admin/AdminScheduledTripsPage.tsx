@@ -308,9 +308,9 @@ function TripForm({ trip, onClose, onSaved, onError }: {
         </Labelled>
         <Labelled label={st.statusLabel}>
           <select className={FIELD} value={status} onChange={e => setStatus(e.target.value as ScheduledTripStatus)} aria-label={st.statusLabel}>
-            <option value="draft">draft</option>
-            <option value="published">published</option>
-            <option value="archived">archived</option>
+            <option value="draft">{t.common.contentStatus.draft}</option>
+            <option value="published">{t.common.contentStatus.published}</option>
+            <option value="archived">{t.common.contentStatus.archived}</option>
           </select>
         </Labelled>
         <FormButtons submitting={submitting} submitLabel={trip ? c.saveChanges : st.createTrip} onClose={onClose} />

@@ -5,6 +5,7 @@ import { ProfileForm } from './ProfilePage'
 import type { Profile } from '../types/database'
 import { CARD_ELEVATED, BTN_PRIMARY, TEXT_MUTED } from '../styles/tokens'
 import { siteConfig } from '../config/site'
+import { t } from '../i18n'
 
 // Holding screen for pending / rejected divers. RequireActive routes
 // every non-active diver here; the only way out is admin approval (then
@@ -52,43 +53,38 @@ export function PendingPage() {
         {rejected ? (
           <div className={`${CARD_ELEVATED} p-6 text-center`}>
             <h1 className="text-xl font-semibold text-brand-950 mb-2">
-              Application not approved
+              {t.pending.rejectedTitle}
             </h1>
             <p className={`${TEXT_MUTED} text-sm mb-5`}>
-              Your application was reviewed and not approved at this time. If
-              you believe this is a mistake, please contact us at{' '}
+              {t.pending.rejectedBodyPrefix}{' '}
               <a href={`mailto:${siteConfig.contact.email}`} className="underline">
                 {siteConfig.contact.email}
-              </a>.
+              </a>{t.pending.rejectedBodySuffix}
             </p>
             <button onClick={signOut} className={`w-full ${BTN_PRIMARY}`}>
-              Sign out
+              {t.common.signOut}
             </button>
           </div>
         ) : submitted ? (
           <div className={`${CARD_ELEVATED} p-6 text-center`}>
             <h1 className="text-xl font-semibold text-brand-950 mb-2">
-              Application submitted
+              {t.pending.submittedTitle}
             </h1>
             <p className={`${TEXT_MUTED} text-sm mb-5`}>
-              Thanks — your profile is in the review queue. An admin will
-              approve your account shortly and you'll receive an email once
-              you're in. You can sign out and check back later.
+              {t.pending.submittedBody}
             </p>
             <button onClick={signOut} className={`w-full ${BTN_PRIMARY}`}>
-              Sign out
+              {t.common.signOut}
             </button>
           </div>
         ) : (
           <>
             <div className={`${CARD_ELEVATED} p-4 text-center`}>
               <h1 className="text-lg font-semibold text-brand-950 mb-1">
-                Application under review
+                {t.pending.reviewTitle}
               </h1>
               <p className={`${TEXT_MUTED} text-xs`}>
-                Fill in the required fields below and save — an admin will
-                review your application and you'll receive an email once
-                you're approved.
+                {t.pending.reviewBody}
               </p>
             </div>
 
@@ -102,7 +98,7 @@ export function PendingPage() {
             )}
 
             <button onClick={signOut} className={`w-full ${BTN_PRIMARY}`}>
-              Sign out
+              {t.common.signOut}
             </button>
           </>
         )}

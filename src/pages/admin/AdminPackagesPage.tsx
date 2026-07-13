@@ -397,9 +397,9 @@ function PackageForm({
           <Labelled label={pg.kickback}><input className={FIELD} type="number" step="any" value={rate} onChange={e => setRate(e.target.value)} /></Labelled>
           <Labelled label={st.statusLabel}>
             <select className={FIELD} value={status} onChange={e => setStatus(e.target.value as PackageStatus)} aria-label={st.statusLabel}>
-              <option value="draft">draft</option>
-              <option value="published">published</option>
-              <option value="archived">archived</option>
+              <option value="draft">{t.common.contentStatus.draft}</option>
+              <option value="published">{t.common.contentStatus.published}</option>
+              <option value="archived">{t.common.contentStatus.archived}</option>
             </select>
           </Labelled>
         </div>
