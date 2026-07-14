@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../../hooks/useToast'
 import { errorMessage } from '../../lib/errors'
+import { createDiverAccount } from '../../lib/create-diver'
 import { personName } from '../../lib/names'
 import { RegisterFormBody } from '../register/RegisterForm'
 import type { AppEvent, Profile } from '../../types/database'
@@ -27,10 +28,15 @@ export function AdminAddDiverModal({
   event,
   onClose,
   onAdded,
+  initialDiverId,
 }: {
   event: AppEvent
   onClose: () => void
   onAdded: () => void
+  /** When set (e.g. arriving from the Create-diver page), the modal skips the
+   *  picker and opens straight on that diver's registration form once the
+   *  roster loads. */
+  initialDiverId?: string
 }) {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [filter, setFilter] = useState('')
@@ -45,10 +51,17 @@ export function AdminAddDiverModal({
       .order('name', { ascending: true })
       .then(({ data }) => {
         if (cancelled) return
-        setProfiles((data ?? []) as Profile[])
+        const rows = (data ?? []) as Profile[]
+        setProfiles(rows)
+        // Preselect the just-created diver so the admin lands on the register
+        // form, not the search list.
+        if (initialDiverId) {
+          const match = rows.find(p => p.id === initialDiverId)
+          if (match) setTarget(match)
+        }
       })
     return () => { cancelled = true }
-  }, [])
+  }, [initialDiverId])
 
   const visible = profiles.filter(p => {
     if (!filter) return true
@@ -189,30 +202,17 @@ function CreateNewDiverForm({
     }
     setSubmitting(true)
     try {
-      const { data, error: invokeErr } = await supabase.functions.invoke<{
-        ok: boolean
-        user_id: string
-        email_sent: boolean
-      }>('admin-create-diver', {
-        body: {
-          email:        trimmedEmail,
-          name:    trimmedName,
-          nickname: nickname.trim() || undefined,
-          event_title:  eventTitle,
-        },
+      // Shared account-mint helper: edge function + profile refetch so step 3
+      // has a real Profile to register against.
+      const { profile, emailSent } = await createDiverAccount({
+        email:      trimmedEmail,
+        name:       trimmedName,
+        nickname,
+        eventTitle,
       })
-      if (invokeErr) throw new Error(invokeErr.message)
-      if (!data?.ok || !data.user_id) throw new Error(ad.createFailed)
-
-      // Fetch the newly created (and admin-updated) profile so step 3 has a
-      // real Profile to register against.
-      const { data: profile, error: profErr } = await supabase
-        .from('profiles').select('*').eq('id', data.user_id).single()
-      if (profErr || !profile) throw new Error(profErr?.message ?? ad.profileNotFound)
-
-      const tail = data.email_sent ? pf.emailSent : pf.emailSkipped
+      const tail = emailSent ? pf.emailSent : pf.emailSkipped
       toast.success(ad.accountCreated(tail))
-      onCreated(profile as Profile)
+      onCreated(profile)
     } catch (err) {
       setError(errorMessage(err))
     } finally {
