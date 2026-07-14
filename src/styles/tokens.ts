@@ -103,6 +103,15 @@ export const BTN_SECONDARY = pick(
   'py-2 rounded-lg text-sm font-medium text-brand-50 border border-white/20 hover:bg-white/10 disabled:opacity-50',
 )
 
+// Compact inline-action buttons — the same three variants above at row size
+// (text-xs · px-3 py-1) for dense action rows like the admin user-card controls,
+// where a full-height BTN_* would dominate. inline-flex so a <Link> and a
+// <button> line up identically.
+const BTN_XS_BASE = 'inline-flex items-center justify-center text-xs font-semibold px-3 py-1 rounded-lg transition-colors disabled:opacity-50'
+export const BTN_XS_PRIMARY = `${BTN_XS_BASE} ${pick('bg-brand-900 hover:bg-brand-950 text-white', 'bg-reef-500 hover:bg-reef-400 text-slate-950')}`
+export const BTN_XS_GHOST   = `${BTN_XS_BASE} ${pick('border border-brand-900 text-brand-900 hover:bg-surface-100', 'border border-white/20 text-brand-50 hover:bg-white/10')}`
+export const BTN_XS_DANGER  = `${BTN_XS_BASE} ${pick('bg-surface-100 hover:bg-red-100 text-red-700 border border-accent', 'bg-red-500/15 hover:bg-red-500/25 text-red-200 border border-red-400/40')}`
+
 // ── Inputs ─────────────────────────────────────────────────────────
 export const INPUT       = pick(
   'w-full bg-white border border-surface-300 rounded-lg px-3 py-2 text-brand-900 focus:outline-none focus:border-brand-900',
