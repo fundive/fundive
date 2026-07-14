@@ -11,6 +11,7 @@ import { ShareEventButton } from '../components/ShareEventButton'
 import { siteConfig } from '../config/site'
 import { MODAL_BACKDROP, MODAL_PANEL, TEXT_HEADING, TEXT_BODY } from '../styles/tokens'
 import { t } from '../i18n'
+import { BTN_XS_GHOST } from '../styles/tokens'
 import type { AppEvent, Booking } from '../types/database'
 
 // Design-variant class map for this page's inline surfaces (the amber
@@ -186,7 +187,7 @@ export function CalendarPage() {
               <button
                 type="button"
                 onClick={exitMulti}
-                className="text-xs text-white/80 hover:text-white px-2 py-1.5"
+                className={BTN_XS_GHOST}
               >
                 {t.common.cancel}
               </button>
