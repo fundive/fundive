@@ -39,17 +39,25 @@ interface EventFixture {
 
 const CHAIN = ['select', 'eq', 'gte', 'lte', 'order', 'in', 'is', 'or', 'overlaps']
 
-// A kind-aware `events` builder: rows are filtered by the `.eq('kind', …)`
-// applied to this query (dive vs course). Queries with no kind filter (e.g. the
+// A kind-aware `events` builder: rows are filtered by the kind predicate this
+// query applies. Production splits the calendar fetch by temporal shape via
+// `.in('kind', [...])` — matching that here matters, because a builder that
+// ignores the filter hands every row to BOTH the envelope and the course-day
+// query, and each event comes back doubled. `.eq('kind', …)` is still honoured
+// for any single-kind query. Queries with no kind filter (e.g. the
 // detail-column select) see every row.
 function eventsBuilder(rows: EventFixture[]) {
-  let kind: string | null = null
+  let kinds: string[] | null = null
   const b: Record<string, unknown> = {}
   for (const m of CHAIN) {
-    b[m] = (...args: unknown[]) => { if (m === 'eq' && args[0] === 'kind') kind = args[1] as string; return b }
+    b[m] = (...args: unknown[]) => {
+      if (m === 'eq' && args[0] === 'kind') kinds = [args[1] as string]
+      if (m === 'in' && args[0] === 'kind') kinds = [...(args[1] as string[])]
+      return b
+    }
   }
   b.then = (cb?: (r: unknown) => unknown) => {
-    const data = kind ? rows.filter(r => r.kind === kind) : rows
+    const data = kinds ? rows.filter(r => kinds!.includes(r.kind)) : rows
     return Promise.resolve({ data, error: null }).then(cb)
   }
   return b
@@ -186,14 +194,18 @@ describe('courseToEvents — course_days run grouping', () => {
 
     from.mockImplementation((table: string) => {
       if (table !== 'events') return emptyBuilder()
-      let kind: string | null = null
+      let kinds: string[] | null = null
       const b: Record<string, unknown> = {}
       for (const m of CHAIN) {
-        b[m] = (...args: unknown[]) => { if (m === 'eq' && args[0] === 'kind') kind = args[1] as string; return b }
+        b[m] = (...args: unknown[]) => {
+        if (m === 'eq' && args[0] === 'kind') kinds = [args[1] as string]
+        if (m === 'in' && args[0] === 'kind') kinds = [...(args[1] as string[])]
+        return b
+      }
       }
       b.overlaps = (col: string, val: string[]) => { overlapsCalls.push([col, val]); return b }
       b.then = (cb?: (r: unknown) => unknown) => {
-        const data = kind ? courseRows.filter(r => r.kind === kind) : courseRows
+        const data = kinds ? courseRows.filter(r => kinds!.includes(r.kind)) : courseRows
         return Promise.resolve({ data, error: null }).then(cb)
       }
       return b
@@ -435,10 +447,14 @@ describe('attachEventDetails — events schema drift tolerance', () => {
 
   function courseBuilder() {
     let cols = ''
-    let kind: string | null = null
+    let kinds: string[] | null = null
     const b: Record<string, unknown> = {}
     for (const m of ['eq', 'gte', 'lte', 'order', 'in', 'is', 'or', 'overlaps']) {
-      b[m] = (...args: unknown[]) => { if (m === 'eq' && args[0] === 'kind') kind = args[1] as string; return b }
+      b[m] = (...args: unknown[]) => {
+        if (m === 'eq' && args[0] === 'kind') kinds = [args[1] as string]
+        if (m === 'in' && args[0] === 'kind') kinds = [...(args[1] as string[])]
+        return b
+      }
     }
     b.select = (c: string) => { cols = c; selects.push(c); return b }
     b.then = (cb?: (r: unknown) => unknown) => {
@@ -452,7 +468,7 @@ describe('attachEventDetails — events schema drift tolerance', () => {
         price: null, dive_days: null, admin_title: null, calendar_title: null,
         course_days: ['2026-05-10'], included: '4 dives', schedule: '2 days', req_dives: 10,
       }
-      const data = kind ? (kind === 'course' ? [row] : []) : [row]
+      const data = kinds ? (kinds.includes('course') ? [row] : []) : [row]
       return Promise.resolve({ data, error: null }).then(cb)
     }
     return b
@@ -486,13 +502,20 @@ describe('fetchUpcomingEventDays', () => {
   ) {
     from.mockImplementation((table: string) => {
       if (table !== 'events') return emptyBuilder()
-      let kind: string | null = null
+      let kinds: string[] | null = null
       const b: Record<string, unknown> = {}
       for (const m of CHAIN) {
-        b[m] = (...args: unknown[]) => { if (m === 'eq' && args[0] === 'kind') kind = args[1] as string; return b }
+        b[m] = (...args: unknown[]) => {
+          if (m === 'eq' && args[0] === 'kind') kinds = [args[1] as string]
+          if (m === 'in' && args[0] === 'kind') kinds = [...(args[1] as string[])]
+          return b
+        }
       }
       b.then = (cb?: (r: unknown) => unknown) => {
-        const data = kind === 'dive' ? dives : kind === 'course' ? courses : []
+        // The two queries are keyed by temporal shape: the envelope query
+        // (dive and any future envelope kind) reads start_date, the course-day
+        // query reads course_days.
+        const data = kinds?.includes('dive') ? dives : kinds?.includes('course') ? courses : []
         return Promise.resolve({ data, error: null }).then(cb)
       }
       return b
@@ -520,3 +543,36 @@ describe('fetchUpcomingEventDays', () => {
     expect(days).toEqual(['2026-07-05'])
   })
 })
+
+describe('adventure events reach the calendar', () => {
+  it('fetches adventures alongside dives in the envelope query', async () => {
+    // The calendar used to run one query per kind, hardcoded to dive and
+    // course. A kind missing from those queries is never fetched at all, so it
+    // vanishes from the calendar rather than rendering wrongly.
+    setup([{
+      id: 'adv1', kind: 'adventure', display_title: 'Camping weekend',
+      start_time: '08:00:00', price: null, dive_days: null,
+      admin_title: null, calendar_title: null, course_days: null,
+      start_date: '2026-05-12', end_date: '2026-05-14',
+    } as unknown as EventFixture])
+    const { fetchEventsInRange } = await import('./events')
+    const events = await fetchEventsInRange('2026-05-01', '2026-05-31')
+
+    expect(events).toHaveLength(1)
+    expect(events[0].type).toBe('adventure')
+    expect(events[0].start_time.slice(0, 10)).toBe('2026-05-12')
+    expect(events[0].end_time?.slice(0, 10)).toBe('2026-05-14')
+  })
+
+  it('counts an adventure day in the upcoming-days picker', async () => {
+    setup([{
+      id: 'adv2', kind: 'adventure', display_title: 'Camping',
+      start_time: '08:00:00', price: null, dive_days: null,
+      admin_title: null, calendar_title: null, course_days: null,
+      start_date: '2026-05-20', end_date: null,
+    } as unknown as EventFixture])
+    const { fetchUpcomingEventDays } = await import('./events')
+    expect(await fetchUpcomingEventDays('2026-05-01', '2026-05-31')).toContain('2026-05-20')
+  })
+})
+

@@ -1,7 +1,8 @@
 import { supabase } from './supabase'
 import { courseColor } from './event-colors'
-import { ANNUAL_WAIVER_VALID_DAYS, rowToWaiverDef, type WaiverDef } from '../config/waivers'
-import type { EventWaiver, WaiverSignature, WaiverRow, WaiverInsert } from '../types/database'
+import { usesCourseDays } from './event-kinds'
+import { ANNUAL_WAIVER_VALID_DAYS, rowToWaiverDef, WAIVER_SCOPE_BY_KIND, type WaiverDef } from '../config/waivers'
+import type { EventWaiver, WaiverSignature, WaiverRow, WaiverInsert, EventKind } from '../types/database'
 
 // Waiver logic — combines the config catalog/global rules (src/config/waivers.ts)
 // with the DB facts (per-diver signatures, per-event overrides) to answer "which
@@ -11,7 +12,7 @@ import type { EventWaiver, WaiverSignature, WaiverRow, WaiverInsert } from '../t
 /** The minimum an event must expose for the waiver rules. */
 export interface WaiverEventRef {
   id: string
-  type: 'dive' | 'course'
+  type: EventKind
   title: string
 }
 
@@ -22,10 +23,11 @@ const DAY_MS = 86_400_000
 
 // Does the waiver's GLOBAL rule (before per-event overrides) cover this event?
 export function globalRuleMatches(def: WaiverDef, event: WaiverEventRef): boolean {
-  if (event.type === 'dive') return def.appliesTo === 'dives' || def.appliesTo === 'all'
-  // course
-  if (def.appliesTo !== 'courses' && def.appliesTo !== 'all') return false
-  if (def.courseColors && def.courseColors.length > 0) {
+  const scope = WAIVER_SCOPE_BY_KIND[event.type]
+  if (def.appliesTo !== scope && def.appliesTo !== 'all') return false
+  // Course colours narrow a course-scoped rule to particular course types;
+  // they have no meaning for kinds that aren't courses.
+  if (usesCourseDays(event.type) && def.courseColors && def.courseColors.length > 0) {
     return def.courseColors.includes(courseColor(event.title))
   }
   return true
@@ -136,12 +138,9 @@ export async function deleteWaiver(id: string): Promise<void> {
   if (error) throw error
 }
 
-export async function fetchEventWaiverOverrides(
-  event: { dive_id?: string | null; course_id?: string | null },
-): Promise<EventWaiver[]> {
-  const val = event.dive_id ?? event.course_id
-  if (!val) return []
-  const { data, error } = await supabase.from('event_waivers').select('*').eq('event_id', val)
+export async function fetchEventWaiverOverrides(eventId: string | null): Promise<EventWaiver[]> {
+  if (!eventId) return []
+  const { data, error } = await supabase.from('event_waivers').select('*').eq('event_id', eventId)
   if (error) throw error
   return (Array.isArray(data) ? data : []) as EventWaiver[]
 }

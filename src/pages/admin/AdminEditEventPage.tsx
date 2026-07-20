@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { usesCourseDays } from '../../lib/event-kinds'
+import { EVENT_KIND_LABELS } from '../../lib/event-kind-labels'
 import { useAuth } from '../../hooks/useAuth'
 import { EventForm } from '../../components/admin/EventForm'
 import { EventCarAssignment } from '../../components/admin/EventCarAssignment'
@@ -28,7 +30,7 @@ function normDays(days: string[]): string[] {
 // registered divers. Courses compare their day list; dives compare the
 // start/end envelope.
 function datesChanged(before: FormState, after: FormState): boolean {
-  if (after.type === 'course') {
+  if (usesCourseDays(after.type)) {
     const a = normDays(before.courseDays)
     const b = normDays(after.courseDays)
     return a.length !== b.length || a.some((d, i) => d !== b[i])
@@ -82,7 +84,7 @@ export function AdminEditEventPage() {
     const relError = await saveEventRelations(id, form)
     if (relError) throw relError
     if (dateChange) notifyEventScheduleChanged(id, form.type).catch(() => { /* best-effort */ })
-    toast.success(form.type === 'dive' ? ev.diveUpdated : ev.courseUpdated)
+    toast.success(ev.updated(EVENT_KIND_LABELS[form.type]))
     navigate(`/admin/events/${id}`)
   }
 

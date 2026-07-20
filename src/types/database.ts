@@ -1,4 +1,5 @@
 import type { ChargeLine } from '../lib/booking-charges'
+import type { EventKind } from '../lib/event-kinds'
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
@@ -901,7 +902,7 @@ export interface Database {
           pdf_path: string | null
           cadence: 'annual' | 'per_event'
           version: number
-          applies_to: 'dives' | 'courses' | 'all' | 'none'
+          applies_to: 'dives' | 'courses' | 'adventures' | 'all' | 'none'
           course_colors: string[] | null
           active: boolean
         }
@@ -916,7 +917,7 @@ export interface Database {
           pdf_path?: string | null
           cadence?: 'annual' | 'per_event'
           version?: number
-          applies_to?: 'dives' | 'courses' | 'all' | 'none'
+          applies_to?: 'dives' | 'courses' | 'adventures' | 'all' | 'none'
           course_colors?: string[] | null
           active?: boolean
         }
@@ -1113,7 +1114,7 @@ export interface Database {
       events: {
         Row: {
           id: string
-          kind: 'dive' | 'course'
+          kind: 'dive' | 'course' | 'adventure'
           admin_title: string | null
           display_title: string | null
           calendar_title: string | null
@@ -1149,7 +1150,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          kind: 'dive' | 'course'
+          kind: 'dive' | 'course' | 'adventure'
           admin_title?: string | null
           display_title?: string | null
           calendar_title?: string | null
@@ -1511,14 +1512,14 @@ export interface Database {
         Row: {
           user_id: string
           event_id: string
-          event_type: 'dive' | 'course'
+          event_type: 'dive' | 'course' | 'adventure'
           kind: string
           sent_at: string
         }
         Insert: {
           user_id: string
           event_id: string
-          event_type: 'dive' | 'course'
+          event_type: 'dive' | 'course' | 'adventure'
           kind: string
           sent_at?: string
         }
@@ -1770,10 +1771,27 @@ export type StaffAvailabilityUpdate = Database['public']['Tables']['staff_availa
  *  joined profiles row in staff_availability_view. */
 export type StaffBusyEntry = Database['public']['Views']['staff_availability_view']['Row']
 
+// The event vocabulary lives in lib/event-kinds.ts, which is import-free so the
+// Deno edge functions and the push worker can share it. Re-exported here
+// because this is where the rest of the app reaches for event types.
+export type { EventKind } from '../lib/event-kinds'
+export { EVENT_KINDS } from '../lib/event-kinds'
+
+// Guard: the vocabulary must cover the generated `events.kind` union. Adding a
+// kind to the DB without adding it to EVENT_KINDS would leave every
+// kind-iterating caller quietly skipping it; this fails to compile until they
+// agree.
+type UncoveredEventKind = Exclude<
+  Database['public']['Tables']['events']['Row']['kind'],
+  import('../lib/event-kinds').EventKind
+>
+export type _EventKindsAreExhaustive = UncoveredEventKind extends never ? true
+  : ['EVENT_KINDS is missing an event kind:', UncoveredEventKind]
+
 /** Normalized event shape used across Calendar + Bookings UI. */
 export interface AppEvent {
   id: string
-  type: 'dive' | 'course'
+  type: EventKind
   /** Diver-facing title — display_title with admin_title fallback. Used on
    *  every diver-facing surface (event detail, bookings, register form,
    *  notifications) EXCEPT the calendar grid pills, which use calendar_title
