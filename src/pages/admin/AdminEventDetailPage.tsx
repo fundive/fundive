@@ -30,7 +30,7 @@ import { EventTransportPanel } from '../../components/admin/EventTransportPanel'
 import { missingWaivers, fetchEventWaiverOverrides, fetchSignaturesForDivers, fetchWaivers } from '../../lib/waivers'
 import type { WaiverDef } from '../../config/waivers'
 import { ShareEventButton } from '../../components/ShareEventButton'
-import type { AppEvent, Booking, BookingAmendment, BookingDetails, Credit, DiverNote, Payment, Profile } from '../../types/database'
+import type { AppEvent, Booking, BookingAmendment, BookingDetails, Credit, DiverNote, Payment, Profile, EventKind } from '../../types/database'
 import { BTN_SECONDARY, ERROR_NOTE_LIGHT } from '../../styles/tokens'
 import { t } from '../../i18n'
 
@@ -210,7 +210,7 @@ export function AdminEventDetailPage() {
       try {
         const diverIds = [...new Set(diverIdsKey.split(','))]
         const [overrides, sigs, waivers] = await Promise.all([
-          fetchEventWaiverOverrides(event.type === 'dive' ? { dive_id: event.id } : { course_id: event.id }),
+          fetchEventWaiverOverrides(event.id),
           fetchSignaturesForDivers(diverIds),
           fetchWaivers(),
         ])
@@ -530,7 +530,7 @@ export function AdminEventDetailPage() {
               readOnly={!isAdmin}
             />
           )}
-          <AdminNotes target={{ kind: event.type, id }} title={ed.memos} />
+          <AdminNotes target={{ kind: 'event', id }} title={ed.memos} />
         </>
       )}
 
@@ -811,7 +811,7 @@ function NotifyDiversModal({
 }: {
   eventTitle: string
   eventId: string
-  eventType: 'dive' | 'course'
+  eventType: EventKind
   confirmedCount: number
   onClose: () => void
   onSent: (summary: string) => void
@@ -986,7 +986,7 @@ function loadBoatManifestDefaults(): { boatName: string; registration: string; n
 function ExportManifestModal({
   eventType, eventId, onClose, onDone, onError,
 }: {
-  eventType: 'dive' | 'course'
+  eventType: EventKind
   eventId: string
   onClose: () => void
   onDone: (summary: string) => void

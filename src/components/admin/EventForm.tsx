@@ -3,13 +3,16 @@ import { supabase } from '../../lib/supabase'
 import { errorMessage } from '../../lib/errors'
 import { fetchEventRelations } from '../../lib/event-relations'
 import { siteConfig } from '../../config/site'
-import type { CancellationPolicy, CertLevel, TripTemplateEntry, EOAddon, EventRow, EOPrice, EORoom, TravelDestination } from '../../types/database'
+import type { CancellationPolicy, CertLevel, TripTemplateEntry, EOAddon, EventRow, EOPrice, EORoom, TravelDestination, EventKind } from '../../types/database'
 import {
   EMPTY_FORM,
   formStateFromEvent,
   type FormState,
 } from './event-form-state'
 import { DateField } from '../DateField'
+import { usesCourseDays, usesDateEnvelope, hasDiveFlags } from '../../lib/event-kinds'
+import { EVENT_KIND_LABELS } from '../../lib/event-kind-labels'
+import { EVENT_KINDS } from '../../types/database'
 import { BTN_XS_GHOST, ERROR_NOTE } from '../../styles/tokens'
 import { t } from '../../i18n'
 
@@ -21,7 +24,7 @@ import { t } from '../../i18n'
 
 // The picker drives both the type pill and the row → form mapping from a
 // single selection; the events row carries its own `kind`.
-type PastEvent = { kind: 'dive' | 'course'; id: string; startDate: string; title: string; row: EventRow }
+type PastEvent = { kind: EventKind; id: string; startDate: string; title: string; row: EventRow }
 
 const ef = t.admin.eventForm
 const cat = t.admin.catalog
@@ -76,7 +79,7 @@ export interface EventFormProps {
   submitLabel?: string
   /** Create-mode only: extra fields (e.g. a car picker) whose values the page
    *  persists after the event row exists. Given the current event type. */
-  renderCreateExtras?: (type: 'dive' | 'course') => ReactNode
+  renderCreateExtras?: (type: EventKind) => ReactNode
 }
 
 export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, renderCreateExtras }: EventFormProps) {
@@ -363,7 +366,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
     setError(null)
 
     // Validate the per-type required fields up front.
-    if (form.type === 'dive') {
+    if (usesDateEnvelope(form.type)) {
       if (!form.admin_title.trim()) {
         setError(ef.adminTitleRequired)
         return
@@ -387,7 +390,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
   }
 
   const defaultSubmitLabel = mode === 'create'
-    ? (form.type === 'dive' ? ef.createDive : ef.createCourse)
+    ? ef.createEvent(EVENT_KIND_LABELS[form.type])
     : cat.saveChanges
 
   return (
@@ -396,8 +399,15 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
           would require migrating to the other table, which we don't support. */}
       {mode === 'create' && (
         <div className="flex gap-2">
-          <TypePill active={form.type === 'dive'}   onClick={() => { set('type', 'dive');   setPreloadId('') }}>{t.calendar.typeDive}</TypePill>
-          <TypePill active={form.type === 'course'} onClick={() => { set('type', 'course'); setPreloadId('') }}>{t.calendar.typeCourse}</TypePill>
+          {EVENT_KINDS.map(kind => (
+            <TypePill
+              key={kind}
+              active={form.type === kind}
+              onClick={() => { set('type', kind); setPreloadId('') }}
+            >
+              {EVENT_KIND_LABELS[kind]}
+            </TypePill>
+          ))}
         </div>
       )}
 
@@ -405,7 +415,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
         <div>
           <label className="block space-y-1">
             <span className="text-xs font-medium text-white/80">
-              {form.type === 'dive' ? ef.preloadPastDive : ef.preloadPastCourse}
+              {ef.preloadPast(EVENT_KIND_LABELS[form.type])}
             </span>
             <select
               value={preloadId}
@@ -424,8 +434,8 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
       )}
 
       <Section title={ef.sectionBasics}>
-        <Field label={form.type === 'dive' ? ef.adminTitleDive : ef.adminTitleCourse}>
-          <Input value={form.admin_title} onChange={v => set('admin_title', v)} required={form.type === 'dive'} />
+        <Field label={usesCourseDays(form.type) ? ef.adminTitleLabelOptional : ef.adminTitleLabelRequired}>
+          <Input value={form.admin_title} onChange={v => set('admin_title', v)} required={!usesCourseDays(form.type)} />
         </Field>
         <Field label={ef.displayTitle}>
           <Input value={form.display_title} onChange={v => set('display_title', v)} />
@@ -433,7 +443,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
         <Field label={ef.calendarTitle}>
           <Input value={form.calendar_title} onChange={v => set('calendar_title', v)} />
         </Field>
-        {form.type === 'dive' ? (
+        {usesDateEnvelope(form.type) ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label={ef.startDate}>
               <Input type="date" value={form.start_date} onChange={v => set('start_date', v)} required />
@@ -561,9 +571,9 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
         </Field>
       </Section>
 
-      {form.type === 'dive' && (
+      {hasDiveFlags(form.type) && (
         <>
-          <Section title={ef.sectionDiveDetails}>
+          <Section title={ef.sectionDetails(EVENT_KIND_LABELS[form.type])}>
             <Field label={ef.notes}>
               <Textarea value={form.notes} onChange={v => set('notes', v)} />
             </Field>
@@ -719,8 +729,8 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
         </>
       )}
 
-      {form.type === 'course' && (
-        <Section title={ef.sectionCourseDetails}>
+      {usesCourseDays(form.type) && (
+        <Section title={ef.sectionDetails(EVENT_KIND_LABELS[form.type])}>
           <Field label={ef.courseName}>
             <Input value={form.course_name} onChange={v => set('course_name', v)} />
           </Field>
