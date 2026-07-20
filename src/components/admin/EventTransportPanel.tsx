@@ -56,17 +56,16 @@ export function EventTransportPanel({ event, registrants, isAdmin, createdBy, on
         <p className="text-xs text-brand-950/70 font-medium italic">{tp.cancelledHidden}</p>
       )}
 
-      {showsTransport && (
-        <>
-          <TransportTextEditor event={event} isAdmin={isAdmin} />
-          <EventCarAssignment
-            event={{ id: event.id, type: event.type }}
-            isAdmin={isAdmin}
-            createdBy={createdBy}
-            riders={needsRideCount}
-          />
-        </>
-      )}
+      {/* The transport blurb is about getting to a dive site, so it stays
+          kind-gated. Cars are not: a course can need a van too, and an admin
+          could not assign one while this sat inside the same condition. */}
+      {showsTransport && <TransportTextEditor event={event} isAdmin={isAdmin} />}
+      <EventCarAssignment
+        event={{ id: event.id, type: event.type }}
+        isAdmin={isAdmin}
+        createdBy={createdBy}
+        riders={needsRideCount}
+      />
     </section>
   )
 }
