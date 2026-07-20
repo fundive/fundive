@@ -1,4 +1,4 @@
-.PHONY: help dev studio mail start stop status reset diff link pull push dump-data backup-prod verify test lint lint-fix typecheck check deploy deploy-app deploy-push deploy-functions
+.PHONY: help dev studio mail start stop status reset diff link pull push dump-data backup-prod verify test test-only security lint lint-fix typecheck deploy deploy-app deploy-push deploy-functions
 
 # The local Supabase stack names its Docker containers supabase_<svc>_<project_id>,
 # so derive the prefix from config.toml — a fork only changes project_id there.
@@ -24,12 +24,12 @@ help:
 	@echo "  make verify      — check local is in sync with cloud (schema + row counts)"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test        — run every local test (unit + component + integration + security)"
+	@echo "  make test        — the gate: typecheck + lint + every local test (unit + component + integration + security)"
+	@echo "  make test-only   — just the test run, skipping typecheck and lint"
 	@echo "  make security    — run only the black-box attacker probes in tests/security/"
 	@echo "  make lint        — run eslint over the SPA + tests"
 	@echo "  make lint-fix    — run eslint with --fix to auto-correct what it can"
 	@echo "  make typecheck   — run tsc --noEmit (no build, just type validation)"
-	@echo "  make check       — typecheck + lint + test, in that order; pre-deploy gate"
 	@echo ""
 	@echo "Deploy:"
 	@echo "  make deploy            — deploy both workers (SPA + push cron) + edge functions"
@@ -56,12 +56,12 @@ push:       ; @npm run db:push
 dump-data:  ; @npm run db:dump-data
 backup-prod: ; @npm run db:backup-prod
 verify:     ; @bash scripts/verify-sync.sh
-test:       ; @npm run test:all
+test:       typecheck lint test-only
+test-only:  ; @npm run test:all
 security:   ; @npx vitest run --project security
 lint:       ; @npm run lint
 lint-fix:   ; @npm run lint:fix
 typecheck:  ; @npx tsc -b
-check:      typecheck lint test
 
 # Cloudflare Worker deploys read their creds (CLOUDFLARE_API_TOKEN,
 # CLOUDFLARE_ACCOUNT_ID) and the VITE_* build vars from .env.local, so a deploy
