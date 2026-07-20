@@ -27,6 +27,7 @@ import { planFleet, type Rider, type SeatingPlan, type FleetVehicle } from '../.
 import { useAuth } from '../../hooks/useAuth'
 import type { AppEvent, Booking, BookingDetails, Credit, Duty, EventVehicle, Payment, Profile, Vehicle } from '../../types/database'
 import { t } from '../../i18n'
+import { fetchAmendmentsForBookings, amendmentsDelta } from '../../lib/booking-amendments'
 
 const lg = t.admin.logistics
 const gr = t.admin.groups
@@ -207,7 +208,7 @@ export function AdminLogisticsPage() {
         ...duties.map(d => d.assignee_id),
       ])]
       const bookingIds = bookings.map(b => b.id)
-      const [profsRes, paymentsRes, creditsRes] = await Promise.all([
+      const [profsRes, paymentsRes, creditsRes, amendmentsByBooking] = await Promise.all([
         userIds.length
           ? supabase.from('profiles').select('*').in('id', userIds)
           : Promise.resolve({ data: [] as Profile[] }),
@@ -217,6 +218,7 @@ export function AdminLogisticsPage() {
         userIds.length
           ? supabase.from('credits').select('*').in('user_id', userIds).eq('status', 'open')
           : Promise.resolve({ data: [] as Credit[] }),
+        fetchAmendmentsForBookings(bookingIds),
       ])
       if (cancelled) return
       const profMap = new Map((profsRes.data ?? []).map(p => [p.id, p]))
@@ -229,7 +231,11 @@ export function AdminLogisticsPage() {
       const credits = (creditsRes.data ?? []) as Credit[]
       const balByBooking = new Map<string, BookingBalanceRow>()
       for (const b of bookings) {
+        // Amendments are part of what a diver owes on every other surface;
+        // without them a discounted booking that has been settled shows a
+        // phantom "still owes" on this board.
         const owed = Number((b.details as BookingDetails | undefined)?.total ?? 0)
+          + amendmentsDelta(amendmentsByBooking.get(b.id) ?? [])
         const paid = paidByBooking.get(b.id) ?? 0
         const payerName = (b.payer_id && b.payer_id !== b.user_id)
           ? (personName(profMap.get(b.payer_id)?.name, profMap.get(b.payer_id)?.nickname) || lg.leadBooker)
