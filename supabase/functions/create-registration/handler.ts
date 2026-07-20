@@ -16,7 +16,7 @@
 
 import { Buffer } from "node:buffer"
 import { sanitizeProfilePatch } from "../_shared/profile-patch.ts"
-import { eligibilityError } from "../_shared/registration-eligibility.ts"
+import { dobError, eligibilityError } from "../_shared/registration-eligibility.ts"
 import { computeBookingMoney } from "../_shared/booking-charges.ts"
 import { corsHeaders, safeError } from "../_shared/responses.ts"
 import { siteConfig } from "../_shared/config.ts"
@@ -363,6 +363,10 @@ export async function handleRegistration(req: Request, deps: Deps): Promise<Resp
 
   // 1. Profile update — column allowlist (security audit C2).
   const safePatch = sanitizeProfilePatch(body.profile_patch)
+  // Date of birth gates every path, on-behalf-of included — checked before the
+  // update so a rejected registration doesn't blank a stored DOB on its way out.
+  const dobGate = dobError(safePatch)
+  if (dobGate) return rollback(dobGate, 422)
   if (createdGuest) safePatch.status = "pending"
   const { error: profErr } = await admin
     .from("profiles")
