@@ -75,6 +75,13 @@
  * body a deep ocean-night gradient with neon corner glows. Everything keys off
  * data-theme so a fork flips looks with a single config value. */
 :root[data-theme="dark"] {
+  /* Tell the UA which scheme it is painting for. Native chrome we don't draw
+   * ourselves — <select> popups, date/time pickers, autofill fills, spinners —
+   * is the browser's, and without this it renders LIGHT in the dark theme: a
+   * white sheet dropping out of a dark app. It also fixes the date input's UA
+   * calendar icon, which was otherwise drawn dark-on-dark. */
+  color-scheme: dark;
+
   --color-brand-50:  #eff8ff;
   --color-brand-100: #dbeefe;
   --color-brand-200: #bfe1fe;
@@ -318,15 +325,16 @@ img, video, canvas {
 :root[data-theme="dark"] [class*="text-brand-600/"] { color: color-mix(in oklab, var(--color-reef-300) 85%, transparent); }
 :root[data-theme="dark"] .placeholder\:text-brand-900::placeholder { color: color-mix(in oklab, var(--color-brand-100) 45%, transparent); }
 
-/* Native <select> dropdowns render their options in an OS popup with a white
-   background, but the option text inherits the select's `color` — which the
-   brand-ink flip above turns near-white, giving white-on-white options in every
-   native dropdown. Pin options to dark ink on a white sheet so the open list
-   stays legible in the dark theme, regardless of the closed control's text. */
+/* Option lists, pinned dark to match the app. Belt-and-braces with the
+   `color-scheme: dark` above: engines disagree on whether the popup follows
+   color-scheme, `background-color` on <option>, or both (Safari ignores the
+   latter; some Linux GTK builds lean on it). Setting both means every
+   combination lands light-ink-on-dark rather than the old white sheet — which
+   only existed because nothing had declared the app dark to the UA. */
 :root[data-theme="dark"] option,
 :root[data-theme="dark"] optgroup {
-  color: var(--color-brand-950);
-  background-color: #ffffff;
+  color: var(--color-brand-50);
+  background-color: #0d1a2e;
 }
 
 /* Translucent-white cards → frosted dark glass. Opaque + the light card alphas
