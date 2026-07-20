@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { BTN_XS_GHOST } from '../../styles/tokens'
 import { Link } from 'react-router-dom'
 import { PageLoading } from '../../components/ui/Spinner'
 import { format, parseISO } from 'date-fns'
@@ -133,6 +134,24 @@ export function AdminLogisticsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOtherDay(upcomingDays.find(d => d > tomorrowKey) ?? upcomingDays[0])
   }, [tab, otherDay, upcomingDays, tomorrowKey])
+
+  // The next day *with events* after the one on screen — the jump button skips
+  // dead days instead of stepping one calendar day at a time. null when the day
+  // shown is the last one with events inside the LOOKAHEAD_DAYS window, which is
+  // also the only case where the button is hidden.
+  const nextEventDay = useMemo(
+    () => (upcomingDays ?? []).find(d => d > dayKey) ?? null,
+    [upcomingDays, dayKey],
+  )
+
+  // Land on whichever control owns that day, so the tabs keep matching what's
+  // displayed: today/tomorrow have their own tabs, anything else is "Other day".
+  function goToDay(day: string) {
+    if (day === todayKey) { setTab('today'); return }
+    if (day === tomorrowKey) { setTab('tomorrow'); return }
+    setOtherDay(day)
+    setTab('other')
+  }
 
   useEffect(() => {
     if (!dayKey) return
@@ -390,8 +409,24 @@ export function AdminLogisticsPage() {
       ) : (
         <>
           <section className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-4 space-y-3">
-            <h2 className="text-sm font-bold text-brand-900 uppercase tracking-wider">{lg.overall(dayKey)}</h2>
-            <p className="text-sm text-brand-900 font-medium">{lg.eventsDivers(groups.length, allRows.length)}</p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-brand-900 uppercase tracking-wider">{lg.overall(dayKey)}</h2>
+                <p className="text-sm text-brand-900 font-medium">{lg.eventsDivers(groups.length, allRows.length)}</p>
+              </div>
+              {/* Jump to the next day that has events. Labelled with the
+                  destination — "Tomorrow" when that's where it lands, the date
+                  otherwise — so it says where it goes rather than just "next". */}
+              {nextEventDay && (
+                <button
+                  type="button"
+                  onClick={() => goToDay(nextEventDay)}
+                  className={`shrink-0 ${BTN_XS_GHOST}`}
+                >
+                  {lg.nextEventDay(nextEventDay === tomorrowKey ? lg.tomorrow : nextEventDay)}
+                </button>
+              )}
+            </div>
             {dayStaff.length > 0 && (
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">{gr.onDutyStaff}</p>

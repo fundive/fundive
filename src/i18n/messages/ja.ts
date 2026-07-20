@@ -1543,6 +1543,7 @@ export const ja: Messages = {
       overall: (day: string) => `全体 — ${day}`,
       eventsDivers: (events: number, divers: number) => `イベント ${events} 件 · ダイバー ${divers} 名`,
       diverCount: (n: number) => `ダイバー ${n} 名`,
+      nextEventDay: (where: string) => `次: ${where} →`,
       stillOwe: (n: number, currency: string, amount: string) =>
         `${n} 名が未払い · 未収 ${currency} ${amount}`,
       allSettled: 'すべて精算済みです。',
