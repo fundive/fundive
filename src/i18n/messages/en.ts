@@ -1341,7 +1341,8 @@ export const en = {
       loggedDives: (n: number) => `${n} logged`,
       diverNotesHeading: 'Diver notes',
       refundRequested: (date: string) => `Refund requested ${date}`,
-      approveRefund: 'Approve refund',
+      approveRefund: 'Approve',
+      rejectRefund: 'Reject',
       leadPayerForGroup: 'Lead payer for this group',
       billToDiver: 'Bill to this diver instead',
       editRegistration: 'Edit registration',
@@ -1975,6 +1976,8 @@ export const en = {
       colRequested: 'Requested',
       approve: 'Approve',
       approved: 'Refund approved · booking cancelled',
+      reject: 'Reject',
+      rejected: 'Refund request rejected · booking unchanged',
       eventFallback: 'Event',
     },
     audits: {
