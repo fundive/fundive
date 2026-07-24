@@ -73,11 +73,14 @@ export const en = {
     nextMonth: 'Next month',
     noEvents: 'No events scheduled.',
     alreadyHappened: (title: string) => `${title} — already happened`,
+    cancelled: 'Cancelled',
+    cancelledEvent: (title: string) => `${title} — cancelled`,
     noCoursesInRange: 'No courses in this range.',
     // `kind` is the already-localised event-kind label.
     toggleKind: (kind: string) => `Toggle ${kind}`,
     filterCourses: 'Filter courses',
     courses: 'Courses',
+    toggleCancelled: 'Toggle cancelled events',
     toggleAvailability: 'Toggle staff availability',
     weekdays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
     moveEventDay: 'Move event day',
@@ -1691,6 +1694,32 @@ export const en = {
       fleetFits: (vehicles: number, seats: number, riders: number, divers: number, staff: number) =>
         `Take ${vehicles} vehicle${vehicles === 1 ? '' : 's'} — ${seats} seat${seats === 1 ? '' : 's'} for ${riders} rider${riders === 1 ? '' : 's'} (${divers} diver${divers === 1 ? '' : 's'}${staff > 0 ? ` + ${staff} staff` : ''}).`,
       staffSuffix: ' (staff)',
+      // A "run" is the set of events travelling together. Seats are never
+      // pooled across runs, so the day line counts bodies and runs only.
+      dayRuns: (runs: number, riders: number, divers: number, staff: number) =>
+        `${runs} separate run${runs === 1 ? '' : 's'} · ${riders} rider${riders === 1 ? '' : 's'} (${divers} diver${divers === 1 ? '' : 's'}${staff > 0 ? ` + ${staff} staff` : ''})`,
+      runJoin: ' + ',
+      runNoCar: (riders: number, divers: number, staff: number) =>
+        `No car assigned — ${riders} rider${riders === 1 ? '' : 's'} (${divers} diver${divers === 1 ? '' : 's'}${staff > 0 ? ` + ${staff} staff` : ''}) with no ride.`,
+      spareCars: (names: string) => `Not needed: ${names}`,
+      conflictCar: (car: string, runs: string) =>
+        `${car} is taken by two separate runs (${runs}) — it can only make one. Group those events, or give one of them another car.`,
+      conflictStaff: (name: string, runs: string) =>
+        `${name} is on duty on two separate runs (${runs}) — they can't ride both.`,
+      conflictDiver: (name: string, runs: string) =>
+        `${name} needs a ride on two separate runs (${runs}) — they can only be in one car.`,
+      sharedTransport: 'Shared transport',
+      sharedTransportHint: 'Events that travel together share their cars and seats. Events at different sites must ride alone.',
+      ridesAlone: 'Rides alone',
+      ridesWith: (title: string) => `Rides with ${title}`,
+      ridesWithAria: (title: string) => `Shared transport for ${title}`,
+      shareFailed: 'Could not change who travels together.',
+      seatsToTransport: (seats: number, riders: number) =>
+        `${seats} seat${seats === 1 ? '' : 's'} · ${riders} to transport`,
+      sharedRunNote: (titles: string) => `Shares its cars with ${titles}`,
+      allCarsAssigned: 'Every active car is already assigned to this event.',
+      eventRideShort: (shortfall: number, claimed: number, capacity: number) =>
+        `Short ${shortfall} seat${shortfall === 1 ? '' : 's'} — ${claimed} diver${claimed === 1 ? '' : 's'} hold a ride but only ${capacity} seat${capacity === 1 ? '' : 's'} are free after staff.`,
       carsForDive: 'Cars for this dive',
       loadingCars: 'Loading cars…',
       noActiveCars: 'No active cars in the fleet.',

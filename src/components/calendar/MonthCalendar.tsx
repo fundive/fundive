@@ -248,6 +248,10 @@ export function MonthCalendar({
     return next
   })
   const [hiddenCourses, setHiddenCourses] = useState<Set<string>>(new Set())
+  // Cancelled events are shown by default — an admin needs to see the hole in
+  // the month — but they still take a track each, so a month with several
+  // cancellations gets taller. The toggle takes them out entirely.
+  const [cancelledShown, setCancelledShown] = useState(true)
   // When any segment of a multi-day event is hovered, the parent tracks the
   // event id so every segment of that event can cross-highlight. Cleared on
   // mouse leave.
@@ -277,10 +281,13 @@ export function MonthCalendar({
       .sort((a, b) => a.category.localeCompare(b.category))
   }, [events])
 
+  const hasCancelled = useMemo(() => events.some(e => e.cancelled_at), [events])
+
   const filteredEvents = useMemo(() => events.filter(e => {
+    if (e.cancelled_at && !cancelledShown) return false
     if (usesCourseDays(e.type)) return !hiddenCourses.has(e.course_category ?? e.title)
     return !hiddenKinds.has(e.type)
-  }), [events, hiddenKinds, hiddenCourses])
+  }), [events, hiddenKinds, hiddenCourses, cancelledShown])
 
   const ranges: EventRange<AppEvent>[] = useMemo(() => assignTracks(filteredEvents), [filteredEvents])
 
@@ -345,6 +352,11 @@ export function MonthCalendar({
         hiddenCourses={hiddenCourses}
         onToggleCategory={toggleCourseCategory}
         busyToggle={busyOverlayEnabled ? { shown: !!busyShown, onToggle: onToggleBusy! } : undefined}
+        // Only offered where there's something to hide — diver-facing fetches
+        // never return a cancelled event, so the pill would be dead weight.
+        cancelledToggle={hasCancelled
+          ? { shown: cancelledShown, onToggle: () => setCancelledShown(v => !v) }
+          : undefined}
       />
 
       <div className="flex items-center justify-between gap-2">
@@ -414,7 +426,7 @@ export function MonthCalendar({
             onClick={() => onPickEvent(ev)}
             className={`w-full text-left p-3 transition-colors ${DARK ? 'rounded-2xl' : 'backdrop-blur-md rounded-xl'} ${
               highlightedIds?.has(ev.id) ? CAL.listCardHi : CAL.listCard
-            } ${ev.is_private ? 'opacity-60' : ''}`}
+            } ${ev.cancelled_at ? 'opacity-50' : ev.is_private ? 'opacity-60' : ''}`}
           >
             <div className="flex items-start justify-between">
               <div>
@@ -422,8 +434,13 @@ export function MonthCalendar({
                   <span className={`text-xs px-1.5 py-0.5 rounded-full ${eventBarClass(ev, false)}`}>
                     {EVENT_KIND_LABELS[ev.type]}
                   </span>
+                  {ev.cancelled_at && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold">
+                      {t.calendar.cancelled}
+                    </span>
+                  )}
                   {ev.is_private && <PrivateIcon />}
-                  <span className={`font-medium ${CAL.listTitle} text-sm`}>{ev.title}</span>
+                  <span className={`font-medium ${CAL.listTitle} text-sm ${ev.cancelled_at ? 'line-through' : ''}`}>{ev.title}</span>
                   {ev.featured && <span className={`text-xs ${CAL.star}`}>★</span>}
                 </div>
                 <p className={`text-xs ${CAL.listDate} mt-1`}>
@@ -586,7 +603,7 @@ function DayCell({
             onClick={() => onPickEvent(seg.event)}
             hovered={hoveredEventId === seg.event.id}
             onHoverEvent={onHoverEvent}
-            draggable={rescheduleEnabled && isReschedulable(seg.event)}
+            draggable={rescheduleEnabled && isReschedulable(seg.event) && !seg.event.cancelled_at}
             onDragHoverDay={onDragHoverDay}
             onDropReschedule={onDropReschedule}
           />
@@ -717,6 +734,9 @@ function EventBar({
   }
 
   const baseClass = eventBarClass(seg.event, hovered)
+  // Cancelled events stay on the grid (an admin needs to see the hole in the
+  // month, and can tap through to restore) but read as struck-out ghosts.
+  const cancelled = !!seg.event.cancelled_at
   const leftInset = seg.isStart ? 2 : 0
   const rightInset = seg.isEnd ? 2 : 0
   const leftRadius = seg.isStart ? 'rounded-l-sm' : ''
@@ -753,9 +773,16 @@ function EventBar({
       onPointerCancel={draggable && !disabled ? reset : undefined}
       onMouseEnter={() => onHoverEvent(seg.event.id)}
       onMouseLeave={() => onHoverEvent(null)}
-      title={disabled ? t.calendar.alreadyHappened(seg.event.title) : seg.event.title}
+      title={
+        cancelled ? t.calendar.cancelledEvent(seg.event.title)
+        : disabled ? t.calendar.alreadyHappened(seg.event.title)
+        : seg.event.title
+      }
       className={`absolute text-[10px] font-semibold truncate text-left px-1 transition-all ${baseClass} ${leftRadius} ${rightRadius} ${
-        disabled ? 'opacity-40 cursor-default saturate-50' : lifted ? 'z-30 scale-105 opacity-90 shadow-lg' : seg.event.is_private ? 'opacity-50' : ''
+        cancelled ? 'opacity-40 saturate-50 line-through'
+        : disabled ? 'opacity-40 cursor-default saturate-50'
+        : lifted ? 'z-30 scale-105 opacity-90 shadow-lg'
+        : seg.event.is_private ? 'opacity-50' : ''
       }`}
       style={{
         top: track * (TRACK_HEIGHT + TRACK_GAP),
@@ -824,12 +851,13 @@ interface FilterLegendProps {
   hiddenCourses: Set<string>
   onToggleCategory: (cat: string) => void
   busyToggle?: { shown: boolean; onToggle: () => void }
+  cancelledToggle?: { shown: boolean; onToggle: () => void }
 }
 
 function FilterLegend({
   hiddenKinds, onToggleKind,
   courseCategories, hiddenCourses, onToggleCategory,
-  busyToggle,
+  busyToggle, cancelledToggle,
 }: FilterLegendProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement | null>(null)
@@ -951,6 +979,23 @@ function FilterLegend({
         >
           <span className={`w-2 h-2 rounded-full ${BUSY_DOT}`} />
           {t.calendar.busy}
+        </button>
+      )}
+
+      {cancelledToggle && (
+        <button
+          type="button"
+          onClick={cancelledToggle.onToggle}
+          aria-pressed={cancelledToggle.shown}
+          aria-label={t.calendar.toggleCancelled}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-colors ${
+            cancelledToggle.shown ? CAL.pillOn : CAL.pillOff
+          }`}
+        >
+          {/* Hollow dot: a cancelled bar is a ghost of a real event, not a
+              category of its own, so it gets an outline rather than a fill. */}
+          <span className="w-2 h-2 rounded-full border border-current" aria-hidden="true" />
+          {t.calendar.cancelled}
         </button>
       )}
     </div>
