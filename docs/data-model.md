@@ -41,8 +41,9 @@ public.push_subscriptions / push_notifications_sent  (cron infra)
 | `admin_notes` | `id`, `profile_id`, `created_by`, `content` | Free-text staff notes attached to a diver's profile. Read/insert open to staff+admin (insert requires `created_by = auth.uid()`); update/delete admin-only. |
 | `admin_audit_log` | `id`, `actor_id`, `action`, `target_table`, `target_id`, `before`, `after` | Append-only audit trail for admin mutations. Insert via DB triggers; reads admin-only. |
 | `duties` | `id`, `assignee_id`, `role`, `start_date`, `end_date`, `event_id` | Staff-or-admin shift assignments. Trigger enforces `assignee_id` references a profile with role in (admin, staff). |
-| `vehicles` | `id`, `name`, `passenger_seats`, `active` | Transport-fleet catalog. `passenger_seats` is the car's **total physical seats**; `event_ride_seats()` reserves the crew's seats (one per vehicle, rising to the on-duty staff count) so divers are offered only what's genuinely rideable. There is no driver-assignment concept — divers and staff compete for physical seats. Staff+admin read, admin write. |
-| `event_vehicles` | `id`, `vehicle_id`, `event_date`, `event_id` | Which car is allocated to which event on which date. `event_id` NOT NULL → `events`; **unique `(vehicle_id, event_date)`** makes a car exclusive per day (the availability rule). One row per date for multi-day events. Staff+admin read, admin write. Assigned on the logistics day view. |
+| `vehicles` | `id`, `name`, `passenger_seats`, `active` | Transport-fleet catalog. `passenger_seats` is the car's **total physical seats**, and every one of them is rideable: there is no driver-assignment concept, so divers and on-duty staff compete for the same seats and `event_ride_seats()` simply subtracts the staff. Staff+admin read, admin write. |
+| `event_vehicles` | `id`, `vehicle_id`, `event_id`, `notes` | Which car is allocated to which event. A car may serve any number of events, at most once each (unique `(event_id, vehicle_id)`). Staff+admin read, admin write. Assigned on the logistics day view, the event's Transportation tab and the create/edit event forms. |
+| `event_ride_groups` | `(ride_day, event_id)` PK, `group_id` | Which of a day's events **travel together** — the events sharing a `group_id` form one "run" and pool their cars, divers and staff; an event with no row rides alone. `group_id` has no parent table: the group is the set of rows. Staff read, admin write, set by the Shared transport picker on `/admin/logistics`. See [admin.md](./admin.md#transport-runs-seats-riders). |
 | `dive_sites` | `id`, `name`, `lat`, `lng`, `dive_type` | Public catalog rendered on `/map`; readable by all authenticated users. |
 | `waiver_signatures` | `id`, `diver_id`, `waiver_code`, `waiver_version`, `signed_name`, `signed_at`, `event_id` | Append-only e-signature records. The waiver **catalog + global rules** live in code (`src/config/waivers.ts`), not the DB — these rows only record who signed what, when. Annual waivers leave `event_id` null; per-event waivers set it. Writes go through the `sign_waiver()` RPC (diver reads own; staff+admin read all). |
 | `event_waivers` | `id`, `event_id`, `waiver_code`, `mode` | Per-event override of a waiver's global rule: `mode` `require` adds it, `exempt` drops it for one event. `event_id` NOT NULL → `events`; one override per `(event_id, waiver_code)`. Read by any authenticated user (the registration form needs it); admin write. Edited on the admin Edit-event form. |
@@ -161,6 +162,16 @@ supabase/migrations/` order is the source of truth):
   `PUBLIC`/`anon` EXECUTE on `event_ride_seats()` and re-grants only
   `authenticated` + `service_role`, so aggregate seat counts aren't exposed to
   unauthenticated callers (a guest's fetch fails open).
+- `20260724000000_ride_groups_shared_transport.sql` — `event_ride_groups`
+  (which events travel together on a day) and a rewritten `event_ride_seats()`
+  measured across the whole run, returning `seats / staff / capacity / claimed`.
+  Drops the old per-vehicle driver-seat reservation, which contradicted the
+  admin planner. See [admin.md](./admin.md#transport-runs-seats-riders).
+- `20260724010000_server_side_ride_waitlist.sql` — `details.ride_waitlisted` is
+  recomputed by a BEFORE trigger from `event_ride_tally()` instead of trusted
+  from the client, so a full run can't be hidden from the admins. A run with no
+  car at all counts as "capacity not configured" and is left unflagged, matching
+  `canRequestRide`.
 - `20260708020000_trip_board_definer_functions.sql` — replaces the Packages
   diver-facing views with `list_package_board()` / `list_my_package_referrals()`
   SECURITY DEFINER functions (email-free, kickback-free projections).

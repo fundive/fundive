@@ -103,6 +103,53 @@ matching the Taiwanese recreational-fishing-vessel passenger form
 - The function returns `{ diver_count, staff_count }`; the toast shows
   both (e.g. "7 divers + 2 staff").
 
+## Transport: runs, seats, riders
+
+Everything on the Logistics day view (`/admin/logistics`) is planned per
+**run** — the set of events that travel together. Two dives at the same
+site share a van; a course at the pool and a dive at Bat Cave cannot,
+and no field in the schema can tell them apart. So the shop states it:
+the **Shared transport** picker in the day's Overall board writes
+`event_ride_groups` rows (one per `(ride_day, event_id)`; events sharing
+a `group_id` ride together). An event with no row rides alone.
+
+Given the runs, every count follows, and each of these is counted
+**once**:
+
+- **Seats** — `passenger_seats` over the run's *distinct* cars. A van
+  assigned to both events of a run is one van with one set of seats.
+- **Riders** — the divers who asked for a ride plus every on-duty staff
+  member. There is no driver concept: staff take ordinary seats
+  (`docs`-worthy consequence: a 7-seat van with 2 staff aboard has 5
+  seats left for divers). Someone on duty who is also booked as a diver
+  is one body.
+- **Nothing is pooled across runs.** Two runs are planned separately, so
+  slack in one never covers a shortfall in the other.
+
+The board flags what can't physically happen: one car taken by two runs,
+or one person (staff or diver) expected on two runs at once.
+
+The same arithmetic backs the diver-facing "N ride seats left" on the
+registration form, via the `event_ride_seats` RPC — `capacity = seats −
+staff`, `claimed` = distinct divers holding a ride anywhere on the run.
+
+A ride requested when the run is full is not refused: the booking goes
+through flagged `details.ride_waitlisted`, and every admin gets an "add a
+car" notification. That flag is **computed by the database** on insert and
+on any details edit (`bookings_set_ride_waitlist`), not taken from the
+client — a forged `false` would otherwise hide a full run from the shop,
+and a stray `true` would page every admin about a ride nobody asked for.
+A diver who already holds a ride somewhere on the run keeps it; a second
+booking on the same run is the same body in the same seat. A run with no
+car assigned at all counts as "capacity not set up yet", not "full": the
+booking goes through unflagged so a shop can take reservations and plan
+the van later (`canRequestRide` in `src/lib/event-vehicles.ts` is the
+matching client-side default — a shop that would rather block early flips
+it there and drops the branch in the trigger).
+The planner itself is pure and unit-tested in
+`src/lib/vehicle-planning.ts` (`planFleet` for one run, `planRuns` for a
+day); grouping lives in `src/lib/ride-groups.ts`.
+
 ## Event memos
 
 `event_memos` is a free-form "sticky note" table for operational flags.
