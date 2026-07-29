@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { assignVehicleToEvent, unassignVehicle } from '../../lib/event-vehicles'
 import type { AppEvent, EventVehicle, Vehicle } from '../../types/database'
 import { t } from '../../i18n'
+import { TEXT_DANGER } from '../../styles/tokens'
 
 const tp = t.admin.transport
 
@@ -131,7 +132,7 @@ export function EventVehicleGroup({
         )
       )}
 
-      {error && <p className="text-xs text-red-600 font-medium">{error}</p>}
+      {error && <p className={`text-xs ${TEXT_DANGER} font-medium`}>{error}</p>}
     </div>
   )
 }

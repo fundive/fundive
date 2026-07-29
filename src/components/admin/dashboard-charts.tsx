@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { CountPoint, MoneyPoint } from '../../lib/admin-dashboard'
 import { siteConfig } from '../../config/site'
 import { t } from '../../i18n'
+import { TEXT_SUBTLE } from '../../styles/tokens'
 
 // Dependency-free dashboard visuals: a KPI tile, a horizontal bar list (for
 // distributions), and a column chart (for monthly time series). All sizing is
@@ -13,7 +14,7 @@ export function StatCard({ label, value, sub }: { label: string; value: ReactNod
     <div className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-4">
       <p className="text-xs font-medium text-brand-900/70">{label}</p>
       <p className="text-2xl font-bold text-brand-900 mt-1 tabular-nums">{value}</p>
-      {sub && <p className="text-[11px] text-brand-900/60 mt-0.5">{sub}</p>}
+      {sub && <p className={`text-[11px] ${TEXT_SUBTLE} mt-0.5`}>{sub}</p>}
     </div>
   )
 }
@@ -22,7 +23,7 @@ export function ChartCard({ title, children, empty }: { title: string; children:
   return (
     <div className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-4 space-y-3">
       <h2 className="text-sm font-semibold text-brand-900">{title}</h2>
-      {empty ? <p className="text-xs text-brand-900/60">{t.admin.charts.noData}</p> : children}
+      {empty ? <p className={`text-xs ${TEXT_SUBTLE}`}>{t.admin.charts.noData}</p> : children}
     </div>
   )
 }

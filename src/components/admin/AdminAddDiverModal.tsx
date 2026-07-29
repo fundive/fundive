@@ -6,7 +6,7 @@ import { createDiverAccount } from '../../lib/create-diver'
 import { personName } from '../../lib/names'
 import { RegisterFormBody } from '../register/RegisterForm'
 import type { AppEvent, Profile } from '../../types/database'
-import { MODAL_BACKDROP, TEXT_HEADING, TEXT_BODY, INPUT, INPUT_LABEL, BTN_PRIMARY, BTN_SECONDARY, BTN_XS_GHOST } from '../../styles/tokens'
+import { BTN_PRIMARY, BTN_SECONDARY, BTN_XS_GHOST, INPUT, INPUT_LABEL, MODAL_BACKDROP, TEXT_BODY, TEXT_DANGER, TEXT_HEADING } from '../../styles/tokens'
 import { t } from '../../i18n'
 
 const ad = t.admin.addDiver
@@ -158,7 +158,7 @@ export function AdminAddDiverModal({
                       {(p.cert_agency || p.cert_level) && p.contact_id && ' · '}
                       {p.contact_id ?? ''}
                       {p.status && p.status !== 'active' && (
-                        <span className="ml-2 uppercase tracking-wider text-red-700">{p.status}</span>
+                        <span className={`ml-2 uppercase tracking-wider ${TEXT_DANGER}`}>{p.status}</span>
                       )}
                     </p>
                   </button>

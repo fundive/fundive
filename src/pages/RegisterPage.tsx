@@ -14,6 +14,7 @@ import { registrationDraftKey, loadRegistrationDraft } from '../lib/registration
 import type { AppEvent, Booking } from '../types/database'
 import { t } from '../i18n'
 import { EVENT_KIND_DOT, EVENT_KIND_LABELS } from '../lib/event-kind-labels'
+import { TEXT_DANGER } from '../styles/tokens'
 
 const rp = t.registerPage
 
@@ -87,7 +88,7 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-surface-50 text-brand-900">
-      <header className="bg-brand-950 border-b border-accent px-4 py-3">
+      <header className="bg-brand-950 border-b border-accent px-4 py-3 text-white">
         <a href={siteConfig.urls.site} aria-label={`${siteConfig.identity.logoAlt} home`}><Logo size="sm" /></a>
       </header>
 
@@ -149,7 +150,7 @@ function EmptyState({ title, body, action }: { title: string; body: string; acti
 function EventHeader({ event }: { event: AppEvent }) {
   return (
     <div className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-5 space-y-1">
-      <p className="text-xs uppercase tracking-[0.25em] text-red-600">{rp.registerFor}</p>
+      <p className={`text-xs uppercase tracking-[0.25em] ${TEXT_DANGER}`}>{rp.registerFor}</p>
       <h1 className="text-xl font-bold text-brand-900">{event.title}</h1>
       <p className="text-sm text-brand-900 font-medium">
         {formatEventSpan(event, { style: 'long' })}
@@ -347,7 +348,7 @@ function SignInBanner() {
             onChange={e => setPassword(e.target.value)}
             className="w-full bg-white border border-surface-300 rounded-lg px-3 py-2 text-brand-900 focus:outline-none focus:border-brand-900"
           />
-          {err && <p className="text-red-600 text-xs">{err}</p>}
+          {err && <p className={`${TEXT_DANGER} text-xs`}>{err}</p>}
           <button type="submit" disabled={busy} className="w-full bg-brand-900 hover:bg-brand-950 disabled:opacity-50 text-white font-semibold py-2 rounded-lg">
             {busy ? rp.signingIn : t.auth.signIn}
           </button>

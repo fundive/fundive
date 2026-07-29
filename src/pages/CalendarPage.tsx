@@ -9,9 +9,8 @@ import { RegisterForm } from '../components/register/RegisterForm'
 import { MultiRegisterForm } from '../components/register/MultiRegisterForm'
 import { ShareEventButton } from '../components/ShareEventButton'
 import { siteConfig } from '../config/site'
-import { MODAL_BACKDROP, MODAL_PANEL, TEXT_HEADING, TEXT_BODY } from '../styles/tokens'
+import { BTN_XS_ON_DEEP, MODAL_BACKDROP, MODAL_PANEL, TEXT_BODY, TEXT_HEADING } from '../styles/tokens'
 import { t } from '../i18n'
-import { BTN_XS_GHOST } from '../styles/tokens'
 import type { AppEvent, Booking } from '../types/database'
 import { EVENT_KIND_DOT, EVENT_KIND_LABELS } from '../lib/event-kind-labels'
 
@@ -180,7 +179,7 @@ export function CalendarPage() {
               <button
                 type="button"
                 onClick={exitMulti}
-                className={BTN_XS_GHOST}
+                className={BTN_XS_ON_DEEP}
               >
                 {t.common.cancel}
               </button>

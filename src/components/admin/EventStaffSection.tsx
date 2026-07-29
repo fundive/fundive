@@ -8,6 +8,7 @@ import { DUTY_ROLES, type Duty, type DutyRole, type Profile, type EventKind } fr
 import { DateField } from '../DateField'
 import { usesCourseDays } from '../../lib/event-kinds'
 import { t } from '../../i18n'
+import { TEXT_DANGER } from '../../styles/tokens'
 
 const st = t.admin.staff
 
@@ -268,7 +269,7 @@ export function EventStaffSection({ eventType, eventId, eventStartDate, eventEnd
             {st.assign}
           </button>
         </div>
-        {err && <p className="text-xs text-red-600">{err}</p>}
+        {err && <p className={`text-xs ${TEXT_DANGER}`}>{err}</p>}
       </div>
       )}
     </section>

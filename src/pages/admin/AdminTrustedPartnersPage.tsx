@@ -4,6 +4,7 @@ import { errorMessage } from '../../lib/errors'
 import { fetchAllTrustedPartners, saveTrustedPartner, deleteTrustedPartner } from '../../lib/trusted-partners'
 import type { TrustedPartnerRow, TrustedPartnerInsert } from '../../types/database'
 import { t } from '../../i18n'
+import { TEXT_SUBTLE } from '../../styles/tokens'
 
 const pt = t.admin.partners
 const w = t.admin.waivers
@@ -86,7 +87,7 @@ export function AdminTrustedPartnersPage() {
             <li key={p.id} className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-medium text-brand-900 text-sm truncate">
-                  {p.name}{!p.active && <span className="ml-2 text-xs text-brand-900/60">{pt.retired}</span>}
+                  {p.name}{!p.active && <span className={`ml-2 text-xs ${TEXT_SUBTLE}`}>{pt.retired}</span>}
                 </p>
                 <p className="text-xs text-brand-900/80 truncate">
                   {[p.location ?? p.country, p.contact_email].filter(Boolean).join(' · ') || '—'}

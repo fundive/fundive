@@ -9,6 +9,7 @@ import { t } from '../../i18n'
 import { EVENT_KINDS } from '../../lib/event-kinds'
 import { EVENT_KIND_LABELS } from '../../lib/event-kind-labels'
 import { WAIVER_SCOPE_BY_KIND } from '../../config/waivers'
+import { TEXT_SUBTLE } from '../../styles/tokens'
 
 const wv = t.admin.waivers
 
@@ -91,7 +92,7 @@ export function AdminWaiversPage() {
             <li key={w.id} className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-medium text-brand-900 text-sm truncate">
-                  {w.title}{!w.active && <span className="ml-2 text-xs text-brand-900/60">{wv.inactive}</span>}
+                  {w.title}{!w.active && <span className={`ml-2 text-xs ${TEXT_SUBTLE}`}>{wv.inactive}</span>}
                 </p>
                 <p className="text-xs text-brand-900/80">
                   {w.pdf_path ? wv.pdf : wv.text} · {w.cadence === 'annual' ? wv.cadenceAnnual : wv.cadencePerEvent} · {wv.appliesToPrefix} {wv.appliesLabel(w.applies_to)}

@@ -7,6 +7,7 @@ import {
 } from '../../lib/cancellation-policies'
 import type { CancellationPolicy } from '../../types/database'
 import { t } from '../../i18n'
+import { TEXT_SUBTLE } from '../../styles/tokens'
 
 const cp = t.admin.cxlPolicies
 const wv = t.admin.waivers
@@ -88,8 +89,8 @@ export function AdminCancellationPoliciesPage() {
             <li key={p.id} className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-medium text-brand-900 text-sm truncate">
-                  {p.title || cp.untitled}{!p.active && <span className="ml-2 text-xs text-brand-900/60">{wv.inactive}</span>}
-                  {p.language ? <span className="ml-2 text-xs text-brand-900/60">{p.language}</span> : null}
+                  {p.title || cp.untitled}{!p.active && <span className={`ml-2 text-xs ${TEXT_SUBTLE}`}>{wv.inactive}</span>}
+                  {p.language ? <span className={`ml-2 text-xs ${TEXT_SUBTLE}`}>{p.language}</span> : null}
                 </p>
                 <p className="text-xs text-brand-900/70 truncate">{p.cancellation_policy}</p>
               </div>

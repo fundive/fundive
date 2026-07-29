@@ -20,7 +20,7 @@ import { t } from '../i18n'
 export function TermsPage() {
   return (
     <div className="min-h-screen bg-surface-50 text-brand-900">
-      <header className="bg-brand-950 border-b border-accent px-4 py-3">
+      <header className="bg-brand-950 border-b border-accent px-4 py-3 text-white">
         <Link to="/" aria-label={t.a11y.homeLink(siteConfig.identity.logoAlt)}><Logo size="sm" /></Link>
       </header>
 
@@ -90,7 +90,7 @@ function ReacceptBanner() {
       className="rounded-lg border-2 border-accent bg-red-50 p-4 space-y-3"
     >
       <p className="font-bold text-red-700">{t.terms.updatedTitle}</p>
-      <p className="text-brand-950">{t.terms.updatedBody}</p>
+      <p className="text-red-900">{t.terms.updatedBody}</p>
       <button
         type="button"
         onClick={onAccept}

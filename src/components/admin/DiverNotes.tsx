@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import type { DiverNote, Profile } from '../../types/database'
 import { t } from '../../i18n'
-import { BTN_XS_GHOST } from '../../styles/tokens'
+import { BTN_XS_DANGER, BTN_XS_GHOST, TEXT_DANGER } from '../../styles/tokens'
 
 const dn = t.admin.diverNotes
 
@@ -107,7 +107,7 @@ export function DiverNotes({ profileId, title = dn.title }: Props) {
 
   return (
     <section className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-4 space-y-3">
-      <h2 className="text-sm font-semibold text-red-600 uppercase tracking-wider">{title}</h2>
+      <h2 className={`text-sm font-semibold ${TEXT_DANGER} uppercase tracking-wider`}>{title}</h2>
 
       <div className="space-y-2">
         {notes.length === 0 && (
@@ -157,7 +157,7 @@ export function DiverNotes({ profileId, title = dn.title }: Props) {
                       <button
                         onClick={() => deleteNote(n.id)}
                         aria-label={dn.deleteNoteFromAria(personName(n.author?.name, n.author?.nickname) || t.admin.notes.unknownAuthor)}
-                        className="text-xs text-red-700 font-semibold hover:text-red-800"
+                        className={BTN_XS_DANGER}
                       >
                         {dn.delete}
                       </button>
