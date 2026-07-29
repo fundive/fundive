@@ -1,4 +1,5 @@
 import { t } from '../../i18n'
+import { TEXT_DANGER, TEXT_PROXY } from '../../styles/tokens'
 
 const gr = t.admin.groups
 
@@ -23,8 +24,8 @@ export function PaymentsDueGroup({ rows, currency }: { rows: PaymentDueRow[]; cu
   return (
     <div role="group" aria-label={gr.paymentsDue} className="bg-white/70 backdrop-blur-md border border-red-300 rounded-xl p-4 space-y-2">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-sm font-bold text-red-700">{gr.paymentsDue}</h2>
-        <span className="text-xs font-semibold text-red-600">{currency} {total.toLocaleString()} outstanding</span>
+        <h2 className={`text-sm font-bold ${TEXT_DANGER}`}>{gr.paymentsDue}</h2>
+        <span className={`text-xs font-semibold ${TEXT_DANGER}`}>{currency} {total.toLocaleString()} outstanding</span>
       </div>
       <ul className="space-y-1">
         {rows.map(r => (
@@ -32,10 +33,10 @@ export function PaymentsDueGroup({ rows, currency }: { rows: PaymentDueRow[]; cu
             <span className="text-sm text-brand-900 font-medium min-w-0">
               {r.name}
               {r.payerName && (
-                <span className="text-xs text-violet-700 font-semibold"> · paid by {r.payerName}</span>
+                <span className={`text-xs ${TEXT_PROXY} font-semibold`}> · paid by {r.payerName}</span>
               )}
             </span>
-            <span className="shrink-0 text-xs font-semibold text-red-600">
+            <span className={`shrink-0 text-xs font-semibold ${TEXT_DANGER}`}>
               {currency} {r.amount.toLocaleString()} due
             </span>
           </li>

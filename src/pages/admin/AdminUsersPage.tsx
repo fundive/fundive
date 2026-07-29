@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { BTN_XS_PRIMARY, BTN_XS_GHOST, BTN_XS_DANGER } from '../../styles/tokens'
+import { BTN_XS_DANGER, BTN_XS_GHOST, BTN_XS_ON_AMBER, BTN_XS_PRIMARY } from '../../styles/tokens'
 import { siteConfig } from '../../config/site'
 import { Spinner } from '../../components/ui/Spinner'
 import { format } from 'date-fns'
@@ -656,14 +656,14 @@ function UserCard({
                         try { await navigator.clipboard?.writeText(tempPassword); setCopied(true) }
                         catch { /* clipboard blocked — the admin can still select the text */ }
                       }}
-                      className={BTN_XS_GHOST}
+                      className={BTN_XS_ON_AMBER}
                     >
                       {copied ? us.copied : us.copy}
                     </button>
                   </div>
                   <p className="text-xs text-amber-900">{us.tempPasswordHint}</p>
                   <div className="flex justify-end">
-                    <button type="button" onClick={() => setTempPassword(null)} className={BTN_XS_GHOST}>
+                    <button type="button" onClick={() => setTempPassword(null)} className={BTN_XS_ON_AMBER}>
                       {us.dismiss}
                     </button>
                   </div>

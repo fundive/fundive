@@ -21,6 +21,7 @@ import type { Profile, CertLevel } from '../types/database'
 import { ShoeSizeField } from '../components/ShoeSizeField'
 import { PasswordInput } from '../components/PasswordInput'
 import { t } from '../i18n'
+import { BTN_DANGER, TEXT_DANGER } from '../styles/tokens'
 
 // Schema intentionally matches what the HTML form emits (strings for text +
 // number inputs, booleans for checkboxes). Numeric/enum coercion happens in
@@ -303,7 +304,7 @@ export function ProfileForm({ user, profile, onSaved }: {
             <p className="text-xs text-brand-900/70 mt-1">
               {t.profile.nameHint}
             </p>
-            {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>}
+            {errors.name && <p className={`${TEXT_DANGER} text-xs mt-1`}>{errors.name.message}</p>}
           </Field>
           <Field label={t.profile.nicknameLabel}>
             <input
@@ -311,7 +312,7 @@ export function ProfileForm({ user, profile, onSaved }: {
               className={inputClass}
               placeholder={t.profile.nicknamePlaceholder}
             />
-            {errors.nickname && <p className="text-red-600 text-xs mt-1">{errors.nickname.message}</p>}
+            {errors.nickname && <p className={`${TEXT_DANGER} text-xs mt-1`}>{errors.nickname.message}</p>}
           </Field>
           <Field label={t.profile.dobLabel} required>
             <Controller
@@ -321,11 +322,11 @@ export function ProfileForm({ user, profile, onSaved }: {
                 <DateField value={field.value ?? ''} onChange={field.onChange} className={inputClass} />
               )}
             />
-            {errors.date_of_birth && <p className="text-red-600 text-xs mt-1">{errors.date_of_birth.message}</p>}
+            {errors.date_of_birth && <p className={`${TEXT_DANGER} text-xs mt-1`}>{errors.date_of_birth.message}</p>}
           </Field>
           <Field label={t.profile.nationalityLabel} required>
             <input {...register('nationality')} className={inputClass} />
-            {errors.nationality && <p className="text-red-600 text-xs mt-1">{errors.nationality.message}</p>}
+            {errors.nationality && <p className={`${TEXT_DANGER} text-xs mt-1`}>{errors.nationality.message}</p>}
           </Field>
           <Field label={t.profile.idPassportLabel}><input {...register('id_number')} className={inputClass} /></Field>
           <Field label={t.profile.genderLabel} required>
@@ -336,7 +337,7 @@ export function ProfileForm({ user, profile, onSaved }: {
               <option value="other">{t.register.genderOther}</option>
               <option value="prefer_not_to_say">{t.register.genderPreferNot}</option>
             </select>
-            {errors.gender && <p className="text-red-600 text-xs mt-1">{errors.gender.message}</p>}
+            {errors.gender && <p className={`${TEXT_DANGER} text-xs mt-1`}>{errors.gender.message}</p>}
           </Field>
         </section>
 
@@ -353,7 +354,7 @@ export function ProfileForm({ user, profile, onSaved }: {
               <option value="phone">{t.profile.contactMethod.phone}</option>
               <option value="email">{t.profile.contactMethod.email}</option>
             </select>
-            {errors.contact_method && <p className="text-red-600 text-xs mt-1">{errors.contact_method.message}</p>}
+            {errors.contact_method && <p className={`${TEXT_DANGER} text-xs mt-1`}>{errors.contact_method.message}</p>}
           </Field>
           <Field label={t.profile.handleLabel} required>
             <input
@@ -361,7 +362,7 @@ export function ProfileForm({ user, profile, onSaved }: {
               className={inputClass}
               placeholder={t.profile.contactHandlePlaceholder}
             />
-            {errors.contact_id && <p className="text-red-600 text-xs mt-1">{errors.contact_id.message}</p>}
+            {errors.contact_id && <p className={`${TEXT_DANGER} text-xs mt-1`}>{errors.contact_id.message}</p>}
           </Field>
         </section>
 
@@ -417,7 +418,7 @@ export function ProfileForm({ user, profile, onSaved }: {
                 {t.profile.uncertified}
               </label>
             </div>
-            {errors.cert_status && <p className="text-red-600 text-xs mt-1">{errors.cert_status.message}</p>}
+            {errors.cert_status && <p className={`${TEXT_DANGER} text-xs mt-1`}>{errors.cert_status.message}</p>}
           </Field>
 
           {isCertified && (
@@ -452,13 +453,13 @@ export function ProfileForm({ user, profile, onSaved }: {
                     <option key={c.name} value={c.name}>{c.name}</option>
                   ))}
                 </select>
-                {errors.cert_level && <p className="text-red-600 text-xs mt-1">{errors.cert_level.message}</p>}
+                {errors.cert_level && <p className={`${TEXT_DANGER} text-xs mt-1`}>{errors.cert_level.message}</p>}
               </Field>
             </>
           )}
           <Field label={t.profile.loggedDives} required>
             <input {...register('logged_dives')} type="number" min="0" className={inputClass} />
-            {errors.logged_dives && <p className="text-red-600 text-xs mt-1">{errors.logged_dives.message}</p>}
+            {errors.logged_dives && <p className={`${TEXT_DANGER} text-xs mt-1`}>{errors.logged_dives.message}</p>}
           </Field>
           <Field label={t.profile.lastDive}>
             <Controller
@@ -590,7 +591,7 @@ export function NotificationsToggle() {
       <p className="text-xs text-brand-950 font-medium">
         {t.profile.notifications.remindersDetail}
       </p>
-      {error && <p className="text-red-600 text-xs">{error}</p>}
+      {error && <p className={`${TEXT_DANGER} text-xs`}>{error}</p>}
     </section>
   )
 }
@@ -651,7 +652,7 @@ export function ChangePasswordSection({ email }: { email: string }) {
             value={confirm} onChange={e => setConfirm(e.target.value)} className={inputClass}
           />
         </Field>
-        {error && <p className="text-red-600 text-xs">{error}</p>}
+        {error && <p className={`${TEXT_DANGER} text-xs`}>{error}</p>}
         <button
           type="submit"
           disabled={busy || !current || !password || !confirm}
@@ -771,13 +772,13 @@ export function CertCardSection({ userId, onPathChange }: {
             type="button"
             onClick={onRemove}
             disabled={busy}
-            className="bg-surface-100 hover:bg-red-100 disabled:opacity-40 text-red-700 border border-accent text-sm font-semibold py-2 px-3 rounded-lg transition-colors"
+            className={`${BTN_DANGER} text-sm`}
           >
             {t.profile.cards.remove}
           </button>
         )}
       </div>
-      {error && <p className="text-red-600 text-xs">{error}</p>}
+      {error && <p className={`${TEXT_DANGER} text-xs`}>{error}</p>}
     </section>
   )
 }
@@ -887,13 +888,13 @@ export function NitroxCardSection({ userId, onPathChange }: {
             type="button"
             onClick={onRemove}
             disabled={busy}
-            className="bg-surface-100 hover:bg-red-100 disabled:opacity-40 text-red-700 border border-accent text-sm font-semibold py-2 px-3 rounded-lg transition-colors"
+            className={`${BTN_DANGER} text-sm`}
           >
             {t.profile.cards.remove}
           </button>
         )}
       </div>
-      {error && <p className="text-red-600 text-xs">{error}</p>}
+      {error && <p className={`${TEXT_DANGER} text-xs`}>{error}</p>}
     </section>
   )
 }
@@ -999,13 +1000,13 @@ export function DeepCardSection({ userId, onPathChange }: {
             type="button"
             onClick={onRemove}
             disabled={busy}
-            className="bg-surface-100 hover:bg-red-100 disabled:opacity-40 text-red-700 border border-accent text-sm font-semibold py-2 px-3 rounded-lg transition-colors"
+            className={`${BTN_DANGER} text-sm`}
           >
             {t.profile.cards.remove}
           </button>
         )}
       </div>
-      {error && <p className="text-red-600 text-xs">{error}</p>}
+      {error && <p className={`${TEXT_DANGER} text-xs`}>{error}</p>}
     </section>
   )
 }

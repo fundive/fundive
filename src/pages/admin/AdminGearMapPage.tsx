@@ -9,6 +9,7 @@ import { fetchGearModelsWithSizes } from '../../lib/gear-models'
 import type { GearModelWithSizes } from '../../lib/gear-sizing'
 import type { AppEvent, Profile } from '../../types/database'
 import { t } from '../../i18n'
+import { TEXT_DANGER } from '../../styles/tokens'
 
 const gm = t.admin.gearMap
 
@@ -80,7 +81,7 @@ export function AdminGearMapPage() {
             {event.title} · {formatEventSpan(event, { style: 'compact' })}
           </p>
         )}
-        <p className="text-sm text-red-600 mt-2">
+        <p className={`text-sm ${TEXT_DANGER} mt-2`}>
           {gm.summary(rows.length, rows.filter(r => gearPackList(r.booking).items.length > 0).length)}
         </p>
       </header>

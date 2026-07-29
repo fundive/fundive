@@ -10,6 +10,7 @@ import { GearFitLookup } from './GearFitLookup'
 import type { GearModelWithSizes } from '../../lib/gear-sizing'
 import { GEAR_TYPES, type GearType, type Booking, type Profile } from '../../types/database'
 import { t } from '../../i18n'
+import { TEXT_DANGER } from '../../styles/tokens'
 
 const gc = t.admin.gearCard
 const gf = t.admin.gearFit
@@ -171,7 +172,7 @@ export function DiverGearCard({
               {savingSizes ? '…' : gc.save}
             </button>
           </div>
-          {sizeError && <span className="text-xs text-red-600">{sizeError}</span>}
+          {sizeError && <span className={`text-xs ${TEXT_DANGER}`}>{sizeError}</span>}
           {gearModels && gearModels.length > 0 && (
             <GearFitLookup
               measures={{

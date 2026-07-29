@@ -77,7 +77,19 @@ export const TEXT_BODY    = pick('text-brand-950 font-medium',    'text-brand-50
 export const TEXT_MUTED   = pick('text-brand-900 font-medium',    'text-brand-100/70')
 export const TEXT_SUBTLE  = pick('text-brand-900/80 font-medium', 'text-brand-100/55')
 export const TEXT_LINK    = pick('text-brand-800 font-semibold hover:underline', 'text-reef-300 font-semibold hover:text-reef-200 hover:underline')
-export const TEXT_ERROR   = pick('text-red-700 font-semibold',    'text-red-300 font-semibold')
+
+// Status ink ON A CARD. The card is pale in 'light' and dark glass in 'dark',
+// so a single raw `text-red-700` is legible in one look and invisible in the
+// other. Text sitting on a light status *banner* (bg-red-50, bg-amber-50 …)
+// is a different case — that surface stays pale in both looks, so it keeps the
+// raw dark ink from the same hue and must NOT use these.
+export const TEXT_DANGER  = pick('text-red-700',     'text-red-300')
+export const TEXT_WARNING = pick('text-amber-800',   'text-amber-300')
+export const TEXT_SUCCESS = pick('text-emerald-800', 'text-emerald-300')
+/** "Covered by someone else" — the payer/proxy marker on a booking row. */
+export const TEXT_PROXY   = pick('text-violet-700',  'text-violet-300')
+
+export const TEXT_ERROR   = `${TEXT_DANGER} font-semibold`
 
 // ── Text hierarchy on the deep navy chrome (nav bars) ──────────────
 export const ON_DEEP_BODY    = pick('text-white/80', 'text-white/80')
@@ -116,6 +128,16 @@ export const BTN_SECONDARY = pick(
 // BTN_XS_* dark-surface colours would be invisible — still get the same size,
 // padding and radius as every other small button.
 export const BTN_XS_BASE = 'inline-flex items-center justify-center text-xs font-semibold px-3 py-1 rounded-lg transition-colors disabled:opacity-50'
+// Small buttons that sit ON a light status banner (bg-amber-50, bg-emerald-50
+// …). Those banners keep the raw status palette in both looks, so a button
+// there cannot take the theme's ink — it borrows the banner's own hue.
+export const BTN_XS_ON_AMBER   = `${BTN_XS_BASE} border border-amber-400 text-amber-900 hover:bg-amber-100`
+export const BTN_XS_ON_EMERALD = `${BTN_XS_BASE} border border-emerald-400 text-emerald-900 hover:bg-emerald-100`
+
+// The multi-select bar and other deep-navy chrome are dark in BOTH looks, so a
+// button there is light-on-dark either way.
+export const BTN_XS_ON_DEEP    = `${BTN_XS_BASE} border border-white/30 text-white hover:bg-white/10`
+
 export const BTN_XS_PRIMARY = `${BTN_XS_BASE} ${pick('bg-brand-900 hover:bg-brand-950 text-white', 'bg-reef-500 hover:bg-reef-400 text-slate-950')}`
 export const BTN_XS_GHOST   = `${BTN_XS_BASE} ${pick('border border-brand-900 text-brand-900 hover:bg-surface-100', 'border border-white/20 text-brand-50 hover:bg-white/10')}`
 export const BTN_XS_DANGER  = `${BTN_XS_BASE} ${pick('bg-surface-100 hover:bg-red-100 text-red-700 border border-accent', 'bg-red-500/15 hover:bg-red-500/25 text-red-200 border border-red-400/40')}`

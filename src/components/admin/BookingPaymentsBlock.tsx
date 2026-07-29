@@ -7,7 +7,7 @@ import { bookingBalance } from '../../lib/booking-balance'
 import type { ChargeLine } from '../../lib/booking-charges'
 import type { Payment } from '../../types/database'
 import { t } from '../../i18n'
-import { BTN_XS_DANGER } from '../../styles/tokens'
+import { BTN_XS_DANGER, TEXT_PROXY } from '../../styles/tokens'
 
 const bp = t.admin.bookingPayments
 
@@ -131,7 +131,7 @@ export function BookingPaymentsBlock({
       <p className="font-semibold text-brand-900">{t.payments.title}</p>
 
       {payerNote && (
-        <p className="text-violet-800 font-semibold">{payerNote}</p>
+        <p className={`${TEXT_PROXY} font-semibold`}>{payerNote}</p>
       )}
 
       {/* Balance = owed − paid − open credit for this event. Positive means the

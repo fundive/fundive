@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BTN_XS_GHOST } from '../../styles/tokens'
+import { BTN_XS_GHOST, TEXT_DANGER, TEXT_WARNING } from '../../styles/tokens'
 import { Link } from 'react-router-dom'
 import { PageLoading } from '../../components/ui/Spinner'
 import { format, parseISO } from 'date-fns'
@@ -478,7 +478,7 @@ export function AdminLogisticsPage() {
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">{t.payments.title}</p>
                 {dayOutstanding > 0 ? (
-                  <p className="text-sm font-semibold text-red-600">
+                  <p className={`text-sm font-semibold ${TEXT_DANGER}`}>
                     {lg.stillOwe(dayDue.length, currency, dayOutstanding.toLocaleString())}
                   </p>
                 ) : (
@@ -489,7 +489,7 @@ export function AdminLogisticsPage() {
             <div className="space-y-1">
               <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">{t.bookings.breakdown.transportation}</p>
               <p className="text-sm text-brand-900 font-medium">
-                <span className="text-red-600 font-semibold">{transport.needsRide}</span>{lg.needARide}
+                <span className={`${TEXT_DANGER} font-semibold`}>{transport.needsRide}</span>{lg.needARide}
                 {onDutyStaffCount > 0 && (
                   <> · <span className="text-brand-900 font-semibold">{onDutyStaffCount}</span>{lg.onDutyStaffSuffix}</>
                 )}
@@ -511,7 +511,7 @@ export function AdminLogisticsPage() {
                   day: dayKey, eventId, rows: rideGroups,
                 }))}
               />
-              {rideError && <p className="text-sm font-semibold text-red-600">{rideError}</p>}
+              {rideError && <p className={`text-sm font-semibold ${TEXT_DANGER}`}>{rideError}</p>}
             </div>
             <div className="space-y-1">
               <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">{lg.gearToPack}</p>
@@ -529,7 +529,7 @@ export function AdminLogisticsPage() {
             </div>
             {overallCare.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">{gr.handleWithCare}</p>
+                <p className={`text-xs font-semibold ${TEXT_WARNING} uppercase tracking-wide`}>{gr.handleWithCare}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {overallCare.map(({ item, divers }) => (
                     <span key={item} className="text-xs px-2 py-0.5 rounded-full border border-amber-500 bg-amber-50 text-amber-900 font-semibold">

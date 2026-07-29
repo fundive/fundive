@@ -8,7 +8,7 @@ import type { GearModelWithSizes } from '../../lib/gear-sizing'
 import { numOrNull } from '../../lib/num'
 import type { GearType, GearModelSizeInsert } from '../../types/database'
 import { t } from '../../i18n'
-import { BTN_XS_GHOST, BTN_XS_DANGER } from '../../styles/tokens'
+import { BTN_XS_DANGER, BTN_XS_GHOST, TEXT_DANGER } from '../../styles/tokens'
 
 // Admin editor for the shop's wetsuit / BCD / fins sizing charts. Each model
 // gets size rows with min/max fit ranges; the logistics board matches a diver's
@@ -254,7 +254,7 @@ function GearModelEditor({ model, onChanged }: { model: GearModelWithSizes; onCh
                   </>
                 )}
                 <td className="pl-1 py-0.5">
-                  <button aria-label={gs.removeSizeAria(i)} onClick={() => setRows(rs => rs.filter((_, idx) => idx !== i))} className="text-red-700 hover:text-red-900 px-1">×</button>
+                  <button aria-label={gs.removeSizeAria(i)} onClick={() => setRows(rs => rs.filter((_, idx) => idx !== i))} className={`${TEXT_DANGER} hover:text-red-900 px-1`}>×</button>
                 </td>
               </tr>
             ))}

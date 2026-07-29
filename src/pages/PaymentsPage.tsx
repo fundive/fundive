@@ -389,7 +389,7 @@ function ApplyCreditControl({
         {t.payments.haveCredit(`${currency} ${max.toLocaleString()}`)}
       </p>
       <div className="flex items-center gap-2">
-        <span className={`text-xs ${TEXT_MUTED}`}>{currency}</span>
+        <span className={`text-xs text-emerald-800`}>{currency}</span>
         <input
           type="number"
           aria-label={t.payments.creditAmountAria}
@@ -397,7 +397,7 @@ function ApplyCreditControl({
           max={max}
           value={amount}
           onChange={e => setAmount(Number(e.target.value))}
-          className="flex-1 min-w-0 rounded-md border border-emerald-400 px-2 py-1 text-sm text-brand-950"
+          className="flex-1 min-w-0 rounded-md border border-emerald-400 px-2 py-1 text-sm text-emerald-900"
         />
         <button
           type="button"

@@ -4,6 +4,7 @@ import { errorMessage } from '../../lib/errors'
 import { fetchVehicles, saveVehicle, deleteVehicle } from '../../lib/vehicles'
 import type { Vehicle, VehicleInsert } from '../../types/database'
 import { t } from '../../i18n'
+import { TEXT_SUBTLE } from '../../styles/tokens'
 
 const ve = t.admin.vehicles
 const wv = t.admin.waivers
@@ -85,7 +86,7 @@ export function AdminVehiclesPage() {
             <li key={v.id} className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-medium text-brand-900 text-sm truncate">
-                  {v.name}{!v.active && <span className="ml-2 text-xs text-brand-900/60">{ve.retired}</span>}
+                  {v.name}{!v.active && <span className={`ml-2 text-xs ${TEXT_SUBTLE}`}>{ve.retired}</span>}
                 </p>
                 <p className="text-xs text-brand-900/80">
                   {ve.seats(v.passenger_seats)}
