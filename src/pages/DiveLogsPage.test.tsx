@@ -55,6 +55,7 @@ const sampleRow = (overrides: Partial<DiveLog> = {}): DiveLog => ({
   id:                'd1',
   user_id:           'u1',
   dive_number:       1,
+  title:             null,
   dived_on:          '2026-04-30',
   site:              '蘭嶼東清灣',
   dive_type:         'shore',
@@ -78,6 +79,21 @@ const sampleRow = (overrides: Partial<DiveLog> = {}): DiveLog => ({
   updated_at:        '2026-04-30T08:00:00Z',
   ...overrides,
 })
+
+// A new dive opens with only the required boxes — date, site, max depth, dive
+// time and a buddy/instructor. Everything else is pulled in from the picker.
+function fillRequired(site = 'Test Site') {
+  fireEvent.change(screen.getByLabelText(/site/i), { target: { value: site } })
+  fireEvent.change(screen.getByLabelText(/max depth/i), { target: { value: '18' } })
+  fireEvent.change(screen.getByLabelText(/dive time/i), { target: { value: '42' } })
+  fireEvent.change(screen.getByLabelText(/^buddy/i), { target: { value: 'Alice' } })
+}
+
+function addOptionalField(label: string | RegExp) {
+  fireEvent.click(screen.getByRole('button', { name: /\+ add field/i }))
+  const picker = screen.getByRole('group', { name: /fields you can add/i })
+  fireEvent.click(within(picker).getByRole('button', { name: label }))
+}
 
 describe('DiveLogsPage list view', () => {
   it('renders an empty-state when the diver has no logged dives yet', async () => {
@@ -105,6 +121,15 @@ describe('DiveLogsPage list view', () => {
     renderPage()
     expect(await screen.findByText(/蘭嶼東清灣/)).toBeInTheDocument()
   })
+
+  it('shows the dive title as the card heading, with #number · site beneath it', async () => {
+    fetchDiveLogsMock.mockResolvedValue([
+      sampleRow({ title: 'Manta cleaning station', dive_number: 12, site: 'Green Island' }),
+    ])
+    renderPage()
+    expect(await screen.findByText('Manta cleaning station')).toBeInTheDocument()
+    expect(screen.getByText(/#12 · Green Island/)).toBeInTheDocument()
+  })
 })
 
 describe('DiveLogsPage add flow', () => {
@@ -118,16 +143,16 @@ describe('DiveLogsPage add flow', () => {
     await user.click(screen.getByRole('button', { name: /\+ add/i }))
     expect(screen.getByText(/new dive/i)).toBeInTheDocument()
 
-    // Date defaults to today; site is required and starts empty.
-    const siteInput = screen.getAllByDisplayValue('').find(el => el.tagName === 'INPUT' && el.getAttribute('type') === 'text')!
-    await user.type(siteInput, 'Test Site')
+    // Date defaults to today; the rest of the required set starts empty.
+    fillRequired()
     await user.click(screen.getByRole('button', { name: /save dive/i }))
 
     await waitFor(() => expect(createDiveLogMock).toHaveBeenCalledOnce())
     const arg = createDiveLogMock.mock.calls[0][0]
     expect(arg.site).toBe('Test Site')
     expect(arg.user_id).toBe('u1')
-    // dive_number is intentionally omitted so the DB trigger assigns it per-user.
+    // The pre-filled dive # was left unchanged, so it's omitted and the DB
+    // trigger assigns it per-user.
     expect(arg.dive_number).toBeUndefined()
 
     // Returns to list view with the new row visible.
@@ -145,6 +170,62 @@ describe('DiveLogsPage add flow', () => {
     await user.click(screen.getByRole('button', { name: /save dive/i }))
     expect(createDiveLogMock).not.toHaveBeenCalled()
     expect(screen.getByText(/new dive/i)).toBeInTheDocument()
+  })
+
+  it('sends an explicit dive number when the diver overrides the pre-filled one', async () => {
+    // No prior dives → the field pre-fills 1; the diver arriving with an
+    // existing logbook overwrites it to start their count at 247.
+    fetchDiveLogsMock.mockResolvedValue([])
+    createDiveLogMock.mockResolvedValue(sampleRow({ id: 'new', dive_number: 247, site: 'Test Site' }))
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(fetchDiveLogsMock).toHaveBeenCalled())
+    await user.click(screen.getByRole('button', { name: /\+ add/i }))
+
+    fillRequired()
+    addOptionalField(/^dive #$/i)
+    const numberInput = screen.getByLabelText(/^dive #/i)
+    await user.clear(numberInput)
+    await user.type(numberInput, '247')
+    await user.click(screen.getByRole('button', { name: /save dive/i }))
+
+    await waitFor(() => expect(createDiveLogMock).toHaveBeenCalledOnce())
+    expect(createDiveLogMock.mock.calls[0][0].dive_number).toBe(247)
+  })
+
+  it('saves a user-set dive title', async () => {
+    fetchDiveLogsMock.mockResolvedValue([])
+    createDiveLogMock.mockResolvedValue(sampleRow({ id: 'new', dive_number: 1, site: 'Test Site', title: 'Manta night dive' }))
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(fetchDiveLogsMock).toHaveBeenCalled())
+    await user.click(screen.getByRole('button', { name: /\+ add/i }))
+
+    fillRequired()
+    addOptionalField(/^dive name$/i)
+    await user.type(screen.getByLabelText(/^dive name$/i), 'Manta night dive')
+    await user.click(screen.getByRole('button', { name: /save dive/i }))
+
+    await waitFor(() => expect(createDiveLogMock).toHaveBeenCalledOnce())
+    expect(createDiveLogMock.mock.calls[0][0].title).toBe('Manta night dive')
+  })
+
+  it('blocks a duplicate dive number with a friendly error and does not insert', async () => {
+    fetchDiveLogsMock.mockResolvedValue([sampleRow({ id: 'a', dive_number: 5, site: 'Old' })])
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByRole('button', { name: /edit dive 5/i })
+    await user.click(screen.getByRole('button', { name: /\+ add/i }))
+
+    fillRequired('New Site')
+    addOptionalField(/^dive #$/i)
+    const numberInput = screen.getByLabelText(/^dive #/i)
+    await user.clear(numberInput)
+    await user.type(numberInput, '5')
+    await user.click(screen.getByRole('button', { name: /save dive/i }))
+
+    expect(await screen.findByText(/already have a dive #5/i)).toBeInTheDocument()
+    expect(createDiveLogMock).not.toHaveBeenCalled()
   })
 })
 
@@ -366,14 +447,128 @@ describe('DiveLogsPage buddy and instructor', () => {
     fireEvent.click(await screen.findByRole('button', { name: /edit dive 5/i }))
 
     const form = screen.getByDisplayValue('Names').closest('form') as HTMLFormElement
-    fireEvent.change(within(form).getByLabelText(/^buddy$/i), { target: { value: 'Alice' } })
-    fireEvent.change(within(form).getByLabelText(/^instructor$/i), { target: { value: 'Bob' } })
+    fireEvent.change(within(form).getByLabelText(/^buddy/i), { target: { value: 'Alice' } })
+    fireEvent.change(within(form).getByLabelText(/^instructor/i), { target: { value: 'Bob' } })
     fireEvent.submit(form)
 
     await waitFor(() => expect(updateDiveLogMock).toHaveBeenCalledOnce())
     expect(updateDiveLogMock.mock.calls[0][1]).toMatchObject({
       buddy_name: 'Alice', instructor_name: 'Bob',
     })
+  })
+})
+
+describe('DiveLogsPage required fields', () => {
+  async function openNewForm() {
+    renderPage()
+    await waitFor(() => expect(fetchDiveLogsMock).toHaveBeenCalled())
+    fireEvent.click(screen.getByRole('button', { name: /\+ add/i }))
+    return screen.getByRole('button', { name: /save dive/i }).closest('form') as HTMLFormElement
+  }
+
+  it('names every missing requirement at once rather than one at a time', async () => {
+    const form = await openNewForm()
+    fireEvent.change(screen.getByLabelText(/site/i), { target: { value: 'Somewhere' } })
+    fireEvent.submit(form)
+
+    expect(createDiveLogMock).not.toHaveBeenCalled()
+    expect(await screen.findByText(/enter your max depth/i)).toBeInTheDocument()
+    expect(screen.getByText(/enter how long the dive was/i)).toBeInTheDocument()
+    expect(screen.getByText(/add a buddy or an instructor/i)).toBeInTheDocument()
+  })
+
+  it('takes an instructor in place of a buddy', async () => {
+    createDiveLogMock.mockResolvedValue(sampleRow({ id: 'new' }))
+    const form = await openNewForm()
+    fireEvent.change(screen.getByLabelText(/site/i), { target: { value: 'Somewhere' } })
+    fireEvent.change(screen.getByLabelText(/max depth/i), { target: { value: '18' } })
+    fireEvent.change(screen.getByLabelText(/dive time/i), { target: { value: '42' } })
+    fireEvent.change(screen.getByLabelText(/^instructor/i), { target: { value: 'Bob' } })
+    fireEvent.submit(form)
+
+    await waitFor(() => expect(createDiveLogMock).toHaveBeenCalledOnce())
+  })
+
+  it('treats zero depth as an answer, not a blank', async () => {
+    createDiveLogMock.mockResolvedValue(sampleRow({ id: 'new' }))
+    const form = await openNewForm()
+    fillRequired()
+    fireEvent.change(screen.getByLabelText(/max depth/i), { target: { value: '0' } })
+    fireEvent.submit(form)
+
+    await waitFor(() => expect(createDiveLogMock).toHaveBeenCalledOnce())
+    expect(createDiveLogMock.mock.calls[0][0].max_depth_m).toBe(0)
+  })
+
+  it('leaves the decimal boxes free of a step, so an over-precise entry rounds instead of being blocked', async () => {
+    // step="0.1" makes the browser reject 18.55 with a native tooltip, and
+    // roundDiveLogNumbers never gets to snap it to what the column holds.
+    const form = await openNewForm()
+    const depth = within(form).getByLabelText(/max depth/i)
+    expect(depth).toHaveAttribute('step', 'any')
+    expect(within(form).getByLabelText(/dive time/i)).toHaveAttribute('step', '1')
+  })
+})
+
+describe('DiveLogsPage optional fields', () => {
+  it('opens a new dive with only the required boxes', async () => {
+    renderPage()
+    await waitFor(() => expect(fetchDiveLogsMock).toHaveBeenCalled())
+    fireEvent.click(screen.getByRole('button', { name: /\+ add/i }))
+
+    expect(screen.getByLabelText(/site/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/^notes$/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/^visibility/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/^dive name$/i)).not.toBeInTheDocument()
+  })
+
+  it('adds a field from the picker and drops it from the remaining list', async () => {
+    renderPage()
+    await waitFor(() => expect(fetchDiveLogsMock).toHaveBeenCalled())
+    fireEvent.click(screen.getByRole('button', { name: /\+ add/i }))
+
+    addOptionalField(/^visibility \(m\)$/i)
+    expect(screen.getByLabelText(/^visibility/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ add field/i }))
+    const picker = screen.getByRole('group', { name: /fields you can add/i })
+    expect(within(picker).queryByRole('button', { name: /^visibility \(m\)$/i })).not.toBeInTheDocument()
+  })
+
+  it('shows the fields an existing dive already carries', async () => {
+    const row = sampleRow({ id: 'r1', dive_number: 3, site: 'Full', notes: 'Saw a turtle' })
+    fetchDiveLogsMock.mockResolvedValue([row])
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /edit dive 3/i }))
+
+    expect(screen.getByDisplayValue('Saw a turtle')).toBeInTheDocument()
+  })
+
+  it('removing a field clears the value rather than hiding it with data still attached', async () => {
+    const row = sampleRow({ id: 'r1', dive_number: 3, site: 'Trim', notes: 'Saw a turtle' })
+    fetchDiveLogsMock.mockResolvedValue([row])
+    updateDiveLogMock.mockResolvedValue(row)
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /edit dive 3/i }))
+    const form = screen.getByDisplayValue('Trim').closest('form') as HTMLFormElement
+
+    fireEvent.click(screen.getByRole('button', { name: /remove notes/i }))
+    expect(screen.queryByDisplayValue('Saw a turtle')).not.toBeInTheDocument()
+    fireEvent.submit(form)
+
+    await waitFor(() => expect(updateDiveLogMock).toHaveBeenCalledOnce())
+    expect(updateDiveLogMock.mock.calls[0][1]).toMatchObject({ notes: null })
+  })
+
+  it('hides the picker once every field is on the form', async () => {
+    const row = sampleRow({ id: 'r1', dive_number: 3, site: 'Everything', title: 'Named' })
+    fetchDiveLogsMock.mockResolvedValue([row])
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /edit dive 3/i }))
+
+    // Every optional column on this row carries a value, so there is nothing
+    // left to offer.
+    expect(screen.queryByRole('button', { name: /\+ add field/i })).not.toBeInTheDocument()
   })
 })
 
@@ -435,6 +630,7 @@ describe('DiveLogsPage dates and labels', () => {
     renderPage()
     await waitFor(() => expect(fetchDiveLogsMock).toHaveBeenCalled())
     fireEvent.click(screen.getByRole('button', { name: /\+ add/i }))
+    addOptionalField(/^type$/i)
 
     const type = screen.getByLabelText(/^type$/i)
     expect(within(type).getByRole('option', { name: 'Shore' })).toBeInTheDocument()

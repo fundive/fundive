@@ -57,16 +57,32 @@ export const DIVE_LOG_BOUNDS: Record<NumericField, NumericBound> = {
 
 export const NUMERIC_FIELDS = Object.keys(DIVE_LOG_BOUNDS) as NumericField[]
 
+// The two numbers that make an entry a dive record rather than a note. Every
+// other measurement is something the diver opts into from the form's
+// "add field" list, so leaving one out is a choice, not an omission.
+const REQUIRED_NUMERIC_MESSAGES: Partial<Record<NumericField, string>> = {
+  max_depth_m: t.diveLogs.errors.depthRequired,
+  dive_time_min: t.diveLogs.errors.timeRequired,
+}
+
+export const REQUIRED_NUMERIC_FIELDS = Object.keys(REQUIRED_NUMERIC_MESSAGES) as NumericField[]
+
 // The text columns are plain `text`, so nothing here prevents a DB error.
 // These are limits on what a logbook entry is reasonably made of, and they
 // stop a paste of an entire document from becoming a row.
 export const DIVE_LOG_TEXT_MAX = {
+  title: 120,
   site: 120,
   weather: 60,
   buddy_name: 120,
   instructor_name: 120,
   notes: 2000,
 } as const
+
+// Upper bound on a user-set dive number. Recreational logbooks never approach
+// this; it exists to reject a typo or a paste from becoming an integer that
+// overflows or renders absurdly. The column itself is a plain integer.
+export const DIVE_LOG_NUMBER_MAX = 100_000
 
 export type TextField = keyof typeof DIVE_LOG_TEXT_MAX
 
@@ -80,12 +96,15 @@ export function latestDiveDate(): string {
   return addIsoDays(todayIso(), 1)
 }
 
-export type DiveLogField = NumericField | TextField | 'dived_on'
+export type DiveLogField = NumericField | TextField | 'dived_on' | 'dive_number'
 export type DiveLogErrors = Partial<Record<DiveLogField, string>>
 
 type Numbers = Partial<Record<NumericField, number | null | undefined>>
 type Texts = Partial<Record<TextField, string | null | undefined>>
-export type ValidatableDiveLog = Numbers & Texts & { dived_on?: string | null }
+export type ValidatableDiveLog = Numbers & Texts & {
+  dived_on?: string | null
+  dive_number?: number | null
+}
 
 /**
  * Snap each number to the decimal places its column keeps.
@@ -110,9 +129,26 @@ export function roundDiveLogNumbers<T extends ValidatableDiveLog>(form: T): T {
  * Field-keyed messages for everything wrong with the entry, empty when it is
  * safe to send. Runs against already-rounded numbers.
  */
-export function validateDiveLog(form: ValidatableDiveLog): DiveLogErrors {
+export function validateDiveLog(
+  form: ValidatableDiveLog,
+  opts?: { takenNumbers?: Set<number> },
+): DiveLogErrors {
   const errors: DiveLogErrors = {}
   const e = t.diveLogs.errors
+
+  // dive_number is optional on a new entry (blank ⇒ the trigger auto-assigns
+  // the next per-diver number). When the diver DOES set one it must be a
+  // positive whole number not already used by another of their dives.
+  const num = form.dive_number
+  if (num != null) {
+    if (!Number.isFinite(num) || !Number.isInteger(num)) {
+      errors.dive_number = e.diveNumberWhole
+    } else if (num < 1 || num > DIVE_LOG_NUMBER_MAX) {
+      errors.dive_number = e.diveNumberRange(1, DIVE_LOG_NUMBER_MAX)
+    } else if (opts?.takenNumbers?.has(num)) {
+      errors.dive_number = e.diveNumberTaken(num)
+    }
+  }
 
   if (!form.site?.trim()) errors.site = e.siteRequired
 
@@ -122,9 +158,20 @@ export function validateDiveLog(form: ValidatableDiveLog): DiveLogErrors {
     errors.dived_on = e.dateOutOfRange
   }
 
+  // A dive with nobody on it is a dive nobody can vouch for. Either name
+  // satisfies this — the complaint hangs off the buddy box because it comes
+  // first, but filling in the instructor clears it just as well.
+  if (!form.buddy_name?.trim() && !form.instructor_name?.trim()) {
+    errors.buddy_name = e.companionRequired
+  }
+
   for (const field of NUMERIC_FIELDS) {
     const v = form[field]
-    if (v == null) continue
+    if (v == null) {
+      const missing = REQUIRED_NUMERIC_MESSAGES[field]
+      if (missing) errors[field] = missing
+      continue
+    }
     const { min, max, decimals } = DIVE_LOG_BOUNDS[field]
     if (!Number.isFinite(v)) {
       errors[field] = e.notANumber
