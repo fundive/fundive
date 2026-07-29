@@ -1375,6 +1375,11 @@ export const ja: Messages = {
       applyCredit: 'クレジットを充当',
       diverNoteCount: (n: number) => `ダイバーメモ ${n} 件`,
       waiversUnknown: '同意書 —',
+      markWaiversInPerson: '対面で完了にする',
+      markWaiversInPersonConfirm: (name: string, list: string) =>
+        `次の同意書を ${name} さんが紙で署名済みとして記録しますか：${list}？\n\n記入済みの紙の書類が手元にある場合のみ実行してください。`,
+      waiversRecordedInPerson: '対面署名として記録しました。',
+      waiversRecordFailed: (detail: string) => `同意書を記録できませんでした：${detail}`,
       missingWaivers: (list: string) => `未署名：${list}`,
       waiversOk: '同意書は完了',
       paidBy: (name: string) => `${name} が支払い`,
