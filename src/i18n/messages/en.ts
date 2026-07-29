@@ -1434,6 +1434,18 @@ export const en = {
       deleteUser: 'Delete user',
       editProfile: 'Edit profile',
       registerForEvent: 'Register for an event',
+      issueTempPassword: 'Issue temp password',
+      tempPasswordConfirm: (name: string) =>
+        `Issue a new temporary password for ${name}? Their current password will stop working immediately.`,
+      tempPasswordIssued: (name: string) => `Temporary password issued for ${name}`,
+      couldNotIssueTempPassword: (msg: string) => `Could not issue temporary password: ${msg}`,
+      tempPasswordFailed: 'Could not issue a temporary password.',
+      tempPasswordTitle: 'Temporary password',
+      tempPasswordHint:
+        "Share it securely and only once. Ask the diver to change it after signing in. It won't be shown again.",
+      copy: 'Copy',
+      copied: 'Copied',
+      dismiss: 'Dismiss',
       roleLabel: 'Role',
       roleNames: { diver: 'Diver', staff: 'Staff', admin: 'Admin' },
       roleChanged: (name: string, role: string) => `${name} is now ${role}`,
