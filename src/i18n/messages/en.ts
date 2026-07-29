@@ -1386,6 +1386,11 @@ export const en = {
       applyCredit: 'Apply credit',
       diverNoteCount: (n: number) => `${n} diver note${n === 1 ? '' : 's'}`,
       waiversUnknown: 'Waivers —',
+      markWaiversInPerson: 'Mark done in person',
+      markWaiversInPersonConfirm: (name: string, list: string) =>
+        `Record these as signed on paper by ${name}: ${list}?\n\nOnly do this if you have the completed paper form(s) on file.`,
+      waiversRecordedInPerson: 'Recorded as signed in person.',
+      waiversRecordFailed: (detail: string) => `Could not record waivers: ${detail}`,
       missingWaivers: (list: string) => `Missing: ${list}`,
       waiversOk: 'Waivers OK',
       paidBy: (name: string) => `Paid by ${name}`,
