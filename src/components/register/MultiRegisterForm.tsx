@@ -511,7 +511,11 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
               {t.register.multi.prefillHint}
             </p>
             <div className="space-y-3">
-              <TextField label={t.register.multi.fullNameLabel} value={fullName} onChange={setFullName} required />
+              <TextField
+                label={t.register.multi.fullNameLabel}
+                hint={t.register.multi.fullNameHint}
+                value={fullName} onChange={setFullName} required
+              />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <TextField label={t.register.step2.dobRequired} type="date" value={dob} onChange={setDob} required />
                 <TextField label={t.register.nationalityRequired} value={nationality} onChange={setNationality} required />
@@ -917,7 +921,7 @@ function Row({ label, value, currency }: { label: string; value: number; currenc
 }
 
 function TextField({
-  label, value, onChange, type = 'text', required, placeholder,
+  label, value, onChange, type = 'text', required, placeholder, hint,
 }: {
   label: string
   value: string
@@ -925,6 +929,9 @@ function TextField({
   type?: 'text' | 'email' | 'tel' | 'date' | 'password' | 'number'
   required?: boolean
   placeholder?: string
+  /** Rendered under the input, for a field whose label can't carry the whole
+   *  requirement on its own (which name to give, which format). */
+  hint?: string
 }) {
   // Associates by id rather than by wrapping: a date field renders a second,
   // transparent native input for the OS picker, and a wrapping label would
@@ -953,6 +960,7 @@ function TextField({
           className="w-full bg-white border border-surface-300 rounded-lg px-2 py-2 text-sm text-brand-900 focus:outline-none focus:border-brand-900"
         />
       )}
+      {hint && <span className="block text-xs text-brand-900/70 mt-1">{hint}</span>}
     </div>
   )
 }
