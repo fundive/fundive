@@ -163,12 +163,13 @@ export const ERROR_NOTE_LIGHT = pick(
 
 // ── Navigation chrome ──────────────────────────────────────────────
 // light: solid navy bars with a red hairline.
-// dark:  frosted "waybar" glass bars with a white hairline.
+// dark:  frosted "waybar" glass header with a white hairline; the bottom tab
+//        bar is opaque in both themes (see `.waybar-solid`).
 export const NAV_BAR    = pick(
   'bg-brand-950 border-b border-accent px-4 py-3 flex items-center justify-between',
   'waybar border-b border-white/10 px-4 py-3 flex items-center justify-between',
 )
 export const NAV_BOTTOM = pick(
   'fixed bottom-0 left-0 right-0 bg-brand-950 border-t border-accent flex justify-around py-2',
-  'fixed bottom-0 left-0 right-0 waybar border-t border-white/10 flex justify-around py-2 z-40',
+  'fixed bottom-0 left-0 right-0 waybar-solid border-t border-white/10 flex justify-around py-2 z-40',
 )
