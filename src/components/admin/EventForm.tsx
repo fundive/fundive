@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { errorMessage } from '../../lib/errors'
 import { fetchEventRelations } from '../../lib/event-relations'
 import { siteConfig } from '../../config/site'
-import type { CancellationPolicy, CertLevel, TripTemplateEntry, EOAddon, EventRow, EOPrice, EORoom, TravelDestination, EventKind } from '../../types/database'
+import type { CancellationPolicy, CertLevel, TripTemplateEntry, EOAddon, EventRow, EOPrice, EORoom, TravelDestination } from '../../types/database'
 import {
   EMPTY_FORM,
   formStateFromEvent,
@@ -81,9 +81,11 @@ export interface EventFormProps {
   onCancel: () => void
   /** Override the submit button text (defaults to "Create dive/course" or "Save changes"). */
   submitLabel?: string
-  /** Create-mode only: extra fields (e.g. a car picker) whose values the page
-   *  persists after the event row exists. Given the current event type. */
-  renderCreateExtras?: (type: EventKind) => ReactNode
+  /** Create-mode only: extra fields (a car picker, recurrence) whose values the
+   *  page persists after the event row exists. Given the live form so a section
+   *  can key off the kind AND the dates already entered — a repeat pattern is
+   *  meaningless without an anchor. */
+  renderCreateExtras?: (form: FormState) => ReactNode
 }
 
 export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, renderCreateExtras }: EventFormProps) {
@@ -854,7 +856,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
         )}
       </Section>
 
-      {mode === 'create' && renderCreateExtras?.(form.type)}
+      {mode === 'create' && renderCreateExtras?.(form)}
 
       {error && (
         <p className="text-sm text-red-200 bg-red-900/50 border border-accent rounded-md p-2">{error}</p>
