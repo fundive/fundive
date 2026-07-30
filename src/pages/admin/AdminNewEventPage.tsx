@@ -4,7 +4,11 @@ import { supabase } from '../../lib/supabase'
 import { EVENT_KIND_LABELS } from '../../lib/event-kind-labels'
 import { EventForm } from '../../components/admin/EventForm'
 import { CreateEventVehiclePicker } from '../../components/admin/CreateEventVehiclePicker'
+import { RecurrenceFields } from '../../components/admin/RecurrenceFields'
 import { assignVehiclesToEvent } from '../../lib/event-vehicles'
+import { createEventSeries, seriesAnchor } from '../../lib/event-series'
+import { errorMessage } from '../../lib/errors'
+import type { RecurrenceRule } from '../../lib/recurrence'
 import { useAuth } from '../../hooks/useAuth'
 import { useToast } from '../../hooks/useToast'
 import {
@@ -25,8 +29,31 @@ export function AdminNewEventPage() {
   const { profile } = useAuth()
   // Cars picked in the form; assigned to the dive right after it's inserted.
   const [vehicleIds, setVehicleIds] = useState<string[]>([])
+  const [rule, setRule] = useState<RecurrenceRule | null>(null)
+  const [seriesLabel, setSeriesLabel] = useState('')
 
-  async function handleSubmit(form: FormState) {
+  async function assignCars(eventId: string, type: FormState['type']) {
+    if (type !== 'dive' || vehicleIds.length === 0) return
+    await assignVehiclesToEvent({
+      vehicleIds, event: { id: eventId, type: 'dive' }, createdBy: profile?.id ?? null,
+    })
+  }
+
+  async function createSeries(form: FormState) {
+    const result = await createEventSeries({
+      form, rule: rule!, createdBy: profile?.id ?? null, label: seriesLabel,
+      assignVehicles: assignCars,
+    })
+    toast.success(t.admin.recurrence.created(result.eventIds.length))
+    if (result.relationFailures.length > 0) {
+      toast.error(t.admin.recurrence.relationsIncomplete(result.relationFailures.length))
+    }
+    // Land on the first occurrence: it is the event the admin just filled in,
+    // and its Series section lists the rest.
+    navigate(`/admin/events/${result.eventIds[0]}`)
+  }
+
+  async function createOne(form: FormState) {
     const id = crypto.randomUUID()
     const { error } = await supabase
       .from('events')
@@ -35,15 +62,23 @@ export function AdminNewEventPage() {
     const relError = await saveEventRelations(id, form)
     if (relError) throw relError
     // Cars are assigned to the event as a whole (event-level allocation).
-    if (form.type === 'dive' && vehicleIds.length > 0) {
-      try {
-        await assignVehiclesToEvent({
-          vehicleIds, event: { id, type: 'dive' }, createdBy: profile?.id ?? null,
-        })
-      } catch { toast.error(ev.carAssignFailed) }
-    }
+    try { await assignCars(id, form.type) } catch { toast.error(ev.carAssignFailed) }
     toast.success(ev.created(EVENT_KIND_LABELS[form.type]))
     navigate(`/admin/events/${id}`)
+  }
+
+  async function handleSubmit(form: FormState) {
+    if (rule && seriesAnchor(form)) {
+      try {
+        await createSeries(form)
+      } catch (err) {
+        // Rethrown as an authored message so EventForm shows it inline rather
+        // than the raw PostgREST text.
+        throw new Error(t.admin.recurrence.createFailed(errorMessage(err)), { cause: err })
+      }
+      return
+    }
+    await createOne(form)
   }
 
   return (
@@ -53,8 +88,15 @@ export function AdminNewEventPage() {
         mode="create"
         onSubmit={handleSubmit}
         onCancel={() => navigate('/admin/events')}
-        renderCreateExtras={type =>
-          type === 'dive' ? <CreateEventVehiclePicker onChange={setVehicleIds} /> : null}
+        renderCreateExtras={form => (
+          <>
+            {form.type === 'dive' && <CreateEventVehiclePicker onChange={setVehicleIds} />}
+            <RecurrenceFields
+              anchor={seriesAnchor(form)}
+              onChange={(next, label) => { setRule(next); setSeriesLabel(label) }}
+            />
+          </>
+        )}
       />
     </div>
   )
