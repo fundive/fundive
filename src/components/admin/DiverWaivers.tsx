@@ -11,7 +11,7 @@ import { useToast } from '../../hooks/useToast'
 import type { WaiverDef } from '../../config/waivers'
 import type { WaiverSignature } from '../../types/database'
 import { t } from '../../i18n'
-import { BTN_XS_GHOST } from '../../styles/tokens'
+import { BTN_XS_GHOST, TEXT_DANGER, TEXT_WARNING, TEXT_SUCCESS } from '../../styles/tokens'
 
 const dw = t.admin.diverWaivers
 
@@ -77,11 +77,11 @@ export function DiverWaivers({ diverId, diverName }: { diverId: string; diverNam
   return (
     <section className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-4 space-y-3">
       <div>
-        <h2 className="text-sm font-semibold text-red-600 uppercase tracking-wider">{dw.title}</h2>
+        <h2 className={`text-sm font-semibold uppercase tracking-wider ${TEXT_DANGER}`}>{dw.title}</h2>
         <p className="text-xs text-brand-950/70 font-medium">{dw.intro}</p>
       </div>
       {failed ? (
-        <p className="text-xs text-amber-700 font-medium">{dw.loadFailed}</p>
+        <p className={`text-xs font-medium ${TEXT_WARNING}`}>{dw.loadFailed}</p>
       ) : signatures === null ? (
         <p className="text-xs text-brand-950/70 font-medium italic">{dw.loading}</p>
       ) : waivers.length === 0 ? (
@@ -104,7 +104,7 @@ export function DiverWaivers({ diverId, diverName }: { diverId: string; diverNam
           {isAdmin && !diverName && (
             // The name is stored as the signature on the record, so there is
             // nothing honest to write without one. Statuses still show.
-            <p className="text-xs text-amber-700 font-medium">{dw.needsName}</p>
+            <p className={`text-xs font-medium ${TEXT_WARNING}`}>{dw.needsName}</p>
           )}
         </>
       )}
@@ -119,10 +119,10 @@ const STATUS_LABEL: Record<AnnualWaiverStatus['state'], string> = {
   unsigned: t.profile.waivers.statusUnsigned,
 }
 const STATUS_CLASS: Record<AnnualWaiverStatus['state'], string> = {
-  signed: 'text-emerald-700',
-  expired: 'text-red-600',
-  outdated: 'text-amber-700',
-  unsigned: 'text-red-600',
+  signed: TEXT_SUCCESS,
+  expired: TEXT_DANGER,
+  outdated: TEXT_WARNING,
+  unsigned: TEXT_DANGER,
 }
 
 function WaiverRow({ def, status, latest, busy, canRecord, onMarkInPerson }: {
