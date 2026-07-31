@@ -1593,7 +1593,6 @@ export const ja: Messages = {
       isPrivate: '非公開（公開カレンダーに表示しない）',
       gearRental: '器材レンタル情報',
       featuredImage: 'メイン画像の URL',
-      secondImage: '2 枚目の画像の URL',
       destinations: '目的地',
       noDestinations: '目的地が登録されていません。',
       tripTemplateRef: 'ツアーテンプレートの参照',
