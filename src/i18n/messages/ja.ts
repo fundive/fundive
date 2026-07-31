@@ -1388,6 +1388,8 @@ export const ja: Messages = {
         `このダイバーには ${currency} ${spendable} のアカウントクレジットがあります — 最大 ${currency} ${cap} まで充当できます。`,
       applyCredit: 'クレジットを充当',
       diverNoteCount: (n: number) => `ダイバーメモ ${n} 件`,
+      showDetailsFor: (name: string) => `${name} の詳細を表示`,
+      hideDetailsFor: (name: string) => `${name} の詳細を隠す`,
       waiversUnknown: '同意書 —',
       markWaiversInPerson: '対面で完了にする',
       markWaiversInPersonConfirm: (name: string, list: string) =>
@@ -1628,6 +1630,7 @@ export const ja: Messages = {
       overall: (day: string) => `全体 — ${day}`,
       eventsDivers: (events: number, divers: number) => `イベント ${events} 件 · ダイバー ${divers} 名`,
       diverCount: (n: number) => `ダイバー ${n} 名`,
+      diversOnDay: 'ダイバー',
       nextEventDay: (where: string) => `次: ${where} →`,
       stillOwe: (n: number, currency: string, amount: string) =>
         `${n} 名が未払い · 未収 ${currency} ${amount}`,

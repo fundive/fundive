@@ -1399,6 +1399,10 @@ export const en = {
         `Diver has ${currency} ${spendable} account credit — apply up to ${currency} ${cap}.`,
       applyCredit: 'Apply credit',
       diverNoteCount: (n: number) => `${n} diver note${n === 1 ? '' : 's'}`,
+      // Accessible name for the registrant card's disclosure toggle. Carries the
+      // diver's name so screen readers announce which card is being opened.
+      showDetailsFor: (name: string) => `Show details for ${name}`,
+      hideDetailsFor: (name: string) => `Hide details for ${name}`,
       waiversUnknown: 'Waivers —',
       markWaiversInPerson: 'Mark done in person',
       markWaiversInPersonConfirm: (name: string, list: string) =>
@@ -1641,6 +1645,7 @@ export const en = {
       eventsDivers: (events: number, divers: number) =>
         `${events} event${events === 1 ? '' : 's'} · ${divers} diver${divers === 1 ? '' : 's'}`,
       diverCount: (n: number) => `${n} diver${n === 1 ? '' : 's'}`,
+      diversOnDay: 'Divers',
       // `where` is already localised: the "Tomorrow" tab label, or a date key.
       nextEventDay: (where: string) => `Next: ${where} →`,
       stillOwe: (n: number, currency: string, amount: string) =>
