@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { BTN_XS_GHOST, TEXT_DANGER, TEXT_HEADING, TEXT_MUTED, TEXT_WARNING, isDark } from '../../styles/tokens'
+import { BTN_XS_GHOST, TEXT_BODY, TEXT_DANGER, TEXT_HEADING, TEXT_MUTED, TEXT_WARNING, isDark } from '../../styles/tokens'
 import { Link } from 'react-router-dom'
 import { PageLoading } from '../../components/ui/Spinner'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '../../lib/supabase'
 import { siteConfig } from '../../config/site'
 import { fetchEventsInRange, fetchUpcomingEventDays, formatEventSpan } from '../../lib/events'
-import { gearTotals, splitByTransport, transportHeadcount, dayKeyOffset, careTotals, isCareGearItem, addonTotals, partitionByWaitlist } from '../../lib/logistics'
+import { gearTotals, splitByTransport, transportHeadcount, dayKeyOffset, careTotals, isCareGearItem, addonTotals, partitionByWaitlist, gearSizeBreakdown, isSizedGearItem } from '../../lib/logistics'
 import { bookingBalance, type BookingBalance } from '../../lib/booking-balance'
 import { openCreditForBooking } from '../../lib/credits'
 import { netPaidByBooking } from '../../lib/payments'
@@ -51,6 +51,15 @@ const SUMMARY_CHIP = `text-xs px-2 py-0.5 rounded-full font-medium ${
 // The muted trailing detail inside a chip (a staff member's roles).
 const SUMMARY_CHIP_DETAIL = isDark ? 'text-brand-100/70' : 'text-brand-900/70'
 
+// A chip that opens something: its hover and open states, plus the panel the
+// open one drops. Same hairline logic as SUMMARY_CHIP — the pressed look has to
+// come from the surface the board actually sits on in each design.
+const CHIP_HOVER = isDark
+  ? 'hover:border-white/40 hover:bg-white/10'
+  : 'hover:border-brand-900/50 hover:bg-brand-900/10'
+const CHIP_OPEN = isDark ? 'border-white/50 bg-white/15' : 'border-brand-900/60 bg-brand-900/10'
+const CHIP_PANEL = isDark ? 'border-white/15 bg-white/5' : 'border-surface-300 bg-surface-50'
+
 /**
  * The eyebrow label above each Overall block. Small, dim and letter-spaced by
  * design: it must sit clearly *below* the section's <h2> in the hierarchy, so
@@ -67,6 +76,67 @@ function SummaryLabel({ children, tone }: { children: ReactNode; tone?: 'care' |
     <h3 className={`text-[11px] font-semibold uppercase tracking-wider ${toneClass}`}>
       {children}
     </h3>
+  )
+}
+
+/**
+ * The gear-to-pack chips, where the sized items open into what they mean on the
+ * rack. "BCD ×3" tells a packer how many to carry but not which ones to pull,
+ * and that detail otherwise lives one card per diver further down the page —
+ * so BCD, wetsuit, fins and boots are buttons that expand to their size split.
+ * Items the shop keeps in one size (regulator, mask) stay plain spans: nothing
+ * to open, so nothing that looks like it opens.
+ *
+ * One panel at a time. The sizes are a short list read in passing, and stacking
+ * several open panels would push the rest of the board off a phone screen.
+ */
+function GearChips({ totals, rows }: {
+  totals: Array<{ item: string; count: number }>
+  rows: DiverGearRow[]
+}) {
+  const [openItem, setOpenItem] = useState<string | null>(null)
+  const breakdown = openItem ? gearSizeBreakdown(rows, openItem) : []
+  return (
+    <>
+      <div className="flex flex-wrap gap-1.5">
+        {totals.map(({ item, count }) => {
+          const label = `${item} ×${count}`
+          if (!isSizedGearItem(item)) return <span key={item} className={SUMMARY_CHIP}>{label}</span>
+          const open = openItem === item
+          return (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setOpenItem(o => (o === item ? null : item))}
+              aria-expanded={open}
+              aria-label={open ? lg.hideSizesFor(item) : lg.showSizesFor(item)}
+              className={`${SUMMARY_CHIP} transition-colors ${open ? CHIP_OPEN : CHIP_HOVER}`}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
+      {openItem && (
+        <div className={`rounded-lg border p-2 space-y-1 ${CHIP_PANEL}`}>
+          <SummaryLabel>{lg.sizesFor(openItem)}</SummaryLabel>
+          <ul className="space-y-0.5">
+            {breakdown.map(g => (
+              <li key={g.size ?? 'unknown'} className={`text-xs ${TEXT_BODY}`}>
+                {/* An unrecorded size is the one line worth chasing before the
+                    van leaves, so it carries the warning tone rather than
+                    reading as just another rack slot. */}
+                <span className={`font-semibold ${g.size ? '' : TEXT_WARNING}`}>
+                  {g.size ? lg.sizeCount(g.size, g.divers.length) : lg.sizeCount(lg.sizeUnknown, g.divers.length)}
+                </span>
+                {' · '}
+                <span className={`${SUMMARY_CHIP_DETAIL} select-text`}>{g.divers.map(d => d.name).join(', ')}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -607,11 +677,7 @@ export function AdminLogisticsPage() {
                 {overallGear.length === 0 ? (
                   <p className="text-sm text-brand-950/70 font-medium italic">{lg.nothingToPack}</p>
                 ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {overallGear.map(({ item, count }) => (
-                      <span key={item} className={SUMMARY_CHIP}>{item} ×{count}</span>
-                    ))}
-                  </div>
+                  <GearChips totals={overallGear} rows={seatedRows} />
                 )}
               </div>
               {overallCare.length > 0 && (
@@ -652,11 +718,9 @@ export function AdminLogisticsPage() {
                       ))}
                     </div>
                   )}
-                  {(waitlistGear.length > 0 || waitlistAddons.length > 0) && (
+                  {waitlistGear.length > 0 && <GearChips totals={waitlistGear} rows={waitlistRows} />}
+                  {waitlistAddons.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                      {waitlistGear.map(({ item, count }) => (
-                        <span key={`g-${item}`} className={SUMMARY_CHIP}>{item} ×{count}</span>
-                      ))}
                       {waitlistAddons.map(({ title, count }) => (
                         <span key={`a-${title}`} className={SUMMARY_CHIP}>{title} ×{count}</span>
                       ))}
