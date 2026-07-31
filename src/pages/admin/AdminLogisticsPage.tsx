@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { BTN_XS_GHOST, TEXT_DANGER, TEXT_WARNING } from '../../styles/tokens'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { BTN_XS_GHOST, TEXT_DANGER, TEXT_HEADING, TEXT_MUTED, TEXT_WARNING, isDark } from '../../styles/tokens'
 import { Link } from 'react-router-dom'
 import { PageLoading } from '../../components/ui/Spinner'
 import { format, parseISO } from 'date-fns'
@@ -37,6 +37,38 @@ const tp = t.admin.transport
 
 // Per-booking outstanding balance + the lead responsible for it (if covered).
 interface BookingBalanceRow { bal: BookingBalance; payerName: string | null }
+
+// One look for every chip on the Overall board. A hairline that reads against
+// whichever surface the board sits on — NOT `border-brand-900`, which the dark
+// retrofit (index.css) leaves navy while flipping the text to near-white,
+// rendering the pill's outline invisible and the chips as loose floating text.
+const SUMMARY_CHIP = `text-xs px-2 py-0.5 rounded-full font-medium ${
+  isDark
+    ? 'border border-white/20 bg-white/5 text-brand-50'
+    : 'border border-brand-900/25 bg-brand-900/5 text-brand-900'
+}`
+
+// The muted trailing detail inside a chip (a staff member's roles).
+const SUMMARY_CHIP_DETAIL = isDark ? 'text-brand-100/70' : 'text-brand-900/70'
+
+/**
+ * The eyebrow label above each Overall block. Small, dim and letter-spaced by
+ * design: it must sit clearly *below* the section's <h2> in the hierarchy, so
+ * it deliberately shares none of the heading's size, colour or case. `care`
+ * carries the amber warning tone and `tentative` the waitlist violet, each
+ * picked for the surface the label sits on rather than the chips' light fill.
+ */
+function SummaryLabel({ children, tone }: { children: ReactNode; tone?: 'care' | 'tentative' }) {
+  const toneClass =
+    tone === 'care' ? TEXT_WARNING
+    : tone === 'tentative' ? (isDark ? 'text-violet-300' : 'text-violet-700')
+    : isDark ? 'text-brand-100/70' : 'text-brand-900/70'
+  return (
+    <h3 className={`text-[11px] font-semibold uppercase tracking-wider ${toneClass}`}>
+      {children}
+    </h3>
+  )
+}
 
 interface EventGroup {
   event: AppEvent
@@ -322,6 +354,19 @@ export function AdminLogisticsPage() {
     if (!dayStaff[i].roles.includes(s.role)) dayStaff[i].roles.push(s.role)
   }
   const onDutyStaffCount = dayStaff.length
+  // The day's roster — every diver booked across the day's events, one entry per
+  // person (someone diving two of the day's events is still one diver to brief,
+  // count heads for, and check off). Sorted so the list reads the same on every
+  // reload. Keyed by booking when a row has no profile, since those can't merge.
+  const dayDivers: { key: string; name: string }[] = []
+  const diverKeys = new Set<string>()
+  for (const r of allRows) {
+    const key = r.profile?.id ?? r.booking.id
+    if (diverKeys.has(key)) continue
+    diverKeys.add(key)
+    dayDivers.push({ key, name: personName(r.profile?.name, r.profile?.nickname) || tp.noProfile })
+  }
+  dayDivers.sort((a, b) => a.name.localeCompare(b.name))
   // Divers who still owe — for the whole-day summary and each event's list.
   const currency = (groups ?? [])[0]?.event.currency ?? siteConfig.locale.currency
   const dueRowsFor = (rows: DiverGearRow[]) => rows.flatMap(r => {
@@ -442,11 +487,19 @@ export function AdminLogisticsPage() {
         <p className="text-brand-950 font-medium text-sm">{lg.noEventsOn(dayKey)}</p>
       ) : (
         <>
-          <section className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-4 space-y-3">
-            <div className="flex items-start justify-between gap-3">
+          <section className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-4">
+            {/* The section header owns the identity: large, sentence-case, with a
+                rule beneath it. Every block label below is deliberately its
+                opposite — tiny, dim, uppercase — so the two tiers can never be
+                mistaken for each other. They used to differ only by one step of
+                size and weight, which is why the hierarchy read as flat. */}
+            <header className="border-b border-surface-300 pb-2 mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="text-sm font-bold text-brand-900 uppercase tracking-wider">{lg.overall(dayKey)}</h2>
-                <p className="text-sm text-brand-900 font-medium">{lg.eventsDivers(groups.length, allRows.length)}</p>
+                <h2 className={`${TEXT_HEADING} text-lg`}>{lg.overall(dayKey)}</h2>
+                {/* Headcount, not bookings: someone diving two of the day's events
+                    is one diver. Counting rows here would disagree with the roster
+                    below, which lists that person once. */}
+                <p className={`${TEXT_MUTED} text-sm font-medium`}>{lg.eventsDivers(groups.length, dayDivers.length)}</p>
               </div>
               {/* Jump to the next day that has events. Labelled with the
                   destination — "Tomorrow" when that's where it lands, the date
@@ -460,97 +513,110 @@ export function AdminLogisticsPage() {
                   {lg.nextEventDay(nextEventDay === tomorrowKey ? lg.tomorrow : nextEventDay)}
                 </button>
               )}
-            </div>
-            {dayStaff.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">{gr.onDutyStaff}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {dayStaff.map(s => (
-                    <span key={s.key} className="text-xs px-2 py-0.5 rounded-full border border-brand-900 text-brand-900 font-medium">
-                      {s.name}
-                      {s.roles.length > 0 && <span className="font-normal text-brand-950"> · {s.roles.join(', ')}</span>}
-                    </span>
-                  ))}
+            </header>
+            {/* Two columns from sm up — the blocks are short, so one column left
+                half the board empty on anything wider than a phone. items-start
+                keeps a tall block (the fleet plan) from stretching its neighbour. */}
+            <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2 items-start">
+              {allRows.length > 0 && (
+                <div className="space-y-1">
+                  <SummaryLabel>{t.payments.title}</SummaryLabel>
+                  {dayOutstanding > 0 ? (
+                    <p className={`text-sm font-semibold ${TEXT_DANGER}`}>
+                      {lg.stillOwe(dayDue.length, currency, dayOutstanding.toLocaleString())}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-brand-900 font-medium">{lg.allSettled}</p>
+                  )}
                 </div>
-              </div>
-            )}
-            {allRows.length > 0 && (
+              )}
+              {dayStaff.length > 0 && (
+                <div className="space-y-1">
+                  <SummaryLabel>{gr.onDutyStaff}</SummaryLabel>
+                  <div className="flex flex-wrap gap-1.5">
+                    {dayStaff.map(s => (
+                      <span key={s.key} className={`${SUMMARY_CHIP} select-text`}>
+                        {s.name}
+                        {s.roles.length > 0 && <span className={`font-normal ${SUMMARY_CHIP_DETAIL}`}> · {s.roles.join(', ')}</span>}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {dayDivers.length > 0 && (
+                <div className="space-y-1">
+                  <SummaryLabel>{lg.diversOnDay}</SummaryLabel>
+                  <div className="flex flex-wrap gap-1.5">
+                    {dayDivers.map(d => (
+                      // Selectable so a name can be copied straight off the board.
+                      <span key={d.key} className={`${SUMMARY_CHIP} select-text`}>{d.name}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">{t.payments.title}</p>
-                {dayOutstanding > 0 ? (
-                  <p className={`text-sm font-semibold ${TEXT_DANGER}`}>
-                    {lg.stillOwe(dayDue.length, currency, dayOutstanding.toLocaleString())}
-                  </p>
+                <SummaryLabel>{t.bookings.breakdown.transportation}</SummaryLabel>
+                <p className="text-sm text-brand-900 font-medium">
+                  <span className={`${TEXT_DANGER} font-semibold`}>{transport.needsRide}</span>{lg.needARide}
+                  {onDutyStaffCount > 0 && (
+                    <> · <span className="text-brand-900 font-semibold">{onDutyStaffCount}</span>{lg.onDutyStaffSuffix}</>
+                  )}
+                  {' · '}{lg.selfTransportCount(transport.selfTransport)}
+                  {transport.unspecified > 0 && <> · {lg.unspecifiedCount(transport.unspecified)}</>}
+                </p>
+                {fleetPlan.riders > 0 && (
+                  <TransportFleetPlan plan={fleetPlan} fleetSize={activeVehicles.length} />
+                )}
+                <SharedTransportPicker
+                  events={groups.map(g => ({ id: g.event.id, title: eventTitle(g.event) }))}
+                  groupOf={groupIdByEvent(rideGroups)}
+                  isAdmin={isAdmin}
+                  busy={ridesBusy}
+                  onShareWith={(eventId, withEventId) => changeRideGroup(() => shareRideWith({
+                    day: dayKey, eventId, withEventId, rows: rideGroups, createdBy: profile?.id ?? null,
+                  }))}
+                  onRideAlone={eventId => changeRideGroup(() => rideAlone({
+                    day: dayKey, eventId, rows: rideGroups,
+                  }))}
+                />
+                {rideError && <p className={`text-sm font-semibold ${TEXT_DANGER}`}>{rideError}</p>}
+              </div>
+              <div className="space-y-1">
+                <SummaryLabel>{lg.gearToPack}</SummaryLabel>
+                {overallGear.length === 0 ? (
+                  <p className="text-sm text-brand-950/70 font-medium italic">{lg.nothingToPack}</p>
                 ) : (
-                  <p className="text-sm text-brand-900 font-medium">{lg.allSettled}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {overallGear.map(({ item, count }) => (
+                      <span key={item} className={SUMMARY_CHIP}>{item} ×{count}</span>
+                    ))}
+                  </div>
                 )}
               </div>
-            )}
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">{t.bookings.breakdown.transportation}</p>
-              <p className="text-sm text-brand-900 font-medium">
-                <span className={`${TEXT_DANGER} font-semibold`}>{transport.needsRide}</span>{lg.needARide}
-                {onDutyStaffCount > 0 && (
-                  <> · <span className="text-brand-900 font-semibold">{onDutyStaffCount}</span>{lg.onDutyStaffSuffix}</>
-                )}
-                {' · '}{lg.selfTransportCount(transport.selfTransport)}
-                {transport.unspecified > 0 && <> · {lg.unspecifiedCount(transport.unspecified)}</>}
-              </p>
-              {fleetPlan.riders > 0 && (
-                <TransportFleetPlan plan={fleetPlan} fleetSize={activeVehicles.length} />
+              {overallCare.length > 0 && (
+                <div className="space-y-1">
+                  <SummaryLabel tone="care">{gr.handleWithCare}</SummaryLabel>
+                  <div className="flex flex-wrap gap-1.5">
+                    {overallCare.map(({ item, divers }) => (
+                      // Amber keeps a real light fill, so its dark ink is correct here.
+                      <span key={item} className="text-xs px-2 py-0.5 rounded-full border border-amber-500 bg-amber-50 text-amber-900 font-semibold">
+                        {item} ×{divers.length}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
-              <SharedTransportPicker
-                events={groups.map(g => ({ id: g.event.id, title: eventTitle(g.event) }))}
-                groupOf={groupIdByEvent(rideGroups)}
-                isAdmin={isAdmin}
-                busy={ridesBusy}
-                onShareWith={(eventId, withEventId) => changeRideGroup(() => shareRideWith({
-                  day: dayKey, eventId, withEventId, rows: rideGroups, createdBy: profile?.id ?? null,
-                }))}
-                onRideAlone={eventId => changeRideGroup(() => rideAlone({
-                  day: dayKey, eventId, rows: rideGroups,
-                }))}
-              />
-              {rideError && <p className={`text-sm font-semibold ${TEXT_DANGER}`}>{rideError}</p>}
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">{lg.gearToPack}</p>
-              {overallGear.length === 0 ? (
-                <p className="text-sm text-brand-950/70 font-medium italic">{lg.nothingToPack}</p>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {overallGear.map(({ item, count }) => (
-                    <span key={item} className="text-xs px-2 py-0.5 rounded-full border border-brand-900 text-brand-900">
-                      {item} ×{count}
-                    </span>
-                  ))}
+              {overallAddons.length > 0 && (
+                <div className="space-y-1">
+                  <SummaryLabel>{gr.addons}</SummaryLabel>
+                  <div className="flex flex-wrap gap-1.5">
+                    {overallAddons.map(({ title, count }) => (
+                      <span key={title} className={SUMMARY_CHIP}>{title} ×{count}</span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-            {overallCare.length > 0 && (
-              <div className="space-y-1">
-                <p className={`text-xs font-semibold ${TEXT_WARNING} uppercase tracking-wide`}>{gr.handleWithCare}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {overallCare.map(({ item, divers }) => (
-                    <span key={item} className="text-xs px-2 py-0.5 rounded-full border border-amber-500 bg-amber-50 text-amber-900 font-semibold">
-                      {item} ×{divers.length}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {overallAddons.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">{gr.addons}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {overallAddons.map(({ title, count }) => (
-                    <span key={title} className="text-xs px-2 py-0.5 rounded-full border border-surface-400 bg-surface-50 text-brand-900 font-medium">
-                      {title} ×{count}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </section>
 
           {groups.map(g => (
@@ -559,17 +625,18 @@ export function AdminLogisticsPage() {
                   scrolling a tall phone screen. */}
               <div className="bg-brand-900 text-white rounded-xl px-4 py-2.5 space-y-0.5">
                 <div className="flex items-start justify-between gap-3">
+                  {/* The title goes to the event itself; the Edit button beside
+                      it goes to the editor. Staff get the link too — unlike the
+                      editor, /admin/events/:id is theirs to read (App.tsx), and
+                      the old isAdmin gate here existed only because the title
+                      used to point at the admin-only edit page. */}
                   <h2 className="text-base font-semibold break-words">
-                    {isAdmin ? (
-                      <Link
-                        to={`/admin/events/${g.event.id}/edit`}
-                        className="hover:underline"
-                      >
-                        {g.event.title}
-                      </Link>
-                    ) : (
-                      g.event.title
-                    )}
+                    <Link
+                      to={`/admin/events/${g.event.id}`}
+                      className="hover:underline"
+                    >
+                      {g.event.title}
+                    </Link>
                   </h2>
                   {isAdmin && (
                     <Link

@@ -1389,6 +1389,8 @@ export const zhTW: Messages = {
         `這位潛水員有 ${currency} ${spendable} 的帳戶結餘 — 此筆最多可折抵 ${currency} ${cap}。`,
       applyCredit: '折抵結餘',
       diverNoteCount: (n: number) => `${n} 則潛水員備註`,
+      showDetailsFor: (name: string) => `顯示 ${name} 的詳細資料`,
+      hideDetailsFor: (name: string) => `隱藏 ${name} 的詳細資料`,
       waiversUnknown: '免責同意書 —',
       markWaiversInPerson: '標記為當面完成',
       markWaiversInPersonConfirm: (name: string, list: string) =>
@@ -1629,6 +1631,7 @@ export const zhTW: Messages = {
       overall: (day: string) => `總覽 — ${day}`,
       eventsDivers: (events: number, divers: number) => `${events} 個活動 · ${divers} 位潛水員`,
       diverCount: (n: number) => `${n} 位潛水員`,
+      diversOnDay: '潛水員',
       nextEventDay: (where: string) => `下一個: ${where} →`,
       stillOwe: (n: number, currency: string, amount: string) =>
         `${n} 位潛水員尚未付清 · 未收 ${currency} ${amount}`,
