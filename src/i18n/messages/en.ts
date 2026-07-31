@@ -1607,7 +1607,6 @@ export const en = {
       isPrivate: 'Private (hidden from public calendars)',
       gearRental: 'Gear rental info',
       featuredImage: 'Featured image URL',
-      secondImage: 'Second image URL',
       destinations: 'Destinations',
       noDestinations: 'No destinations defined.',
       tripTemplateRef: 'Trip template reference',
