@@ -1213,6 +1213,8 @@ export const en = {
       backToEvent: '‹ back to event',
       title: 'Gear map',
       summary: (divers: number, toPack: number) => `${divers} diver${divers === 1 ? '' : 's'} · ${toPack} to pack`,
+      waitlisted: (divers: number, toPack: number) => `+ ${divers} waitlisted · ${toPack} tentative to pack`,
+      waitlistHeading: (n: number) => `Waitlist (${n})`,
       noRegistrants: 'No registrants yet.',
     },
     events: {
@@ -1660,6 +1662,9 @@ export const en = {
       transportNotSpecified: 'Transport not specified',
       leadBooker: '(lead booker)',
       staffFallback: '(staff)',
+      tentativeWaitlist: (n: number) => `Tentative — ${n} waitlisted`,
+      tentativeHint: 'No seat yet. Add this to the load only if the waitlist clears.',
+      waitlistHeading: (n: number) => `Waitlist (${n})`,
     },
     family: {
       heading: 'Family',
@@ -1942,6 +1947,7 @@ export const en = {
       fin: 'Fin',
       save: 'Save',
       gearFlags: 'Gear flags',
+      waitlisted: 'Waitlisted',
     },
     bookingPayments: {
       charges: 'Charges',
