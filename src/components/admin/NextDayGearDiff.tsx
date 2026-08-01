@@ -83,7 +83,7 @@ function DiffColumn({ title, hint, tone, lines, count }: {
 export function NextDayGearDiff({ day, diff }: { day: string; diff: GearDayDiff | null }) {
   const chase = (diff?.lines ?? []).filter(l => l.unknownSize && l.nextDivers.length > 0)
   return (
-    <div className={`space-y-2 sm:col-span-2 border-t pt-3 ${pick('border-surface-300', 'border-white/15')}`}>
+    <div className={`space-y-2 rounded-lg border p-3 ${pick('border-surface-300 bg-surface-50', 'border-white/15 bg-white/5')}`}>
       <div>
         <h3 className={`text-[11px] font-semibold uppercase tracking-wider ${TEXT_MUTED}`}>
           {lg.nextDayHeading(day)}
