@@ -1686,6 +1686,7 @@ export const en = {
       nextDayHeading: (day: string) => `Next day — ${day}`,
       nextDayHint: 'Matched size by size. Anything that stays out skips a trip through the drying rack.',
       nextDayLoading: 'Reading the next day…',
+      nextDayFailed: 'Could not read the next day. Reload the page and open this again.',
       nextDayNothing: 'Neither day rents gear — nothing to carry over.',
       nextDayStaysOut: 'Stays out',
       nextDayStaysOutHint: 'Packed today and needed again tomorrow.',
@@ -1698,7 +1699,8 @@ export const en = {
       // "BCD ×2" for one-size kit, "BCD · M ×2" once the item is packed in sizes.
       gearPiece: (item: string, n: number) => `${item} ×${n}`,
       gearPieceSized: (item: string, size: string, n: number) => `${item} · ${size} ×${n}`,
-      nextDayChase: 'Ask for a size before pulling these:',
+      nextDayChase: 'Sizes to confirm',
+      nextDayChaseHint: 'No size on file, so these are in none of the columns above — nobody can pull them until someone asks.',
     },
     family: {
       heading: 'Family',
