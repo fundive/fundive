@@ -1666,6 +1666,7 @@ export const zhTW: Messages = {
       nextDayHeading: (day: string) => `隔日 — ${day}`,
       nextDayHint: '依尺寸逐一比對。留在車上的裝備就不必經過晾曬架。',
       nextDayLoading: '讀取隔日資料中…',
+      nextDayFailed: '無法讀取隔日資料。請重新整理頁面後再開啟一次。',
       nextDayNothing: '兩天都沒有租借 — 沒有可延用的裝備。',
       nextDayStaysOut: '留在車上',
       nextDayStaysOutHint: '今天已裝載，隔天仍需使用。',
@@ -1677,7 +1678,8 @@ export const zhTW: Messages = {
       nextDayNone: '無',
       gearPiece: (item: string, n: number) => `${item} ×${n}`,
       gearPieceSized: (item: string, size: string, n: number) => `${item}・${size} ×${n}`,
-      nextDayChase: '出裝前請先確認尺寸：',
+      nextDayChase: '待確認尺寸',
+      nextDayChaseHint: '尚未登記尺寸，因此不列入上方三欄。確認前無法出裝。',
     },
     family: {
       heading: '家庭成員',
