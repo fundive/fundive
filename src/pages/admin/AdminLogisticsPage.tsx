@@ -63,6 +63,49 @@ const CHIP_HOVER = isDark
 const CHIP_OPEN = isDark ? 'border-white/50 bg-white/15' : 'border-brand-900/60 bg-brand-900/10'
 const CHIP_PANEL = isDark ? 'border-white/15 bg-white/5' : 'border-surface-300 bg-surface-50'
 
+// The tentative roster's chip — violet, matching the waitlist tone used for
+// every "no seat yet" surface on the board.
+const WAITLIST_CHIP =
+  'text-xs px-2 py-0.5 rounded-full border border-violet-400 bg-violet-100 text-violet-700 font-medium'
+
+// Hover for a name chip that goes somewhere. The waitlist chip keeps a light
+// fill in both designs, so it needs a violet hover of its own — the neutral one
+// would wash a dark-theme fill under its dark violet ink.
+const WAITLIST_CHIP_LINK_HOVER = 'hover:border-violet-500 hover:bg-violet-200'
+
+/**
+ * A person's name on the Overall board. Anyone with a profile links through to
+ * their card in the directory, so a name read off the board can be followed to
+ * sizes, contact and history without retyping it into a search. Staff get plain
+ * text: `/admin/users` is admin-only (App.tsx), so the link would only bounce
+ * them. A row with no profile — a booking whose account was removed — has
+ * nothing to point at, so it stays plain for everyone.
+ *
+ * `name` is the accessible name even when the chip renders more (a staff
+ * member's roles), so the link announces who it opens rather than reading out
+ * the duty list.
+ */
+function PersonChip({ name, profileId, linked, className, hover, children }: {
+  name: string
+  profileId: string | null
+  linked: boolean
+  className: string
+  hover: string
+  children?: ReactNode
+}) {
+  const body = children ?? name
+  if (!linked || !profileId) return <span className={`${className} select-text`}>{body}</span>
+  return (
+    <Link
+      to={`/admin/users?diver=${profileId}`}
+      aria-label={lg.viewProfile(name)}
+      className={`${className} ${hover} transition-colors hover:underline select-text`}
+    >
+      {body}
+    </Link>
+  )
+}
+
 // A single diver's piece of gear inside an open panel, in its two states. The
 // packed one is emerald and filled so a half-loaded van reads at a glance;
 // the unpacked one is the same hairline as the chips it sits under.
@@ -523,7 +566,7 @@ export function AdminLogisticsPage() {
     : null
   // Day-wide on-duty staff for the overall board — one entry per person even
   // when they cover several of the day's events, with all the roles they hold.
-  const dayStaff: { key: string; name: string; roles: string[] }[] = []
+  const dayStaff: { key: string; name: string; profileId: string | null; roles: string[] }[] = []
   const staffIndex = new Map<string, number>()
   for (const s of (groups ?? []).flatMap(g => g.staff)) {
     const key = s.profile?.id ?? s.dutyId
@@ -531,7 +574,12 @@ export function AdminLogisticsPage() {
     if (i === undefined) {
       i = dayStaff.length
       staffIndex.set(key, i)
-      dayStaff.push({ key, name: personName(s.profile?.name, s.profile?.nickname) || lg.staffFallback, roles: [] })
+      dayStaff.push({
+        key,
+        name: personName(s.profile?.name, s.profile?.nickname) || lg.staffFallback,
+        profileId: s.profile?.id ?? null,
+        roles: [],
+      })
     }
     if (!dayStaff[i].roles.includes(s.role)) dayStaff[i].roles.push(s.role)
   }
@@ -540,23 +588,31 @@ export function AdminLogisticsPage() {
   // person (someone diving two of the day's events is still one diver to brief,
   // count heads for, and check off). Sorted so the list reads the same on every
   // reload. Keyed by booking when a row has no profile, since those can't merge.
-  const dayDivers: { key: string; name: string }[] = []
+  const dayDivers: { key: string; name: string; profileId: string | null }[] = []
   const diverKeys = new Set<string>()
   for (const r of seatedRows) {
     const key = r.profile?.id ?? r.booking.id
     if (diverKeys.has(key)) continue
     diverKeys.add(key)
-    dayDivers.push({ key, name: personName(r.profile?.name, r.profile?.nickname) || tp.noProfile })
+    dayDivers.push({
+      key,
+      name: personName(r.profile?.name, r.profile?.nickname) || tp.noProfile,
+      profileId: r.profile?.id ?? null,
+    })
   }
   dayDivers.sort((a, b) => a.name.localeCompare(b.name))
   // The waitlisted roster — same dedupe, for the Tentative block. A person
   // already seated (on another of the day's events) is not re-listed as waiting.
-  const waitlistDivers: { key: string; name: string }[] = []
+  const waitlistDivers: { key: string; name: string; profileId: string | null }[] = []
   for (const r of waitlistRows) {
     const key = r.profile?.id ?? r.booking.id
     if (diverKeys.has(key)) continue
     diverKeys.add(key)
-    waitlistDivers.push({ key, name: personName(r.profile?.name, r.profile?.nickname) || tp.noProfile })
+    waitlistDivers.push({
+      key,
+      name: personName(r.profile?.name, r.profile?.nickname) || tp.noProfile,
+      profileId: r.profile?.id ?? null,
+    })
   }
   waitlistDivers.sort((a, b) => a.name.localeCompare(b.name))
   // Divers who still owe — for the whole-day summary and each event's list.
@@ -751,10 +807,10 @@ export function AdminLogisticsPage() {
                   <SummaryLabel>{gr.onDutyStaff}</SummaryLabel>
                   <div className="flex flex-wrap gap-1.5">
                     {dayStaff.map(s => (
-                      <span key={s.key} className={`${SUMMARY_CHIP} select-text`}>
+                      <PersonChip key={s.key} name={s.name} profileId={s.profileId} linked={isAdmin} className={SUMMARY_CHIP} hover={CHIP_HOVER}>
                         {s.name}
                         {s.roles.length > 0 && <span className={`font-normal ${SUMMARY_CHIP_DETAIL}`}> · {s.roles.join(', ')}</span>}
-                      </span>
+                      </PersonChip>
                     ))}
                   </div>
                 </div>
@@ -764,8 +820,7 @@ export function AdminLogisticsPage() {
                   <SummaryLabel>{lg.diversOnDay}</SummaryLabel>
                   <div className="flex flex-wrap gap-1.5">
                     {dayDivers.map(d => (
-                      // Selectable so a name can be copied straight off the board.
-                      <span key={d.key} className={`${SUMMARY_CHIP} select-text`}>{d.name}</span>
+                      <PersonChip key={d.key} name={d.name} profileId={d.profileId} linked={isAdmin} className={SUMMARY_CHIP} hover={CHIP_HOVER} />
                     ))}
                   </div>
                 </div>
@@ -837,9 +892,7 @@ export function AdminLogisticsPage() {
                   {waitlistDivers.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {waitlistDivers.map(d => (
-                        <span key={d.key} className="text-xs px-2 py-0.5 rounded-full border border-violet-400 bg-violet-100 text-violet-700 font-medium select-text">
-                          {d.name}
-                        </span>
+                        <PersonChip key={d.key} name={d.name} profileId={d.profileId} linked={isAdmin} className={WAITLIST_CHIP} hover={WAITLIST_CHIP_LINK_HOVER} />
                       ))}
                     </div>
                   )}
