@@ -40,16 +40,10 @@ export interface SiteContact {
 export interface SiteUrls {
   /** Public marketing site, no trailing slash. */
   site: string
-  /** The deployed app origin, no trailing slash. */
+  /** The deployed app origin, no trailing slash. Also the share-link origin. */
   app: string
   /** External radio stream, no trailing slash. Optional — omit if unused. */
   radio?: string
-  /**
-   * Public event-page URL template used by the share-link button; `{id}` is
-   * replaced with the event id. null → the shop has no shareable event page,
-   * so the share affordance hides itself.
-   */
-  eventPage: string | null
 }
 
 /**
@@ -102,15 +96,6 @@ export interface SiteFeatures {
   push: boolean
   /** Admin broadcast relay (also gated by BROADCAST_WEBHOOK_URL). */
   broadcast: boolean
-  /**
-   * Public "share this event" button. Optional, off by default. Turning it on
-   * only produces working links if the shop independently builds event pages on
-   * their own website, keyed by the app's event id, and points urls.eventPage
-   * at them ({id} is substituted). That web-dev wiring is the shop's own work —
-   * the app just emits the URL. Also gated by a non-null urls.eventPage.
-   * See docs/forking.md.
-   */
-  eventSharing: boolean
 }
 
 /** Pre-fill for the admin boat-manifest export. The chartered vessel varies per

@@ -32,7 +32,6 @@ export const siteConfigSchema = z.object({
   urls: z.object({
     site: url,
     app: url,
-    eventPage: url.nullable(),
     radio: url.optional(),
   }),
   locale: z.object({
@@ -58,7 +57,6 @@ export const siteConfigSchema = z.object({
     radio: z.boolean(),
     push: z.boolean(),
     broadcast: z.boolean(),
-    eventSharing: z.boolean(),
   }),
   business: z.object({
     gearItems: z.array(z.string().min(1)).min(1),
