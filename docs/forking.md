@@ -32,7 +32,7 @@ Walking the fields:
 | `locale.timezone` | IANA zone, e.g. `Asia/Taipei` or `America/Los_Angeles`. |
 | `locale.currency` / `currencyLabel` | ISO code and the label shown in the UI. |
 | `theme.themeColor` / `backgroundColor` | **PWA manifest** colors (browser chrome + splash). See the note below about the in-app brand palette. |
-| `theme.design` | Visual design variant: `'family'` (default — light cards on navy) or `'riced'` (dark ocean glass). See the note below. Omit for `family`. |
+| `theme.design` | Visual design variant: `'light'` (default — light cards on navy) or `'dark'` (dark ocean glass). See the note below. Omit for `light`. |
 | `assets.*` | Paths to your branding files under `public/` — see §2. |
 | `features.radio` / `push` / `broadcast` | Toggle optional features off if you don't run them. |
 | `business.gearItems` / `gearPrices` | Your rental gear list and per-item prices. |
@@ -61,16 +61,16 @@ Walking the fields:
 
 > **Design variant (`theme.design`).** Two complete looks ship in the box,
 > selected by one config value:
-> - `'family'` (default) — the light, family-friendly look: white cards floating
+> - `'light'` (default) — the light look: white cards floating
 >   on a navy page, red accent hairline, rising-bubbles dashboard.
-> - `'riced'` — a dark "riced" ocean look: frosted-glass panels on a deep
+> - `'dark'` — a dark ocean look: frosted-glass panels on a deep
 >   ocean-night gradient, reef-teal / mauve neon accents, monospace metadata,
 >   squircle rounding, and an animated water-caustics dashboard background.
 >
 > `src/main.tsx` stamps the choice as `data-theme` on `<html>`. The palette,
 > radius, fonts, and body background for each variant live in
 > [`src/index.css`](https://github.com/fundive/fundive/blob/main/src/index.css)
-> (the `@theme` block is `family`; `:root[data-theme="riced"]` overrides it); the
+> (the `@theme` block is `light`; `:root[data-theme="dark"]` overrides it); the
 > per-surface class differences (white card vs glass, dark vs light ink) are
 > chosen in [`src/styles/tokens.ts`](https://github.com/fundive/fundive/blob/main/src/styles/tokens.ts).
 > To recolor a variant, edit those tokens — you don't need to touch components.
