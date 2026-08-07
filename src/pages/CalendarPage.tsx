@@ -8,6 +8,7 @@ import { EventDetails } from '../components/calendar/EventDetails'
 import { RegisterForm } from '../components/register/RegisterForm'
 import { MultiRegisterForm } from '../components/register/MultiRegisterForm'
 import { ShareEventButton } from '../components/ShareEventButton'
+import { AddToGoogleCalendarButton } from '../components/AddToGoogleCalendarButton'
 import { siteConfig } from '../config/site'
 import { BTN_XS_ON_DEEP, MODAL_BACKDROP, MODAL_PANEL, TEXT_BODY, TEXT_HEADING } from '../styles/tokens'
 import { t } from '../i18n'
@@ -224,6 +225,10 @@ export function CalendarPage() {
             >
               {bookingLoading ? '…' : isBooked(selected) ? t.calendar.cancelBooking : t.common.register}
             </button>
+            <AddToGoogleCalendarButton
+              event={selected}
+              className="w-full py-2 rounded-xl text-sm font-semibold bg-surface-700 hover:bg-surface-800 text-white transition-colors inline-flex items-center justify-center"
+            />
             <ShareEventButton
               eventId={selected.id}
               label={t.calendar.shareWithFriends}
