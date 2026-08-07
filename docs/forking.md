@@ -38,12 +38,19 @@ Walking the fields:
 | `business.gearItems` / `gearPrices` | Your rental gear list and per-item prices. |
 | `business.paymentDeadlineFallbackDays` / `cardSurchargePercent` | Payment defaults. |
 | `business.tripKeywords` | Case-insensitive regex fragments that classify a dive as a "trip" by title. Empty = never. |
+| `business.eventDurationHours` | How long a single-day event runs, for the "Add to Google Calendar" link. Optional — omit for 8. |
 | `weatherRegion` | Lat/long + label for the admin weather baseline. |
 
 > **Event sharing.** The in-app "share this event" button needs no toggle: it
 > copies `<urls.app>/register/<event id>`, the app's own public registration
 > page. That route sits outside the auth gate, so whoever the link reaches sees
 > the event and can sign up. Set `urls.app` correctly and sharing works.
+
+> **Add to Google Calendar.** Also needs no toggle and no Google account of
+> your own: the button is a plain link to Google's event-template screen, which
+> the diver saves into *their* calendar. There is no OAuth, no API key and no
+> subscription feed, so nothing syncs back — an event you reschedule later does
+> not update the copy a diver already saved.
 
 > **Brand color palette.** `theme.*` in the config only sets the PWA manifest
 > theme/background colors. The in-app brand palette (`brand-*`, `surface-*`,
