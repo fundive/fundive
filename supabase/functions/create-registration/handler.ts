@@ -161,7 +161,7 @@ export interface Deps {
  * already happened; admins/staff bypass this server-side check too.
  */
 async function eventHasPassed(admin: SupabaseAdminClient, eventType: EventKind, eventId: string): Promise<boolean> {
-  const cols = eventType === "dive" ? "start_date, end_date" : "course_days"
+  const cols = usesDateEnvelope(eventType) ? "start_date, end_date" : "course_days"
   const { data } = await admin.from("events").select(cols).eq("id", eventId).maybeSingle()
   if (!data) return false // unknown event — existing existence checks handle it
   let lastDay: string | null
