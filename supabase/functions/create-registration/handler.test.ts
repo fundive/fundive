@@ -108,11 +108,29 @@ function makeDeps(opts: MockOpts = {}): { deps: Deps; captured: CapturedWrites }
     })()
     const builder: Record<string, unknown> = {}
     const chain = ['select', 'eq', 'neq', 'in', 'is', 'not', 'or', 'order', 'limit', 'filter', 'match']
-    for (const m of chain) builder[m] = () => builder
-    builder.single      = () => Promise.resolve({ data: canned, error: null })
-    builder.maybeSingle = () => Promise.resolve({ data: canned, error: null })
+    let selectedCols: string | null = null
+    for (const m of chain) {
+      builder[m] = (...args: unknown[]) => {
+        if (m === 'select' && typeof args[0] === 'string') selectedCols = args[0]
+        return builder
+      }
+    }
+    // PostgREST returns only the columns the caller asked for. Handing back the
+    // whole canned row regardless hides a real class of bug: code that selects
+    // one set of columns and then reads a different one. `eventHasPassed` did
+    // exactly that for the 'adventure' kind and no unit test could see it.
+    const project = (row: Record<string, unknown> | null) => {
+      if (!row || table !== 'events' || !selectedCols || selectedCols.includes('*')) return row
+      const out: Record<string, unknown> = {}
+      for (const col of selectedCols.split(',').map(c => c.trim())) {
+        if (col in row) out[col] = row[col]
+      }
+      return out
+    }
+    builder.single      = () => Promise.resolve({ data: project(canned), error: null })
+    builder.maybeSingle = () => Promise.resolve({ data: project(canned), error: null })
     builder.then = (onFulfilled?: (r: unknown) => unknown) =>
-      Promise.resolve({ data: canned, error: null }).then(onFulfilled)
+      Promise.resolve({ data: project(canned), error: null }).then(onFulfilled)
     builder.update = (row: Record<string, unknown>) => {
       if (table === 'profiles') captured.profileUpdate.push(row)
       const ret: Record<string, unknown> = {}
@@ -883,6 +901,20 @@ describe('handleRegistration — past-event guard', () => {
   it('rejects an authed diver registering for a past event', async () => {
     const { deps, captured } = makeDeps({ callerUserId: 'self-uid', callerRole: 'diver', eventPast: true })
     const res = await handleRegistration(postJson(goodBody, { Authorization: 'Bearer self-jwt' }), deps)
+    expect(res.status).toBe(403)
+    expect(captured.bookingInsert).toHaveLength(0)
+  })
+
+  // Regression: eventHasPassed selected its columns with `eventType === "dive"`
+  // but branched on usesDateEnvelope(). An adventure took the course_days
+  // column list and the start_date/end_date branch, so lastDay came back null
+  // and the guard waved every past adventure through.
+  it('rejects an authed diver registering for a past adventure', async () => {
+    const { deps, captured } = makeDeps({ callerUserId: 'self-uid', callerRole: 'diver', eventPast: true })
+    const res = await handleRegistration(
+      postJson({ ...goodBody, event_type: 'adventure' }, { Authorization: 'Bearer self-jwt' }),
+      deps,
+    )
     expect(res.status).toBe(403)
     expect(captured.bookingInsert).toHaveLength(0)
   })
