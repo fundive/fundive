@@ -22,6 +22,7 @@ dive into source.
 | [testing.md](./testing.md)                             | Unit vs integration conventions, `mockQueryBuilder`, test layout |
 | [deployment.md](./deployment.md)                       | Env vars (which secret lives where), Cloudflare deploy, Supabase push / verify, edge functions |
 | [deployment-repo.md](./deployment-repo.md)             | The thin per-shop repo: `fundive.config.ts` + `.env` + the `fundive` CLI. What works today and what does not |
+| [security-audit.md](./security-audit.md)               | Audit (2026-08-07): findings by severity, what was verified clean, residual risks |
 
 ## Conventions called out across docs
 
