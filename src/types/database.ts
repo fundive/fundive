@@ -483,6 +483,13 @@ export interface Database {
            *  bounces the user to /terms for re-acceptance. Null = never
            *  consented. */
           agreed_to_terms_version: number | null
+          /** Stamped by the maybe_set_application_submitted_at trigger the
+           *  first time name, date_of_birth, cert_level, contact_method and
+           *  contact_id are all populated — i.e. "this diver has filled the
+           *  application in". Null means they signed up and stopped short,
+           *  which is a profile to flag, never a reason to hide them from the
+           *  admin approvals queue. */
+          application_submitted_at: string | null
           /** Manual-verification gate. Diver-side INSERTs into bookings /
            *  push_subscriptions are blocked unless status='active'. */
           status: 'pending' | 'active' | 'rejected'
@@ -526,6 +533,7 @@ export interface Database {
           logged_dives?: number
           last_dive_date?: string | null
           gear_owned?: string[]
+          application_submitted_at?: string | null
           status?: 'pending' | 'active' | 'rejected'
           parent_account?: string | null
         }
@@ -562,6 +570,7 @@ export interface Database {
           logged_dives?: number
           last_dive_date?: string | null
           gear_owned?: string[]
+          application_submitted_at?: string | null
           status?: 'pending' | 'active' | 'rejected'
           parent_account?: string | null
         }

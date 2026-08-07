@@ -1321,6 +1321,7 @@ export const en = {
       none: 'No pending new user requests.',
       noNameYet: '(no name yet)',
       submittedOn: (date: string) => `submitted ${date}`,
+      profileIncomplete: 'Profile incomplete',
       rejectReasonPlaceholder: 'Optional rejection reason (included in the email)',
       approve: 'Approve',
       reject: 'Reject',
