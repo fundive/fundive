@@ -9,16 +9,12 @@ import { Logo } from '../Logo'
 import { CalendarIcon } from '../icons/CalendarIcon'
 import { ChatIcon } from '../icons/ChatIcon'
 import { CrosshairIcon } from '../icons/CrosshairIcon'
-import { TrustedPartnersIcon } from '../icons/TrustedPartnersIcon'
-import { PackagesIcon } from '../icons/PackagesIcon'
-import { ScheduledTripsIcon } from '../icons/ScheduledTripsIcon'
 import { PersonIcon } from '../icons/PersonIcon'
 import { NotificationBell } from '../NotificationBell'
-import { siteConfig } from '../../config/site'
 import { t } from '../../i18n'
 import {
-  PAGE, NAV_BAR, NAV_BOTTOM, BTN_LIGHT,
-  ON_DEEP_MUTED, ON_DEEP_SUBTLE, ON_DEEP_BODY,
+  PAGE, NAV_BAR, NAV_BOTTOM, BTN_LIGHT, BTN_XS_ON_DEEP,
+  ON_DEEP_SUBTLE, ON_DEEP_BODY,
 } from '../../styles/tokens'
 
 function RecordsIcon() {
@@ -80,49 +76,6 @@ export function AppShell() {
     <div className={`min-h-screen ${PAGE} flex flex-col`}>
       <header className={NAV_BAR}>
         <div className="flex-1 flex items-center justify-start gap-4">
-          {siteConfig.features.radio && (
-            <a
-              href={siteConfig.urls.radio}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={t.shell.radio(siteConfig.identity.shortName)}
-              // CSS mask makes the PNG act as a stencil for an exact red fill
-              // — `filter: hue-rotate` couldn't pin a specific shade and
-              // multi-color PNGs end up muddy. The PNG is square so h == w.
-              className="block h-6 w-6 bg-accent hover:bg-red-400 transition-colors"
-              style={{
-                WebkitMaskImage: `url(${siteConfig.assets.broadcast})`,
-                maskImage: `url(${siteConfig.assets.broadcast})`,
-                WebkitMaskSize: 'contain',
-                maskSize: 'contain',
-                WebkitMaskRepeat: 'no-repeat',
-                maskRepeat: 'no-repeat',
-                WebkitMaskPosition: 'center',
-                maskPosition: 'center',
-              }}
-            />
-          )}
-          <Link
-            to="/trusted-partners"
-            aria-label={t.shell.trustedPartners}
-            className="text-accent hover:text-red-400 transition-colors"
-          >
-            <TrustedPartnersIcon />
-          </Link>
-          <Link
-            to="/packages"
-            aria-label={t.shell.packages}
-            className="text-accent hover:text-red-400 transition-colors"
-          >
-            <PackagesIcon />
-          </Link>
-          <Link
-            to="/scheduled-trips"
-            aria-label={t.shell.scheduledTrips}
-            className="text-accent hover:text-red-400 transition-colors"
-          >
-            <ScheduledTripsIcon />
-          </Link>
           <NotificationBell />
         </div>
         <Link to="/dashboard" aria-label={t.shell.home} className="shrink-0">
@@ -141,7 +94,7 @@ export function AppShell() {
           ) : (
             <span className={`text-sm ${ON_DEEP_BODY}`}>{personName(profile?.name, profile?.nickname)}</span>
           )}
-          <button onClick={handleSignOut} className={`text-xs ${ON_DEEP_MUTED} hover:text-white`}>
+          <button onClick={handleSignOut} className={BTN_XS_ON_DEEP}>
             {t.common.signOut}
           </button>
         </div>
