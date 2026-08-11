@@ -138,10 +138,28 @@ describe('AppShell', () => {
     expect(screen.getByText('Alice')).toBeInTheDocument()
   })
 
-  it('renders the Trusted Partners shortcut linking to /trusted-partners', () => {
+  it('no longer carries the Trusted Partners / Packages / Scheduled Trips shortcuts', () => {
     useAuthMock.mockReturnValue({ profile: null, signOut })
     routedRender()
-    expect(screen.getByRole('link', { name: /trusted partners/i })).toHaveAttribute('href', '/trusted-partners')
+    expect(screen.queryByRole('link', { name: /trusted partners/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /^packages$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /scheduled trips/i })).not.toBeInTheDocument()
+  })
+
+  it('keeps the notification bell in the header', () => {
+    useAuthMock.mockReturnValue({ profile: null, signOut })
+    routedRender()
+    expect(screen.getByRole('link', { name: /notification/i })).toBeInTheDocument()
+  })
+
+  it('renders Sign out as a button that reads on the deep navy bar in both looks', () => {
+    useAuthMock.mockReturnValue({ profile: null, signOut })
+    routedRender()
+    const button = screen.getByRole('button', { name: /sign out/i })
+    // NAV_BAR is navy in the light look too, so the button takes the
+    // on-deep token rather than the theme ghost (dark ink in light mode).
+    expect(button.className).toContain('text-white')
+    expect(button.className).toContain('border')
   })
 
   // The update banner moved to UpdateBannerHost (mounted at App root so it

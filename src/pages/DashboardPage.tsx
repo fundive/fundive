@@ -3,6 +3,7 @@ import { siteConfig } from '../config/site'
 import { Bubbles } from '../components/dashboard/Bubbles'
 import { Caustics } from '../components/dashboard/Caustics'
 import { FeaturedEvents } from '../components/dashboard/FeaturedEvents'
+import { QuickLinks } from '../components/dashboard/QuickLinks'
 import { WelcomeBanner } from '../components/welcome/WelcomeBanner'
 import { t } from '../i18n'
 
@@ -15,7 +16,14 @@ import { t } from '../i18n'
 // bottom nav.
 const DARK = siteConfig.theme.design === 'dark'
 
-export function DashboardPage() {
+interface DashboardPageProps {
+  /** The diver home page carries the shortcut tiles that used to sit in the
+   *  header. The admin shell renders this same page at /admin/home and has its
+   *  own header links, so it opts out rather than inheriting them. */
+  quickLinks?: boolean
+}
+
+export function DashboardPage({ quickLinks = false }: DashboardPageProps) {
   const { user } = useAuth()
 
   return (
@@ -24,6 +32,7 @@ export function DashboardPage() {
       <div className="relative z-10 mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-6 pb-28">
         {user && <WelcomeBanner user={user} />}
         <FeaturedEvents />
+        {quickLinks && <QuickLinks />}
       </div>
 
       {/* Powered-by mark — bottom-right, clear of the bottom nav, on one row: the
