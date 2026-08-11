@@ -3,7 +3,6 @@ import { TrustedPartnersIcon } from '../icons/TrustedPartnersIcon'
 import { PackagesIcon } from '../icons/PackagesIcon'
 import { ScheduledTripsIcon } from '../icons/ScheduledTripsIcon'
 import { MapIcon } from '../icons/MapIcon'
-import { siteConfig } from '../../config/site'
 import { t } from '../../i18n'
 import { CARD, TEXT_BODY, TEXT_SUBTLE } from '../../styles/tokens'
 
@@ -28,7 +27,14 @@ const destinations: Destination[] = [
   { to: '/scheduled-trips',  label: t.shell.scheduledTrips,  icon: <ScheduledTripsIcon /> },
 ]
 
-export function QuickLinks() {
+interface QuickLinksProps {
+  /** Where the dive-site map tile goes. Undefined when the viewer may not open
+   *  it yet — the tile then renders greyed out rather than as a link to a page
+   *  they would be turned away from. */
+  siteMapTo?: string
+}
+
+export function QuickLinks({ siteMapTo }: QuickLinksProps = {}) {
   return (
     <nav aria-label={t.dashboard.quickLinks} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {destinations.map(({ to, label, icon }) => (
@@ -37,40 +43,20 @@ export function QuickLinks() {
           <span className="text-xs leading-tight">{label}</span>
         </Link>
       ))}
-      {siteConfig.features.radio && (
-        <a
-          href={siteConfig.urls.radio}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`${TILE} ${TEXT_BODY}`}
-        >
-          {/* CSS mask makes the PNG act as a stencil for an exact fill — a
-              hue-rotate filter could not pin a specific shade, and multi-color
-              PNGs end up muddy. The PNG is square so h == w. */}
-          <span
-            aria-hidden="true"
-            className="block h-6 w-6 bg-current"
-            style={{
-              WebkitMaskImage: `url(${siteConfig.assets.broadcast})`,
-              maskImage: `url(${siteConfig.assets.broadcast})`,
-              WebkitMaskSize: 'contain',
-              maskSize: 'contain',
-              WebkitMaskRepeat: 'no-repeat',
-              maskRepeat: 'no-repeat',
-              WebkitMaskPosition: 'center',
-              maskPosition: 'center',
-            }}
-          />
-          <span className="text-xs leading-tight">{t.shell.radio(siteConfig.identity.shortName)}</span>
-        </a>
+      {siteMapTo ? (
+        <Link to={siteMapTo} className={`${TILE} ${TEXT_BODY}`}>
+          <MapIcon />
+          <span className="text-xs leading-tight">{t.dashboard.siteMaps}</span>
+        </Link>
+      ) : (
+        <div className={`${TILE} ${TEXT_SUBTLE} cursor-not-allowed opacity-60`} aria-disabled="true">
+          <MapIcon />
+          <span className="text-xs leading-tight">{t.dashboard.siteMaps}</span>
+          <span className="text-[10px] uppercase tracking-wide opacity-80">
+            {t.dashboard.comingSoon}
+          </span>
+        </div>
       )}
-      <div className={`${TILE} ${TEXT_SUBTLE}`}>
-        <MapIcon />
-        <span className="text-xs leading-tight">{t.dashboard.siteMaps}</span>
-        <span className="text-[10px] uppercase tracking-wide opacity-80">
-          {t.dashboard.comingSoon}
-        </span>
-      </div>
     </nav>
   )
 }

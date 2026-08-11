@@ -31,9 +31,10 @@ describe('QuickLinks', () => {
     expect(screen.queryByRole('link', { name: /dive site maps/i })).not.toBeInTheDocument()
   })
 
-  it('leaves the radio tile out when the shop has the feature off', () => {
-    renderLinks()
-    expect(screen.queryByRole('link', { name: /radio/i })).not.toBeInTheDocument()
+  it('makes the map tile a link once a destination exists', () => {
+    render(<MemoryRouter><QuickLinks siteMapTo="/dev/site-map" /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: /dive site maps/i })).toHaveAttribute('href', '/dev/site-map')
+    expect(screen.queryByText(/soon/i)).not.toBeInTheDocument()
   })
 
   it('stacks two-up on a phone and four-up from the sm breakpoint', () => {
