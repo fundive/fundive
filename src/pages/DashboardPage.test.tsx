@@ -98,7 +98,7 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('link', { name: /dive site maps/i })).toBeInTheDocument()
   })
 
-  it('omits them by default', () => {
+  it('omits them unless asked, so an embedder without room for them can opt out', () => {
     useAuthMock.mockReturnValue({ user: { user_metadata: {} }, profile: null })
     renderPage()
     expect(screen.queryByRole('link', { name: /trusted partners/i })).not.toBeInTheDocument()

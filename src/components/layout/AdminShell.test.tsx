@@ -79,6 +79,17 @@ describe('AdminShell pending badge', () => {
     expect(badge.closest('a')).toHaveAttribute('href', '/admin/refunds')
   })
 
+  it('points the header logo at the admin home page', async () => {
+    useAuthMock.mockReturnValue({
+      profile: { id: 'a1', role: 'admin', nickname: 'Ada' },
+      signOut: vi.fn(),
+    })
+    from.mockReturnValue(buildPendingCountQuery(0))
+    routedRender()
+    const logo = await screen.findByRole('link', { name: /home/i })
+    expect(logo).toHaveAttribute('href', '/admin/home')
+  })
+
   it('does not query for staff users', async () => {
     useAuthMock.mockReturnValue({
       profile: { id: 's1', role: 'staff', nickname: 'Sam' },

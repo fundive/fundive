@@ -95,7 +95,7 @@ export function AdminShell() {
             </Link>
           )}
         </div>
-        <Link to="/admin" aria-label={t.shell.adminHome} className="shrink-0">
+        <Link to="/admin/home" aria-label={t.shell.adminHome} className="shrink-0">
           <Logo size="sm" />
         </Link>
         <div className="flex-1 flex items-center justify-end gap-3">
