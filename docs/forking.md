@@ -35,7 +35,7 @@ Walking the fields:
 | `theme.design` | Visual design variant: `'light'` (default — light cards on navy) or `'dark'` (dark ocean glass). See the note below. Omit for `light`. |
 | `assets.*` | Paths to your branding files under `public/` — see §2. |
 | `features.radio` / `push` / `broadcast` | Toggle optional features off if you don't run them. |
-| `business.gearItems` / `gearPrices` | Your rental gear list and per-item prices. |
+| `business.gearItems` / `gearPrices` | Your rental gear list and per-item prices. See the note below on renaming items and on stocking one item in several styles. |
 | `business.paymentDeadlineFallbackDays` / `cardSurchargePercent` | Payment defaults. |
 | `business.tripKeywords` | Case-insensitive regex fragments that classify a dive as a "trip" by title. Empty = never. |
 | `business.eventDurationHours` | How long a single-day event runs, for the "Add to Google Calendar" link. Optional — omit for 8. |
@@ -51,6 +51,39 @@ Walking the fields:
 > the diver saves into *their* calendar. There is no OAuth, no API key and no
 > subscription feed, so nothing syncs back — an event you reschedule later does
 > not update the copy a diver already saved.
+
+> **Gear catalog.** `business.gearItems` is the one list behind three surfaces:
+> the profile's "Gear I own" checklist, the à-la-carte rental checklist at
+> registration, and the logistics packing totals. `gearPrices` must carry a key
+> for every entry — an item with no price rents for nothing.
+>
+> Items are stored **by label**, in `profiles.gear_owned` and in
+> `bookings.details.gear.items`. Renaming an entry on a shop that already has
+> data therefore orphans those rows: the checklist silently drops the diver's
+> choice and the packing board leaves the item off. Ship a forward migration
+> that rewrites the old label alongside the config change, and leave
+> `details.charges` alone — that is a frozen receipt of what the diver was
+> charged, under the label they were shown at the time.
+>
+> **One item, several styles.** An item you stock in more than one style is
+> listed once per style, with the style in trailing parentheses:
+>
+> ```ts
+> gearItems: [..., 'Boots (rubber sole)', 'Boots (felt sole)', ...]
+> ```
+>
+> The app reads a shared base name as **one slot on the diver**. Boots are the
+> case this exists for — felt soles grip algae-covered rock on a shore entry,
+> rubber is for boats, sand and walking, so a shop needs to know which pair to
+> pack — but the rule is general (`'Wetsuit (3mm)'` / `'Wetsuit (5mm)'` behaves
+> the same). What follows from a slot: the rental checklist starts with **one**
+> style ticked, so nobody is defaulted into paying for two pairs of boots;
+> ticking one style unticks the others; a diver who owns *any* style of an item
+> rents none of them by default; and course-bundled gear packs one of every slot
+> rather than the raw catalog. The **profile** checklist has no exclusivity —
+> owning both a felt and a rubber pair is a fact, not a conflict. Packing keeps
+> the styles apart (separate racks), while sizing still resolves through
+> `gearSizeSource`, so both are packed by shoe size.
 
 > **Brand color palette.** `theme.*` in the config only sets the PWA manifest
 > theme/background colors. The in-app brand palette (`brand-*`, `surface-*`,
