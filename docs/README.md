@@ -20,6 +20,7 @@ dive into source.
 | [packages.md](./packages.md)                           | Partner-shop registration network: product tiers, add-on/room estimate, recommendation email, kickback ledger |
 | [trusted-partners.md](./trusted-partners.md)           | Vouched partner-shop directory + server-relayed diver→partner messaging (email privacy) |
 | [push-notifications.md](./push-notifications.md)       | Web Push: VAPID, service worker, Cloudflare cron sender, `/admin-broadcast`, `/notify-duty`, CORS |
+| [offline.md](./offline.md)                             | Ten days of the logistics day board kept on staff devices: what is stored, what is deliberately redacted, how a read falls back |
 | [testing.md](./testing.md)                             | Unit vs integration conventions, `mockQueryBuilder`, test layout |
 | [deployment.md](./deployment.md)                       | Env vars (which secret lives where), Cloudflare deploy, Supabase push / verify, edge functions |
 | [deployment-repo.md](./deployment-repo.md)             | The thin per-shop repo: `fundive.config.ts` + `.env` + the `fundive` CLI. What works today and what does not |
