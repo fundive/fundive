@@ -54,15 +54,32 @@ Walking the fields:
 
 > **Gear catalog.** `business.gearItems` is the one list behind three surfaces:
 > the profile's "Gear I own" checklist, the à-la-carte rental checklist at
-> registration, and the logistics packing totals. `gearPrices` must carry a key
-> for every entry — an item with no price rents for nothing.
+> registration, and the logistics packing totals.
+>
+> **`gearPrices` decides what you rent.** Its keys are the subset of `gearItems`
+> that appears in the rental checklist, each with its daily price. An item left
+> out is *owned-only*: a diver can still record that they own one, and you never
+> offer it. There is no second list to keep in sync — and a price for an item the
+> catalog doesn't list is rejected by the config schema, because it otherwise
+> fails silently, as an item nobody is ever offered.
+>
+> ```ts
+> gearItems:  [..., 'Boots (rubber sole)', 'Boots (felt sole)', ...]
+> gearPrices: { ..., 'Boots (felt sole)': 3, ... }   // rubber is owned-only
+> ```
+>
+> Owned-only items stay first-class everywhere else: they count on the packing
+> board if an older booking names one, and they resolve to the same sizing
+> column. When any of the catalog is owned-only, the rental checklist says so,
+> so a diver reads the short list as your whole rack rather than a broken form.
 >
 > Items are stored **by label**, in `profiles.gear_owned` and in
 > `bookings.details.gear.items`. Renaming an entry on a shop that already has
 > data therefore orphans those rows: the checklist silently drops the diver's
 > choice and the packing board leaves the item off. Ship a forward migration
-> that rewrites the old label alongside the config change, and leave
-> `details.charges` alone — that is a frozen receipt of what the diver was
+> that rewrites the old label alongside the config change — the same applies when
+> an item stops being rentable, since bookings can still be carrying it — and
+> leave `details.charges` alone, that being a frozen receipt of what the diver was
 > charged, under the label they were shown at the time.
 >
 > **One item, several styles.** An item you stock in more than one style is
@@ -77,10 +94,13 @@ Walking the fields:
 > rubber is for boats, sand and walking, so a shop needs to know which pair to
 > pack — but the rule is general (`'Wetsuit (3mm)'` / `'Wetsuit (5mm)'` behaves
 > the same). What follows from a slot: the rental checklist starts with **one**
-> style ticked, so nobody is defaulted into paying for two pairs of boots;
-> ticking one style unticks the others; a diver who owns *any* style of an item
-> rents none of them by default; and course-bundled gear packs one of every slot
-> rather than the raw catalog. The **profile** checklist has no exclusivity —
+> style ticked — the first style you actually rent — so nobody is defaulted into
+> paying for two pairs of boots; ticking one style unticks the others, reading
+> alternatives from the whole catalog so a style you have since stopped renting is
+> cleared even though no box is drawn for it any more; a diver who owns *any*
+> style of an item rents none of them by default, though they can still tick a
+> style they own another of; and course-bundled gear packs one of every rented
+> slot rather than the raw catalog. The **profile** checklist has no exclusivity —
 > owning both a felt and a rubber pair is a fact, not a conflict. Packing keeps
 > the styles apart (separate racks), while sizing still resolves through
 > `gearSizeSource`, so both are packed by shoe size.

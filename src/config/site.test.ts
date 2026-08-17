@@ -35,10 +35,25 @@ describe('siteConfig', () => {
     expect(siteConfig.theme.design ?? 'light').toMatch(/^(light|dark)$/)
   })
 
-  it('has a non-empty gear list with a price for every item', () => {
+  it('rejects a price for an item the catalog does not list', () => {
+    const typo = {
+      ...siteConfig,
+      business: {
+        ...siteConfig.business,
+        gearPrices: { ...siteConfig.business.gearPrices, 'Boots (rubbr sole)': 3 },
+      },
+    }
+    const result = siteConfigSchema.safeParse(typo)
+    expect(result.success).toBe(false)
+    expect(JSON.stringify(result.error?.issues)).toContain('not in gearItems')
+  })
+
+  // The other direction is legitimate: a catalog item with no price is gear a
+  // diver may own but the shop doesn't rent.
+  it('has a non-empty gear list, and prices nothing it does not list', () => {
     expect(siteConfig.business.gearItems.length).toBeGreaterThan(0)
-    for (const item of siteConfig.business.gearItems) {
-      expect(siteConfig.business.gearPrices[item]).toBeTypeOf('number')
+    for (const priced of Object.keys(siteConfig.business.gearPrices)) {
+      expect(siteConfig.business.gearItems, `${priced} is priced but not listed`).toContain(priced)
     }
   })
 

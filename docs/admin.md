@@ -219,6 +219,12 @@ column (boots off `shoe_size`), so `Boots (felt sole) · JP 26` and
 `Boots (rubber sole) · JP 26` are two rack slots, not one. See
 [forking.md](./forking.md) for how the catalog declares them.
 
+A shop that stocks a style without renting it — say felt soles on the
+rack and rubber ones only ever brought from home — leaves that style out
+of `gearPrices`. Divers still record owning a pair, the board reads that
+as a filled slot and packs them no boots, and the style never reaches a
+packing total because nobody can book it.
+
 Two rules keep it honest:
 
 - **Only back-to-back days.** The button is offered when the *very next
