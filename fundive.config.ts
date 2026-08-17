@@ -78,13 +78,18 @@ export const siteConfig = {
   },
 
   business: {
-    // An item offered in more than one style is listed once per style, with the
-    // style in trailing parentheses — the app reads that as one slot on the
-    // diver, so a booking rents one boot style or the other, never both.
+    // Every item a diver can say they own. An item offered in more than one
+    // style is listed once per style, with the style in trailing parentheses —
+    // the app reads that as one slot on the diver, so a booking rents one boot
+    // style or the other, never both.
     gearItems: [
       'BCD', 'Regulator', 'Wetsuit', 'Fins', 'Mask',
       'Boots (rubber sole)', 'Boots (felt sole)', 'Dive computer',
     ],
+    // The items the shop rents, and the daily price of each. Leave an item out
+    // to make it owned-only: divers can still list it on their profile, but it
+    // never appears in the rental checklist. A shop that only rents felt soles
+    // drops the rubber-soled line here and keeps it in gearItems above.
     gearPrices: {
       BCD: 15, Regulator: 15, Wetsuit: 10, Fins: 5, Mask: 5,
       'Boots (rubber sole)': 3, 'Boots (felt sole)': 3, 'Dive computer': 10,

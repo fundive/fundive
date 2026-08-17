@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   isGearIncludedCourse, gearPackList, gearSlot, gearAlternatives,
   defaultRentalItems, toggleGearSelection, FULL_GEAR_SET, GEAR_ITEMS,
-  GEAR_ALACARTE_PRICES, HAS_GEAR_ALTERNATIVES,
+  GEAR_ALACARTE_PRICES, HAS_GEAR_ALTERNATIVES, RENTAL_GEAR_ITEMS,
+  HAS_RENTAL_GEAR_ALTERNATIVES, HAS_OWNED_ONLY_GEAR,
 } from './gear'
 import type { Booking } from '../types/database'
 
@@ -96,6 +97,15 @@ describe('the shipped catalog', () => {
 
   it('reports that it has alternatives, which is what shows the hint', () => {
     expect(HAS_GEAR_ALTERNATIVES).toBe(true)
+  })
+
+  // The starter catalog rents everything it lists. A shop that stocks a style
+  // for divers to own but not to borrow drops it from gearPrices — see the
+  // owned-only suite below for what that changes.
+  it('rents everything it lists, so nothing is owned-only', () => {
+    expect(RENTAL_GEAR_ITEMS).toEqual(GEAR_ITEMS)
+    expect(HAS_OWNED_ONLY_GEAR).toBe(false)
+    expect(HAS_RENTAL_GEAR_ALTERNATIVES).toBe(true)
   })
 })
 
@@ -212,5 +222,53 @@ describe('toggleGearSelection', () => {
   it('is a no-op on the second toggle back', () => {
     const once = toggleGearSelection(['BCD'], FELT)
     expect(toggleGearSelection(once, FELT)).toEqual(['BCD'])
+  })
+})
+
+// A shop can stock a style for divers to own without renting it: leave it out
+// of gearPrices and it stays on the profile checklist but never on the rental
+// one. The starter catalog rents everything it lists, so load the module
+// against a catalog that doesn't.
+describe('a catalog with owned-only gear', () => {
+  const ITEMS = ['BCD', 'Mask', RUBBER, FELT]
+  const PRICES: Record<string, number> = { BCD: 15, Mask: 5, [FELT]: 3 }
+
+  const loadGear = async () => {
+    vi.resetModules()
+    vi.doMock('../config/site', () => ({
+      siteConfig: { business: { gearItems: ITEMS, gearPrices: PRICES } },
+    }))
+    return await import('./gear')
+  }
+
+  afterEach(() => {
+    vi.doUnmock('../config/site')
+    vi.resetModules()
+  })
+
+  it('rents the priced items and nothing else', async () => {
+    const gear = await loadGear()
+    expect(gear.RENTAL_GEAR_ITEMS).toEqual(['BCD', 'Mask', FELT])
+    expect(gear.HAS_OWNED_ONLY_GEAR).toBe(true)
+  })
+
+  it('keeps the owned-only style in the catalog a diver describes themselves with', async () => {
+    const gear = await loadGear()
+    expect(gear.GEAR_ITEMS).toContain(RUBBER)
+    expect(gear.HAS_GEAR_ALTERNATIVES).toBe(true)
+    // Nothing to swap between on the rental side, so no hint about it.
+    expect(gear.HAS_RENTAL_GEAR_ALTERNATIVES).toBe(false)
+  })
+
+  it('never ticks it by default, and reads owning it as a filled slot', async () => {
+    const gear = await loadGear()
+    expect(gear.defaultRentalItems([])).toEqual(['BCD', 'Mask', FELT])
+    expect(gear.defaultRentalItems([RUBBER])).toEqual(['BCD', 'Mask'])
+    expect(gear.FULL_GEAR_SET).not.toContain(RUBBER)
+  })
+
+  it('clears a carried-in selection of it, which no checkbox can untick', async () => {
+    const gear = await loadGear()
+    expect(gear.toggleGearSelection(['BCD', RUBBER], FELT)).toEqual(['BCD', FELT])
   })
 })
