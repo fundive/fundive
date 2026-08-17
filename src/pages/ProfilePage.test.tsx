@@ -254,11 +254,13 @@ describe('ProfilePage', () => {
     renderWithRouter(<ProfilePage />)
     await waitFor(() => expect((input('name') as HTMLInputElement).value).toBe('Ada'))
 
-    // Unlike the rental checklist, owning both pairs is a fact, not a conflict.
-    await user.click(screen.getByLabelText('Boots (rubber sole)'))
-    await user.click(screen.getByLabelText('Boots (felt sole)'))
-    expect((screen.getByLabelText('Boots (rubber sole)') as HTMLInputElement).checked).toBe(true)
-    expect((screen.getByLabelText('Boots (felt sole)') as HTMLInputElement).checked).toBe(true)
+    // One Boots checkbox, then the soles. Unlike the rental checklist, owning
+    // both pairs is a fact, not a conflict.
+    await user.click(screen.getByLabelText('Boots'))
+    await user.click(screen.getByLabelText('rubber sole'))
+    await user.click(screen.getByLabelText('felt sole'))
+    expect((screen.getByLabelText('rubber sole') as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByLabelText('felt sole') as HTMLInputElement).checked).toBe(true)
 
     await user.click(screen.getByRole('button', { name: /save changes/i }))
     await waitFor(() => expect(update).toHaveBeenCalledOnce())

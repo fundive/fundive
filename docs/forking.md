@@ -101,7 +101,11 @@ Walking the fields:
 > style of an item rents none of them by default, though they can still tick a
 > style they own another of; and course-bundled gear packs one of every rented
 > slot rather than the raw catalog. The **profile** checklist has no exclusivity —
-> owning both a felt and a rubber pair is a fact, not a conflict. Packing keeps
+> owning both a felt and a rubber pair is a fact, not a conflict — and it shows
+> one checkbox per slot ("Boots") with a styles dropdown beside it, so a diver
+> ticks the item and then says which styles they own, one or several. Ticking the
+> item records nothing on its own: which style they own is the question being
+> asked, and guessing it would put the wrong pair on the packing board. Packing keeps
 > the styles apart (separate racks), while sizing still resolves through
 > `gearSizeSource`, so both are packed by shoe size.
 
