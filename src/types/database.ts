@@ -2043,3 +2043,19 @@ export interface EventDetails {
   /** Minimum logged dives required. */
   required_dives: number | null
 }
+
+// ─── Almanac ──────────────────────────────────────────────────────────────────
+
+export const ALMANAC_CURRENT_STRENGTHS = ['calm', 'light', 'moderate', 'strong', 'very_strong'] as const
+export type AlmanacCurrentStrength = typeof ALMANAC_CURRENT_STRENGTHS[number]
+export const ALMANAC_WEATHERS = ['clear', 'partly_cloudy', 'cloudy', 'overcast', 'rain', 'thunderstorm', 'windy', 'fog', 'typhoon'] as const
+export type AlmanacWeather = typeof ALMANAC_WEATHERS[number]
+export const ALMANAC_CORAL_HEALTHS = ['excellent', 'good', 'fair', 'poor', 'bleaching'] as const
+export type AlmanacCoralHealth = typeof ALMANAC_CORAL_HEALTHS[number]
+export const ALMANAC_ROUTE_CONDITIONS = ['dry', 'wet', 'muddy', 'icy', 'snow', 'rockfall'] as const
+export type AlmanacRouteCondition = typeof ALMANAC_ROUTE_CONDITIONS[number]
+export const ALMANAC_STATUSES = ['pending', 'approved', 'rejected'] as const
+export type AlmanacStatus = typeof ALMANAC_STATUSES[number]
+export type AlmanacRecord = Database['public']['Tables']['almanac_records']['Row']
+export type AlmanacRecordInsert = Database['public']['Tables']['almanac_records']['Insert']
+export type AlmanacEventRecord = Database['public']['Functions']['almanac_event_records']['Returns'][number]
