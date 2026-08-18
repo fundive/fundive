@@ -92,13 +92,31 @@ by the `set_event_relations` RPC. All dates are **Asia/Taipei local** (no DST).
 Normalization into the uniform `AppEvent` shape lives in `src/lib/events.ts`.
 Use that everywhere in the UI rather than reading raw `events` rows.
 
+## `dive_sites` — the shop's places
+
+One row per place, and the reason "Bat Cave" means the same thing everywhere:
+`events.site_id` says where an event goes, and `almanac_records.site_id` says
+what it was like there.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | uuid PK | |
+| `name` | text | Unique per kind, case-insensitively — `(kind, lower(name))` — so casing cannot mint a second Bat Cave |
+| `kind` | text | `dive` / `adventure`: the events vocabulary narrowed to the kinds that answer `recordsSiteConditions`. A course runs from the shop and has no site of its own. The almanac's dive/adventure toggle filters on this |
+| `region` | text | Optional grouping shown beside the name, e.g. "Longdong" |
+| `notes` | text | Entry, parking, hazards — staff-facing |
+| `active` | boolean | `false` retires a site: its history stays, but it stops being offered |
+
+Any authenticated user reads it (the almanac's submission form is a diver
+surface); admin writes. Curated at `/admin/dive-sites`.
+
 ## `almanac_records` — crowdsourced environmental observations
 
-Divers submit environmental and weather observations for past dives and
-adventures; staff/admin rule on each one. A record is filed against an event,
-but the almanac reads them back by **calendar date** — a day is the unit, and
-two events sharing a morning share a bucket. Only approved records reach the
-crowd, on `/almanac` — the page also shows a diver their own pending and
+Divers submit environmental and weather observations for the places the shop
+goes; staff/admin rule on each one. A record is a **site on a date**, drawn
+from the `dive_sites` catalog below, and the almanac reads them back by
+calendar date — a day is the unit, and every site observed that day shares a
+bucket. Only approved records reach the crowd, on `/almanac` — the page also shows a diver their own pending and
 rejected submissions, and shows staff the review queue.
 
 | Column | Type | Notes |
@@ -106,7 +124,7 @@ rejected submissions, and shows staff the review queue.
 | `id` | uuid PK | |
 | `created_at` / `updated_at` | timestamptz | |
 | `diver_id` | uuid → `auth.users` | The submitting diver |
-| `event_id` | uuid → `events(id)` | The event the observation belongs to |
+| `site_id` | uuid → `dive_sites(id)` | The place observed. `ON DELETE RESTRICT` — a site carrying observations is retired (`active = false`), not deleted |
 | `obs_date` | date | The date of the observation |
 | `air_temp_c` | numeric(4,1) | Optional |
 | `water_temp_c` | numeric(4,1) | Optional |
@@ -125,8 +143,8 @@ rejected submissions, and shows staff the review queue.
 | `approved_at` | timestamptz | |
 | `staff_notes` | text | Optional moderation notes |
 
-Unique constraint: `(event_id, obs_date, diver_id)` — one observation per
-(diver, event, date).
+Unique constraint: `(site_id, obs_date, diver_id)` — one observation per
+(diver, site, date).
 
 `authenticated` is granted **SELECT only**. Every write goes through a
 `SECURITY DEFINER` RPC, so the moderation state machine can't be driven from
@@ -140,10 +158,10 @@ the client — a diver has no way to mint an already-approved record:
 - `moderate_almanac_record(record_id, status, staff_notes)` — staff/admin
   only; stamps `approved_by` / `approved_at`. `status` must be `approved` or
   `rejected`.
-- `almanac_records_for_events(event_ids[])` — the approved records for a
-  batch of events, with the submitter's display name
-  (`coalesce(nickname, name)`). Takes an array so the page renders a whole
-  date range in one request.
+- `almanac_records_in_range(from, to)` — the approved records for a window of
+  calendar days, each with its site name and the submitter's display name
+  (`coalesce(nickname, name)`). A date range rather than a list of ids,
+  because the page reads the almanac by day.
 - `almanac_pending_records()` — the staff review queue; raises for anyone
   else.
 
