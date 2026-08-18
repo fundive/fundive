@@ -403,6 +403,85 @@ export interface Database {
         }
         Returns: string
       }
+      // Almanac: approved observations for a batch of events. Defined in
+      // 20260818000000_almanac_records.sql. Takes an array so the page can
+      // render a whole date range in one request.
+      almanac_records_for_events: {
+        Args: { p_event_ids: string[] }
+        Returns: Array<{
+          id: string
+          event_id: string
+          created_at: string
+          obs_date: string
+          air_temp_c: number | null
+          water_temp_c: number | null
+          visibility_m: number | null
+          current_strength: AlmanacCurrentStrength | null
+          wave_height_m: number | null
+          wave_period_s: number | null
+          weather: AlmanacWeather | null
+          wildlife: string[] | null
+          coral_health: AlmanacCoralHealth | null
+          elevation_m: number | null
+          route_condition: AlmanacRouteCondition | null
+          summit_visible: boolean | null
+          diver_display: string | null
+        }>
+      }
+      // Almanac: the staff review queue — every record still awaiting a
+      // ruling. Raises for a caller who is not staff/admin.
+      almanac_pending_records: {
+        Args: Record<string, never>
+        Returns: Array<{
+          id: string
+          event_id: string
+          event_title: string | null
+          obs_date: string
+          created_at: string
+          air_temp_c: number | null
+          water_temp_c: number | null
+          visibility_m: number | null
+          current_strength: AlmanacCurrentStrength | null
+          wave_height_m: number | null
+          wave_period_s: number | null
+          weather: AlmanacWeather | null
+          wildlife: string[] | null
+          coral_health: AlmanacCoralHealth | null
+          elevation_m: number | null
+          route_condition: AlmanacRouteCondition | null
+          summit_visible: boolean | null
+          diver_display: string | null
+        }>
+      }
+      // Almanac: submit or revise the caller's own pending observation.
+      submit_almanac_record: {
+        Args: {
+          p_event_id: string
+          p_obs_date: string
+          p_air_temp_c?: number | null
+          p_water_temp_c?: number | null
+          p_visibility_m?: number | null
+          p_current_strength?: AlmanacCurrentStrength | null
+          p_wave_height_m?: number | null
+          p_wave_period_s?: number | null
+          p_weather?: AlmanacWeather | null
+          p_wildlife?: string[] | null
+          p_coral_health?: AlmanacCoralHealth | null
+          p_elevation_m?: number | null
+          p_route_condition?: AlmanacRouteCondition | null
+          p_summit_visible?: boolean | null
+        }
+        Returns: string
+      }
+      // Almanac: staff/admin ruling on one submission.
+      moderate_almanac_record: {
+        Args: {
+          p_record_id: string
+          p_status: Extract<AlmanacStatus, 'approved' | 'rejected'>
+          p_staff_notes?: string | null
+        }
+        Returns: void
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
@@ -1803,6 +1882,60 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['staff_availability']['Insert']>
         Relationships: []
       }
+      // Defined in 20260818000000_almanac_records.sql. `authenticated` holds
+      // SELECT only — every write goes through an RPC.
+      almanac_records: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          diver_id: string
+          event_id: string
+          obs_date: string
+          air_temp_c: number | null
+          water_temp_c: number | null
+          visibility_m: number | null
+          current_strength: AlmanacCurrentStrength | null
+          wave_height_m: number | null
+          wave_period_s: number | null
+          weather: AlmanacWeather | null
+          wildlife: string[] | null
+          coral_health: AlmanacCoralHealth | null
+          elevation_m: number | null
+          route_condition: AlmanacRouteCondition | null
+          summit_visible: boolean | null
+          status: AlmanacStatus
+          approved_by: string | null
+          approved_at: string | null
+          staff_notes: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          diver_id: string
+          event_id: string
+          obs_date: string
+          air_temp_c?: number | null
+          water_temp_c?: number | null
+          visibility_m?: number | null
+          current_strength?: AlmanacCurrentStrength | null
+          wave_height_m?: number | null
+          wave_period_s?: number | null
+          weather?: AlmanacWeather | null
+          wildlife?: string[] | null
+          coral_health?: AlmanacCoralHealth | null
+          elevation_m?: number | null
+          route_condition?: AlmanacRouteCondition | null
+          summit_visible?: boolean | null
+          status?: AlmanacStatus
+          approved_by?: string | null
+          approved_at?: string | null
+          staff_notes?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['almanac_records']['Insert']>
+        Relationships: []
+      }
     }
   }
 }
@@ -2056,6 +2189,5 @@ export const ALMANAC_ROUTE_CONDITIONS = ['dry', 'wet', 'muddy', 'icy', 'snow', '
 export type AlmanacRouteCondition = typeof ALMANAC_ROUTE_CONDITIONS[number]
 export const ALMANAC_STATUSES = ['pending', 'approved', 'rejected'] as const
 export type AlmanacStatus = typeof ALMANAC_STATUSES[number]
-export type AlmanacRecord = Database['public']['Tables']['almanac_records']['Row']
-export type AlmanacRecordInsert = Database['public']['Tables']['almanac_records']['Insert']
-export type AlmanacEventRecord = Database['public']['Functions']['almanac_event_records']['Returns'][number]
+export type AlmanacEventRecord = Database['public']['Functions']['almanac_records_for_events']['Returns'][number]
+export type AlmanacPendingRecord = Database['public']['Functions']['almanac_pending_records']['Returns'][number]

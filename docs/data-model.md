@@ -94,10 +94,10 @@ Use that everywhere in the UI rather than reading raw `events` rows.
 
 ## `almanac_records` — crowdsourced environmental observations
 
-Divers submit environmental and weather observations for dive sites and
-adventure events; staff/admin review and approve them. Approved records
-surface on the event detail page, the almanac page, and the historical
-records list.
+Divers submit environmental and weather observations for past dives and
+adventures; staff/admin rule on each one. Only approved records reach the
+crowd, on `/almanac` — the page also shows a diver their own pending and
+rejected submissions, and shows staff the review queue.
 
 | Column | Type | Notes |
 | --- | --- | --- |
@@ -124,12 +124,29 @@ records list.
 | `staff_notes` | text | Optional moderation notes |
 
 Unique constraint: `(event_id, obs_date, diver_id)` — one observation per
-(diver, event, date). Two `SECURITY DEFINER` RPCs:
+(diver, event, date).
 
-- `almanac_event_records(event_id)` — returns approved records for an event
-  (public read, no RLS complexity).
-- `submit_almanac_record(...)` — upserts the caller's pending record for
-  the given event/date.
+`authenticated` is granted **SELECT only**. Every write goes through a
+`SECURITY DEFINER` RPC, so the moderation state machine can't be driven from
+the client — a diver has no way to mint an already-approved record:
+
+- `submit_almanac_record(...)` — files the caller's observation for an
+  event/date, always as `pending`. Fields are assigned outright rather than
+  coalesced (the form posts the whole record, so a cleared field clears), the
+  date may not be in the future, and a record staff have already ruled on
+  cannot be revised.
+- `moderate_almanac_record(record_id, status, staff_notes)` — staff/admin
+  only; stamps `approved_by` / `approved_at`. `status` must be `approved` or
+  `rejected`.
+- `almanac_records_for_events(event_ids[])` — the approved records for a
+  batch of events, with the submitter's display name
+  (`coalesce(nickname, name)`). Takes an array so the page renders a whole
+  date range in one request.
+- `almanac_pending_records()` — the staff review queue; raises for anyone
+  else.
+
+Reads of the table itself are governed by RLS: a diver sees their own rows
+(any status) plus every approved row; staff and admin see all of them.
 
 ## Row-Level Security
 
