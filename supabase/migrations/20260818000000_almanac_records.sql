@@ -83,6 +83,7 @@ alter table public.almanac_records enable row level security;
 
 -- RLS decides which rows; the GRANT decides which verbs. Writes are RPC-only,
 -- so authenticated never gets insert/update/delete here.
+revoke all on table public.almanac_records from anon, authenticated;
 grant select, insert, update, delete on table public.almanac_records to service_role;
 grant select on table public.almanac_records to authenticated;
 
@@ -147,7 +148,8 @@ as $$
   order by r.obs_date desc, r.created_at desc;
 $$;
 
-grant execute on function public.almanac_records_for_events(uuid[]) to authenticated;
+revoke all on function public.almanac_records_for_events(uuid[]) from public, anon;
+grant execute on function public.almanac_records_for_events(uuid[]) to authenticated, service_role;
 
 -- RPC: submit (or revise) the caller's own observation for an event-day.
 --
@@ -233,10 +235,14 @@ begin
 end;
 $$;
 
+revoke all on function public.submit_almanac_record(
+  uuid, date, numeric, numeric, numeric, text, numeric, numeric,
+  text, text[], text, numeric, text, boolean
+) from public, anon;
 grant execute on function public.submit_almanac_record(
   uuid, date, numeric, numeric, numeric, text, numeric, numeric,
   text, text[], text, numeric, text, boolean
-) to authenticated;
+) to authenticated, service_role;
 
 -- RPC: the staff review queue — every record still awaiting a ruling, with the
 -- submitter and the event it belongs to.
@@ -292,7 +298,8 @@ begin
 end;
 $$;
 
-grant execute on function public.almanac_pending_records() to authenticated;
+revoke all on function public.almanac_pending_records() from public, anon;
+grant execute on function public.almanac_pending_records() to authenticated, service_role;
 
 -- RPC: rule on a submission. Staff/admin only; stamps who ruled and when.
 create or replace function public.moderate_almanac_record(
@@ -331,4 +338,5 @@ begin
 end;
 $$;
 
-grant execute on function public.moderate_almanac_record(uuid, text, text) to authenticated;
+revoke all on function public.moderate_almanac_record(uuid, text, text) from public, anon;
+grant execute on function public.moderate_almanac_record(uuid, text, text) to authenticated, service_role;
