@@ -92,6 +92,45 @@ by the `set_event_relations` RPC. All dates are **Asia/Taipei local** (no DST).
 Normalization into the uniform `AppEvent` shape lives in `src/lib/events.ts`.
 Use that everywhere in the UI rather than reading raw `events` rows.
 
+## `almanac_records` — crowdsourced environmental observations
+
+Divers submit environmental and weather observations for dive sites and
+adventure events; staff/admin review and approve them. Approved records
+surface on the event detail page, the almanac page, and the historical
+records list.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | uuid PK | |
+| `created_at` / `updated_at` | timestamptz | |
+| `diver_id` | uuid → `auth.users` | The submitting diver |
+| `event_id` | uuid → `events(id)` | The event the observation belongs to |
+| `obs_date` | date | The date of the observation |
+| `air_temp_c` | numeric(4,1) | Optional |
+| `water_temp_c` | numeric(4,1) | Optional |
+| `visibility_m` | numeric(4,1) | Optional |
+| `current_strength` | text | `calm` / `light` / `moderate` / `strong` / `very_strong` |
+| `wave_height_m` | numeric(3,1) | Optional |
+| `wave_period_s` | numeric(3,1) | Optional |
+| `weather` | text | `clear` / `partly_cloudy` / `cloudy` / `overcast` / `rain` / `thunderstorm` / `windy` / `fog` / `typhoon` |
+| `wildlife` | text[] | Optional, array of species names |
+| `coral_health` | text | `excellent` / `good` / `fair` / `poor` / `bleaching` |
+| `elevation_m` | numeric(5,0) | Adventure-specific |
+| `route_condition` | text | `dry` / `wet` / `muddy` / `icy` / `snow` / `rockfall` |
+| `summit_visible` | boolean | Adventure-specific |
+| `status` | text | `pending` / `approved` / `rejected` |
+| `approved_by` | uuid → `auth.users` | Staff/admin who approved |
+| `approved_at` | timestamptz | |
+| `staff_notes` | text | Optional moderation notes |
+
+Unique constraint: `(event_id, obs_date, diver_id)` — one observation per
+(diver, event, date). Two `SECURITY DEFINER` RPCs:
+
+- `almanac_event_records(event_id)` — returns approved records for an event
+  (public read, no RLS complexity).
+- `submit_almanac_record(...)` — upserts the caller's pending record for
+  the given event/date.
+
 ## Row-Level Security
 
 RLS is **on** for every `public.*` table. The important patterns:
