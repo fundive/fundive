@@ -95,7 +95,9 @@ Use that everywhere in the UI rather than reading raw `events` rows.
 ## `almanac_records` — crowdsourced environmental observations
 
 Divers submit environmental and weather observations for past dives and
-adventures; staff/admin rule on each one. Only approved records reach the
+adventures; staff/admin rule on each one. A record is filed against an event,
+but the almanac reads them back by **calendar date** — a day is the unit, and
+two events sharing a morning share a bucket. Only approved records reach the
 crowd, on `/almanac` — the page also shows a diver their own pending and
 rejected submissions, and shows staff the review queue.
 
