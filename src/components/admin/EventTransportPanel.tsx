@@ -6,7 +6,6 @@ import { EventCarAssignment } from './EventCarAssignment'
 import { setBookingTransportation } from '../../lib/booking-transport'
 import type { AppEvent, Booking, BookingDetails, Profile } from '../../types/database'
 import { t } from '../../i18n'
-import { allowsTransport } from '../../lib/event-kinds'
 import { TEXT_DANGER } from '../../styles/tokens'
 
 const tp = t.admin.transport
@@ -30,19 +29,21 @@ const transportOf = (b: Booking): boolean | undefined =>
   (b.details as BookingDetails | undefined)?.transportation
 
 /**
- * Editable transportation panel for a dive's admin page. Three parts:
+ * Editable transportation panel for an event's admin page. Three parts:
  *  1. Per-diver ride choice (admin flips Needs ride / Self-transport; this is
  *     logistics-only — it never touches the frozen charge snapshot). Staff see
  *     the read-only buckets.
- *  2. The dive's transport blurb (trip_templates.transportation) — a shared catalog
- *     field, editable inline. Dives only.
- *  3. The cars assigned to the dive on its date + the resulting ride seats,
- *     reusing the logistics allocation UI. Dives only.
+ *  2. The transport blurb (trip_templates.transportation) — a shared catalog
+ *     field, editable inline. Offered wherever the event links a trip
+ *     template; the editor asks the row rather than guessing from the kind,
+ *     since `events.trip_template_id` is per-event and not per-kind.
+ *  3. The cars assigned to the event + the resulting ride seats, reusing the
+ *     logistics allocation UI. Every kind — `event_vehicles` accepts any
+ *     event, and the shop drives course students to their open-water days.
  */
 export function EventTransportPanel({ event, registrants, isAdmin, createdBy, onRideChanged }: Props) {
   const active = registrants.filter(r => r.booking.status !== 'cancelled')
   const hasCancelled = registrants.some(r => r.booking.status === 'cancelled')
-  const showsTransport = allowsTransport(event.type)
 
   return (
     <section className="space-y-3">
@@ -56,10 +57,7 @@ export function EventTransportPanel({ event, registrants, isAdmin, createdBy, on
         <p className="text-xs text-brand-950/70 font-medium italic">{tp.cancelledHidden}</p>
       )}
 
-      {/* The transport blurb is about getting to a dive site, so it stays
-          kind-gated. Cars are not: a course can need a van too, and an admin
-          could not assign one while this sat inside the same condition. */}
-      {showsTransport && <TransportTextEditor event={event} isAdmin={isAdmin} />}
+      <TransportTextEditor event={event} isAdmin={isAdmin} />
       <EventCarAssignment
         event={{ id: event.id, type: event.type }}
         isAdmin={isAdmin}
