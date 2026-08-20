@@ -481,6 +481,30 @@ describe('MultiRegisterForm parent diver picker', () => {
     expect(await screen.findByText(/on the ride waitlist/i)).toBeInTheDocument()
   })
 
+  it('warns on a full car for a course row too, not only a dive', async () => {
+    setupFrom([])
+    rpc.mockImplementation((name: string) =>
+      Promise.resolve(name === 'event_ride_seats'
+        ? { data: [{ capacity: 4, claimed: 4 }], error: null }
+        : { data: [], error: null }))
+    const user = userEvent.setup()
+    const owCourse: AppEvent = { ...sampleEvent('e1', 'Open Water Course'), type: 'course' }
+    render(
+      <MultiRegisterForm
+        events={[owCourse]}
+        profile={parentProfile} userId="p1"
+        onClose={() => {}} onAllBooked={() => {}}
+      />
+    )
+    await waitFor(() => expect(from).toHaveBeenCalledWith('profiles'))
+    await user.click(screen.getByRole('button', { name: /next/i }))
+    await user.click(screen.getByRole('button', { name: /next/i }))
+
+    expect(await screen.findByText(/shop ride is full for this event/i)).toBeInTheDocument()
+    await user.click(screen.getByLabelText(/yes, ride with the shop/i))
+    expect(await screen.findByText(/on the ride waitlist/i)).toBeInTheDocument()
+  })
+
   it('shows a disabled "Submitting…" state while the booking round-trip is pending', async () => {
     setupFrom([])
     // Hold the booking call open to observe the in-flight button — the gap
