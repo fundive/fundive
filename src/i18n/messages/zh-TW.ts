@@ -492,9 +492,6 @@ export const zhTW: Messages = {
   },
   profile: {
     title: '我的個人資料',
-    required: '必填',
-    chooseOne: '請選擇一項',
-    requiredAria: '必填',
     saved: '個人資料已儲存',
     saveError: (detail: string) => `無法儲存個人資料：${detail}`,
     password: {
@@ -1003,7 +1000,6 @@ export const zhTW: Messages = {
     signIn: '登入',
     invalidEmail: '電子郵件格式不正確',
     passwordMin: '密碼至少需 8 個字元',
-    passwordsNoMatch: '兩次輸入的密碼不一致',
     agreeToContinue: '請先同意後才能繼續',
     signInPrompt: '登入您的帳號',
     signingIn: '登入中…',
@@ -1040,10 +1036,9 @@ export const zhTW: Messages = {
     rejectedTitle: '申請未通過',
     rejectedBodyPrefix: '您的申請已審核，目前未獲通過。如果您認為這是誤判，請透過以下方式與我們聯繫：',
     rejectedBodySuffix: '。',
-    submittedTitle: '申請已送出',
-    submittedBody: '感謝您 — 您的個人資料已進入審核佇列。管理員將盡快核准您的帳號，核准後您會收到電子郵件通知。您可以先登出，稍後再回來查看。',
-    reviewTitle: '申請審核中',
-    reviewBody: '請填寫下方必填欄位並儲存 — 管理員將審核您的申請，核准後您會收到電子郵件通知。',
+    reviewTitle: '帳號等待審核中',
+    reviewBody: '您的帳號已進入審核佇列，管理員會盡快核准，完成後您會收到電子郵件通知。以下欄位皆非必填，但填得越完整，我們就能越快核准。',
+    stillMissing: (fields: string) => `尚未填寫：${fields}`,
   },
   admin: {
     manage: {

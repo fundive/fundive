@@ -491,9 +491,6 @@ export const ja: Messages = {
   },
   profile: {
     title: 'マイプロフィール',
-    required: '必須',
-    chooseOne: 'いずれかを選択してください',
-    requiredAria: '必須',
     saved: 'プロフィールを保存しました',
     saveError: (detail: string) => `プロフィールを保存できませんでした：${detail}`,
     password: {
@@ -1002,7 +999,6 @@ export const ja: Messages = {
     signIn: 'ログイン',
     invalidEmail: 'メールアドレスの形式が正しくありません',
     passwordMin: 'パスワードは8文字以上で入力してください',
-    passwordsNoMatch: 'パスワードが一致しません',
     agreeToContinue: '続行するには同意してください',
     signInPrompt: 'アカウントにログイン',
     signingIn: 'ログイン中…',
@@ -1039,10 +1035,9 @@ export const ja: Messages = {
     rejectedTitle: '申請は承認されませんでした',
     rejectedBodyPrefix: 'あなたの申請は審査されましたが、今回は承認されませんでした。何かの間違いだと思われる場合は、こちらまでご連絡ください：',
     rejectedBodySuffix: '。',
-    submittedTitle: '申請を送信しました',
-    submittedBody: 'ありがとうございます — プロフィールは審査待ちの状態です。管理者が間もなくアカウントを承認し、承認後にメールが届きます。一度サインアウトして、後ほどご確認いただけます。',
-    reviewTitle: '申請を審査中',
-    reviewBody: '下の必須項目を入力して保存してください — 管理者が申請を審査し、承認後にメールが届きます。',
+    reviewTitle: 'アカウントの承認待ち',
+    reviewBody: 'アカウントは審査待ちです。管理者がまもなく承認し、完了するとメールでお知らせします。以下の項目はすべて任意ですが、ご記入いただくほど承認が早くなります。',
+    stillMissing: (fields: string) => `未記入: ${fields}`,
   },
   admin: {
     manage: {
