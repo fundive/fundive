@@ -562,7 +562,7 @@ describe('RegisterForm', () => {
     await waitFor(() => expect(invoke).toHaveBeenCalledOnce())
     const opts = invoke.mock.calls[0][1] as { body: Record<string, unknown> }
     const details = opts.body.details as {
-      gear: { rent: boolean; mode: string; items: string[] }
+      gear: { rent: boolean; items: string[] }
       add_ons: string[]
       transportation: boolean
       nitrox_course_addon: boolean
@@ -570,7 +570,6 @@ describe('RegisterForm', () => {
       charges: Array<{ kind: string; label: string; amount: number }>
     }
     expect(details.gear.rent).toBe(true)
-    expect(details.gear.mode).toBe('a-la-carte')
     expect(details.gear.items).toContain('Wetsuit')
     expect(details.add_ons).toContain('addon-a')
     expect(details.transportation).toBe(true)
@@ -1544,7 +1543,7 @@ describe('RegisterForm', () => {
       status: 'pending',
       notes: 'allergic to shellfish',
       details: {
-        gear: { rent: true, mode: 'a-la-carte', items: ['Fins', 'Mask'] },
+        gear: { rent: true, items: ['Fins', 'Mask'] },
         add_ons: [],
         transportation: true,
         payment_method: 'cash',
