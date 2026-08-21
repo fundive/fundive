@@ -106,7 +106,10 @@ validation never fires its submit handler — silently, with no message.
 
 ## Research context
 
-The three crowdsourcing components — the almanac, the site-map editor and this
-— are the subject of the PADI Foundation application in
-`ignore/padi-foundation-grant.md`, which states what each is for and what the
-study measures about the quality of the data each collects.
+The almanac, the site-map editor and this module are the three crowdsourcing
+surfaces FunDive offers: conditions in the water column, structure on the
+seafloor, and the condition of the coral itself. Each collects observations as a
+by-product of a dive the center was running anyway, and each is moderated by
+shop staff before publication. What none of them yet has is a measured answer to
+how good the resulting data is; see `docs/dive-site-maps.md` for the same
+question asked of the seafloor contributions.
