@@ -169,6 +169,49 @@ the client — a diver has no way to mint an already-approved record:
 Reads of the table itself are governed by RLS: a diver sees their own rows
 (any status) plus every approved row; staff and admin see all of them.
 
+## `coral_surveys` / `coral_survey_colonies` — crowdsourced coral monitoring
+
+A CoralWatch Coral Health Chart survey, and the measurement that
+`almanac_records.coral_health` is not. That column is one ordinal judgment per
+site-date-diver; it carries no colony count, no depth, no water temperature at
+the moment of observation, and no reference standard a second observer could
+reproduce. Both surfaces stay: a diver filing conditions still says how the
+coral looked, and a diver doing a survey records colonies.
+
+A survey is a header plus its colony rows. See
+[coral-surveys.md](./coral-surveys.md) for the instrument, the arithmetic and
+the reasoning.
+
+| `coral_surveys` column | Type | Notes |
+| --- | --- | --- |
+| `id` | uuid PK | |
+| `created_at` / `updated_at` | timestamptz | |
+| `diver_id` | uuid → `auth.users` | The surveying diver |
+| `site_id` | uuid → `dive_sites(id)` | `ON DELETE RESTRICT`, as for the almanac |
+| `surveyed_on` | date | Unique with `site_id` and `diver_id` — a second submission is a revision |
+| `surveyed_at` | time | Chart matching is done by eye under ambient light, so time of day is not comparable across a day |
+| `depth_m` / `water_temp_c` | numeric(4,1) | Optional; 0–100 m, −2–40 °C |
+| `survey_method` | text | `random` / `transect` / `quadrat`, default `random` |
+| `transect_length_m` | numeric(5,1) | Only meaningful for a transect |
+| `notes` | text | Optional |
+| `status`, `approved_by`, `approved_at`, `staff_notes` | | Moderation, exactly as the almanac |
+
+| `coral_survey_colonies` column | Type | Notes |
+| --- | --- | --- |
+| `survey_id` | uuid → `coral_surveys(id)` | `ON DELETE CASCADE` |
+| `ordinal` | integer | Position in the survey, 1–100 |
+| `coral_type` | text | `branching` / `boulder` / `plate` / `soft` |
+| `lightest_hue` / `darkest_hue` | text | Chart columns `B` / `C` / `D` / `E` |
+| `lightest_level` / `darkest_level` | integer | Chart rows 1–6; 1 is bleached, 6 fully pigmented. `darkest_level >= lightest_level` is a check constraint — the chart is read palest first, so the reverse is a transposed pair |
+| `diameter_cm` | numeric(5,1) | Optional |
+
+Writes are RPC-only: `authenticated` holds SELECT and nothing else.
+`submit_coral_survey()` files or revises (replacing the colony list wholesale),
+`moderate_coral_survey()` rules, `coral_surveys_in_range()` reads approved
+surveys with their colonies aggregated in, and `coral_pending_surveys()` is the
+staff queue.
+
+
 ## Row-Level Security
 
 RLS is **on** for every `public.*` table. The important patterns:

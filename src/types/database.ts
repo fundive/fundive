@@ -1,5 +1,8 @@
 import type { ChargeLine } from '../lib/booking-charges'
 import type { EventKind } from '../lib/event-kinds'
+import type {
+  CoralColony, CoralHue, CoralLevel, CoralType, CoralSurveyMethod,
+} from '../lib/coral-survey'
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
@@ -323,6 +326,41 @@ export interface Database {
       accept_terms_with_token: {
         Args: { p_token: string }
         Returns: number
+      }
+      // Coral surveys (20260822000000). A CoralWatch Coral Health Chart
+      // survey: a header row plus its colony observations, moderated as a
+      // unit the way an almanac record is. Colonies travel as jsonb rather
+      // than parallel arrays — a colony is six correlated values.
+      submit_coral_survey: {
+        Args: {
+          p_site_id: string
+          p_surveyed_on: string
+          p_colonies: CoralColony[]
+          p_surveyed_at?: string | null
+          p_depth_m?: number | null
+          p_water_temp_c?: number | null
+          p_survey_method?: CoralSurveyMethod
+          p_transect_length_m?: number | null
+          p_notes?: string | null
+        }
+        Returns: string
+      }
+      coral_surveys_in_range: {
+        Args: { p_from: string; p_to: string }
+        Returns: CoralSurveyRow[]
+      }
+      // Staff/admin only; raises 42501 otherwise.
+      coral_pending_surveys: {
+        Args: Record<string, never>
+        Returns: CoralSurveyRow[]
+      }
+      moderate_coral_survey: {
+        Args: {
+          p_survey_id: string
+          p_status: Extract<AlmanacStatus, 'approved' | 'rejected'>
+          p_staff_notes?: string | null
+        }
+        Returns: void
       }
       // Defined in 20260603020000_profile_delete_cascade_and_admin_rpc.sql.
       // Admin-only. Deletes auth.users for the target id; the existing
@@ -2073,6 +2111,10 @@ export type StaffAvailabilityUpdate = Database['public']['Tables']['staff_availa
  *  joined profiles row in staff_availability_view. */
 export type StaffBusyEntry = Database['public']['Views']['staff_availability_view']['Row']
 
+// The CoralWatch chart vocabulary lives in lib/coral-survey.ts with the
+// arithmetic that reads it, so the page and the analysis share one definition.
+export type { CoralColony, CoralHue, CoralLevel, CoralType, CoralSurveyMethod }
+
 // The event vocabulary lives in lib/event-kinds.ts, which is import-free so the
 // Deno edge functions and the push worker can share it. Re-exported here
 // because this is where the rest of the app reaches for event types.
@@ -2231,6 +2273,30 @@ export const SITE_KINDS = ['dive', 'adventure'] as const
 export type SiteKind = typeof SITE_KINDS[number]
 
 export const ALMANAC_STATUSES = ['pending', 'approved', 'rejected'] as const
+
+/** A colony as the read RPCs return it: the submitted shape plus the position
+ *  the survey assigned it, so a revision can be talked about colony by colony. */
+export interface CoralColonyRow extends CoralColony {
+  ordinal: number
+}
+
+/** One survey with its colony observations aggregated in, as both coral
+ *  read RPCs return it. */
+export interface CoralSurveyRow {
+  id: string
+  site_id: string
+  site_name: string
+  surveyed_on: string
+  surveyed_at: string | null
+  depth_m: number | null
+  water_temp_c: number | null
+  survey_method: CoralSurveyMethod
+  transect_length_m: number | null
+  notes: string | null
+  created_at: string
+  diver_display: string | null
+  colonies: CoralColonyRow[]
+}
 export type AlmanacStatus = typeof ALMANAC_STATUSES[number]
 export type DiveSite = Database['public']['Tables']['dive_sites']['Row']
 export type DiveSiteInsert = Database['public']['Tables']['dive_sites']['Insert']
