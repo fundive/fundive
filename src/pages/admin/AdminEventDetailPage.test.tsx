@@ -453,7 +453,7 @@ describe('AdminEventDetailPage', () => {
         cancelled_at: null,
         // RegisterFormBody reads these to gate room/addon/gear sections.
         has_rooms: false, room_type_ids: [], has_addons: false, addon_ids: [],
-        nitrox_required: false, gear_rental_info: null,
+        has_transport: true, nitrox_required: false, gear_rental_info: null,
         price: 2800, deposit_amount: 0, transport_price: 0, dive_days: 1,
       }],
     ]))
@@ -794,7 +794,7 @@ describe('AdminEventDetailPage', () => {
         start_time: new Date().toISOString(), end_time: null, currency: 'TWD',
         cancelled_at: null,
         has_rooms: false, room_type_ids: [], has_addons: false, addon_ids: [],
-        nitrox_required: false, gear_rental_info: null,
+        has_transport: true, nitrox_required: false, gear_rental_info: null,
         price: 2800, deposit_amount: 0, transport_price: 0, dive_days: 1,
       }],
     ]))

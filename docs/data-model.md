@@ -70,6 +70,7 @@ admin_notes, event_vehicles, and waiver rows all reference it by a single
 | `id` (uuid), `kind`, `admin_title`, `display_title`, `calendar_title` | shared identity |
 | `price` → `prices`, `cancel_policy` → `cancellation_policies`, `prereq_cert_id` → `cert_levels`, `trip_template_id` → `trip_templates` | catalog links |
 | `capacity`, `fully_booked`, `full_payment_deadline`, `cancel_date`, `cancelled_at`, `dive_days`, `prereqs`, `req_dives`, `featured_image` | shared |
+| `has_transport` (NOT NULL, default true) | shared. False when the shop drives nobody to this event — a dry course held at the shop. The register forms then put no ride question and fetch no seat tally, and `create-registration` forces `details.transportation` false. Set in the vehicle section of the admin event form; see [admin.md](./admin.md#transport-runs-seats-riders). Every payload to `create_events_with_relations` must carry it: `jsonb_populate_record` leaves an absent key NULL rather than falling back to the default |
 | **dive-only:** `start_date`, `end_date`, `start_time`, `featured`, `is_private`, `nitrox_required`, `gear_rental`, `notes`, `is_trip`, `is_boat_dive` | scalar date envelope; `is_trip`/`is_boat_dive` are independent `boolean not null default false` flags (see [events-and-bookings.md](./events-and-bookings.md)) |
 | **course-only:** `course_days` (`date[]`, max 4 — the days a course runs on; see [events-and-bookings.md](./events-and-bookings.md#course_days)), `course_name`, `included`, `schedule`, `starting_at` | discrete session days (no envelope) |
 
