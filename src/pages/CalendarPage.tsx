@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
@@ -11,6 +12,8 @@ import { ShareEventButton } from '../components/ShareEventButton'
 import { AddToGoogleCalendarButton } from '../components/AddToGoogleCalendarButton'
 import { siteConfig } from '../config/site'
 import { BTN_XS_ON_DEEP, MODAL_BACKDROP, MODAL_PANEL, TEXT_BODY, TEXT_HEADING } from '../styles/tokens'
+import { canSelfCancel } from '../lib/booking-status'
+import { netPaidByBooking } from '../lib/payments'
 import { t } from '../i18n'
 import type { AppEvent, Booking } from '../types/database'
 import { EVENT_KIND_DOT, EVENT_KIND_LABELS } from '../lib/event-kind-labels'
@@ -38,6 +41,9 @@ export function CalendarPage() {
   const [month, setMonth] = useState(new Date())
   const [events, setEvents] = useState<AppEvent[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
+  // Net paid per booking. The cancel control needs it: a booking with money on
+  // it must go through the refund queue, never a one-tap self-cancel.
+  const [paidByBooking, setPaidByBooking] = useState<Map<string, number>>(new Map())
   const [selected, setSelected] = useState<AppEvent | null>(null)
   const [registering, setRegistering] = useState<AppEvent | null>(null)
   const [bookingLoading, setBookingLoading] = useState(false)
@@ -59,19 +65,42 @@ export function CalendarPage() {
 
   useEffect(() => {
     if (!user) return
-    supabase
-      .from('bookings')
-      .select('*')
-      .eq('user_id', user.id)
-      .then(({ data }) => setBookings(data ?? []))
+    let alive = true
+    ;(async () => {
+      const { data } = await supabase.from('bookings').select('*').eq('user_id', user.id)
+      if (!alive) return
+      const rows = data ?? []
+      setBookings(rows)
+      if (!rows.length) { setPaidByBooking(new Map()); return }
+      const { data: payments } = await supabase
+        .from('payments')
+        .select('booking_id, amount, status')
+        .in('booking_id', rows.map(b => b.id))
+      if (alive) setPaidByBooking(netPaidByBooking(payments ?? []))
+    })()
+    return () => { alive = false }
   }, [user])
 
+  function bookingFor(ev: AppEvent): Booking | null {
+    return bookings.find(b => bookingMatches(b, ev) && b.status !== 'cancelled') ?? null
+  }
+
   function isBooked(ev: AppEvent) {
-    return bookings.some(b => bookingMatches(b, ev) && b.status !== 'cancelled')
+    return bookingFor(ev) !== null
+  }
+
+  /** Self-cancel is only for an unpaid queue entry. Once money is on the
+   *  booking the modal points at My Bookings instead, where "Request refund"
+   *  puts it in front of an admin — cancelling here would strand the money on
+   *  a booking that then reads as settled everywhere. Same rule as
+   *  BookingsPage, via the shared helper, so the two controls cannot drift. */
+  function canCancelHere(ev: AppEvent): boolean {
+    const b = bookingFor(ev)
+    return !!b && canSelfCancel(b, paidByBooking.get(b.id) ?? 0)
   }
 
   async function cancelBooking() {
-    if (!user || !selected) return
+    if (!user || !selected || !canCancelHere(selected)) return
     setBookingLoading(true)
     await supabase
       .from('bookings')
@@ -216,15 +245,29 @@ export function CalendarPage() {
                   display_title trigger). No separate badge needed. */}
             </div>
             {selected.details && <EventDetails details={selected.details} />}
-            <button
-              onClick={isBooked(selected) ? cancelBooking : startRegister}
-              disabled={bookingLoading || (!isBooked(selected) && eventIsFull(selected))}
-              className={`w-full py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 ${
-                isBooked(selected) ? CP.regBooked : CP.regPrimary
-              }`}
-            >
-              {bookingLoading ? '…' : isBooked(selected) ? t.calendar.cancelBooking : t.common.register}
-            </button>
+            {/* Raw amber palette below, not the theme tokens: the "you already
+                booked this" notice has to stay legible on both the light and
+                dark modal surfaces, and the *-100 / *-900 status pair is the
+                one combination index.css does not remap. */}
+            {isBooked(selected) && !canCancelHere(selected) ? (
+              <div className="rounded-xl border border-amber-400 bg-amber-100 px-3 py-3 space-y-1">
+                <p className="text-sm font-semibold text-amber-900">{t.calendar.bookedAlready}</p>
+                <p className="text-xs text-amber-900">{t.calendar.cancelViaBookings}</p>
+                <Link to="/bookings" className="text-xs font-semibold text-amber-900 underline hover:text-amber-950 inline-block">
+                  {t.calendar.goToBookings}
+                </Link>
+              </div>
+            ) : (
+              <button
+                onClick={isBooked(selected) ? cancelBooking : startRegister}
+                disabled={bookingLoading || (!isBooked(selected) && eventIsFull(selected))}
+                className={`w-full py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 ${
+                  isBooked(selected) ? CP.regBooked : CP.regPrimary
+                }`}
+              >
+                {bookingLoading ? '…' : isBooked(selected) ? t.calendar.cancelBooking : t.common.register}
+              </button>
+            )}
             <AddToGoogleCalendarButton
               event={selected}
               className="w-full py-2 rounded-xl text-sm font-semibold bg-surface-700 hover:bg-surface-800 text-white transition-colors inline-flex items-center justify-center"
