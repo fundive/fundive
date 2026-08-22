@@ -14,6 +14,13 @@ import type { AppEvent, Credit, CreditInsert } from '../types/database'
  * action so the two-sided audit trail stays explicit.
  */
 
+/** The two credit sources that mean "this booking's money has been given
+ *  back". Only these suppress a further automatic refund; a goodwill credit or
+ *  a carry-forward row tied to the same booking is unrelated money. Kept in
+ *  step with the credits_source_check constraint (20260823000000) and with the
+ *  same list inside bookings_return_account_credit_on_cancel. */
+export const RETURN_SOURCES = ['event_cancellation', 'booking_cancellation_return'] as const
+
 export async function fetchCreditsForUser(userId: string): Promise<Credit[]> {
   const { data, error } = await supabase
     .from('credits')
@@ -72,6 +79,52 @@ export function diverCreditBalance(
   return general + perBooking
 }
 
+/**
+ * How much credit a one-tap "apply to my balances" would ACTUALLY spend.
+ *
+ * The button used to promise `min(openCreditBalance, totalOwed)`, which
+ * overstates twice over: the sweep only touches the diver's own solo bookings
+ * (not the groups they lead, which `totalOwed` includes), and
+ * `openCreditBalance` counts credit tied to a booking the RPC refuses to
+ * re-spend on itself. A diver holding a 3000 credit awarded against the very
+ * booking they owe 2000 on was offered "Use 2000" and got nothing back.
+ *
+ * This replays what `apply_credit_to_booking` will do, target by target, in
+ * the order the sweep visits them: for each, the spendable pool is every open
+ * row NOT tied to that booking, the take is clamped to what is still due, and
+ * rows drain oldest-first so a later target sees the pool the earlier ones
+ * left behind. `due` must already net the booking's own tied credit, exactly
+ * as the RPC's `v_due` does.
+ *
+ * Returns the total that will be applied — 0 when the button should not show.
+ */
+export function plannedCreditApplication(
+  credits: Credit[],
+  targets: ReadonlyArray<{ id: string; due: number }>,
+): number {
+  const pool = credits
+    .filter(c => c.status === 'open')
+    .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
+    .map(c => ({ bookingId: c.booking_id, amount: Number(c.amount) }))
+
+  let applied = 0
+  for (const target of targets) {
+    if (target.due <= 0) continue
+    const available = pool.reduce((s, c) => c.bookingId === target.id ? s : s + c.amount, 0)
+    let take = Math.min(target.due, available)
+    if (take <= 0) continue
+    applied += take
+    for (const row of pool) {
+      if (take <= 0) break
+      if (row.bookingId === target.id) continue
+      const used = Math.min(row.amount, take)
+      row.amount -= used
+      take -= used
+    }
+  }
+  return applied
+}
+
 /** Load everything needed to compute a diver's account credit (credits +
  *  bookings + payments + amendments) and return the net figure. Used by the
  *  diver's own profile, which doesn't otherwise load booking/payment data. */
@@ -113,6 +166,7 @@ export async function createCredit(input: {
     reason:     input.reason,
     created_by: input.created_by,
     status:     'open',
+    source:     'manual',
   }
   const { data, error } = await supabase
     .from('credits')
@@ -177,10 +231,15 @@ export async function issueCancellationCredits(args: {
 
   const paidByBooking = netPaidByBooking(payments ?? [])
 
+  // Only a credit that already RETURNED this booking's money blocks a second
+  // issue. The old check was "does this booking carry ANY credit row?", which
+  // let an unrelated goodwill credit of 200 suppress the whole refund of a
+  // 3000 booking. See credits.source (20260823000000).
   const { data: existing, error: eErr } = await supabase
     .from('credits')
     .select('booking_id')
     .in('booking_id', bookingIds)
+    .in('source', RETURN_SOURCES)
   if (eErr) throw eErr
   const alreadyCredited = new Set((existing ?? []).map(c => c.booking_id))
 
@@ -198,9 +257,11 @@ export async function issueCancellationCredits(args: {
       user_id:    b.user_id,
       booking_id: b.id,
       amount:     paidByBooking.get(b.id)!,
+      currency:   siteConfig.locale.currency,
       reason,
       created_by: createdBy,
       status:     'open',
+      source:     'event_cancellation',
     }))
 
   if (!rows.length) return { issued: 0, totalAmount: 0 }

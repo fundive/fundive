@@ -141,7 +141,9 @@ describe('issueCancellationCredits', () => {
         ],
         error: null,
       },
-      credits: { data: [{ booking_id: 'b2' }], error: null }, // b2 already credited → skip
+      // b2 already had its money returned → skip. The query is filtered to
+      // the two RETURN_SOURCES, so this stands in for a matching row.
+      credits: { data: [{ booking_id: 'b2' }], error: null },
     })
 
     const { issueCancellationCredits } = await import('./credits')
@@ -154,9 +156,11 @@ describe('issueCancellationCredits', () => {
         user_id: 'u1',
         booking_id: 'b1',
         amount: 5000,
+        currency: siteConfig.locale.currency,
         reason: 'Refund credit for cancelled event: Green Island Fun Dive (May 18, 2026)',
         created_by: 'admin1',
         status: 'open',
+        source: 'event_cancellation',
       },
     ])
   })
@@ -292,7 +296,7 @@ describe('createCredit', () => {
     await createCredit({ user_id: 'u1', amount: 1500, reason: 'Goodwill', created_by: 'admin' })
     expect(insert).toHaveBeenCalledWith({
       user_id: 'u1', booking_id: null, amount: 1500, currency: siteConfig.locale.currency,
-      reason: 'Goodwill', created_by: 'admin', status: 'open',
+      reason: 'Goodwill', created_by: 'admin', status: 'open', source: 'manual',
     })
   })
 
@@ -341,5 +345,77 @@ describe('reopenCredit', () => {
     setupCreditWrite({ data: null })
     const { reopenCredit } = await import('./credits')
     await expect(reopenCredit('c9')).rejects.toBeTruthy()
+  })
+})
+
+// The one-tap "use my credit" button promised min(openCreditBalance, totalOwed).
+// Both halves lie: totalOwed counts groups the sweep never visits, and
+// openCreditBalance counts credit tied to a booking the RPC will not spend
+// against itself. plannedCreditApplication replays the RPC instead.
+describe('plannedCreditApplication', () => {
+  type C = import('../types/database').Credit
+  const credit = (id: string, amount: number, bookingId: string | null, createdAt: string): C =>
+    ({ id, amount, booking_id: bookingId, status: 'open', created_at: createdAt }) as unknown as C
+
+  it('spends general credit up to what is due', async () => {
+    const { plannedCreditApplication } = await import('./credits')
+    const credits = [credit('c1', 5000, null, '2026-01-01')]
+    expect(plannedCreditApplication(credits, [{ id: 'b1', due: 2000 }])).toBe(2000)
+  })
+
+  it('is capped by the pool when the pool is the smaller side', async () => {
+    const { plannedCreditApplication } = await import('./credits')
+    const credits = [credit('c1', 800, null, '2026-01-01')]
+    expect(plannedCreditApplication(credits, [{ id: 'b1', due: 2000 }])).toBe(800)
+  })
+
+  it('promises nothing when the only credit is tied to the booking itself', async () => {
+    const { plannedCreditApplication } = await import('./credits')
+    // The exact case the old label got wrong: a 3000 credit awarded against
+    // b1, which owes 2000 after that credit offsets it. The RPC excludes a
+    // booking's own credit from its spendable pool, so it applies 0.
+    const credits = [credit('c1', 3000, 'b1', '2026-01-01')]
+    expect(plannedCreditApplication(credits, [{ id: 'b1', due: 2000 }])).toBe(0)
+  })
+
+  it('spends a credit tied to another booking against this one', async () => {
+    const { plannedCreditApplication } = await import('./credits')
+    const credits = [credit('c1', 3000, 'b-cancelled', '2026-01-01')]
+    expect(plannedCreditApplication(credits, [{ id: 'b1', due: 2000 }])).toBe(2000)
+  })
+
+  it('drains the pool across targets so the second sees what the first left', async () => {
+    const { plannedCreditApplication } = await import('./credits')
+    const credits = [credit('c1', 2500, null, '2026-01-01')]
+    expect(plannedCreditApplication(credits, [
+      { id: 'b1', due: 2000 },
+      { id: 'b2', due: 2000 },
+    ])).toBe(2500)
+  })
+
+  it('consumes rows oldest-first, so a later target can still use a younger row tied to an earlier one', async () => {
+    const { plannedCreditApplication } = await import('./credits')
+    const credits = [
+      credit('c1', 1000, 'b1', '2026-01-01'),
+      credit('c2', 1000, null, '2026-02-01'),
+    ]
+    // b1 cannot touch c1 (its own), so it takes 1000 from c2. b2 then has only
+    // c1 left, which is not its own, so it takes that.
+    expect(plannedCreditApplication(credits, [
+      { id: 'b1', due: 1000 },
+      { id: 'b2', due: 1000 },
+    ])).toBe(2000)
+  })
+
+  it('ignores settled rows and non-positive dues', async () => {
+    const { plannedCreditApplication } = await import('./credits')
+    const settled = { ...credit('c1', 5000, null, '2026-01-01'), status: 'settled' } as C
+    expect(plannedCreditApplication([settled], [{ id: 'b1', due: 2000 }])).toBe(0)
+    expect(plannedCreditApplication([credit('c2', 5000, null, '2026-01-01')], [{ id: 'b1', due: 0 }])).toBe(0)
+  })
+
+  it('is zero with no targets and no credit', async () => {
+    const { plannedCreditApplication } = await import('./credits')
+    expect(plannedCreditApplication([], [])).toBe(0)
   })
 })

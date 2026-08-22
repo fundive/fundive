@@ -12,7 +12,7 @@ import { usesCourseDays } from '../../lib/event-kinds'
 import { siteConfig } from '../../config/site'
 import { t } from '../../i18n'
 import { BTN_XS_ON_AMBER, TEXT_DANGER, TEXT_SUCCESS } from '../../styles/tokens'
-import { buildCharges, NITROX_COURSE_FEE } from '../../lib/booking-charges'
+import { buildCharges, surchargeRate, NITROX_COURSE_FEE } from '../../lib/booking-charges'
 import { fetchCreditsForUser, openCreditBalance, applyCreditToBooking } from '../../lib/credits'
 import { invokeWithRetry, edgeErrorMessage } from '../../lib/edge-invoke'
 import { fetchRideSeats, canRequestRide, type RideSeats } from '../../lib/event-vehicles'
@@ -588,6 +588,10 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
   const [additionalCredits, setAdditionalCredits] = useState<Record<string, number>>({})
   const [useAccountCredit, setUseAccountCredit] = useState(true)
   const [creditApplied, setCreditApplied] = useState(0)
+  // The credit apply runs after the booking lands and can fail on its own.
+  // Swallowing it silently left the diver believing their credit was spent —
+  // and their confirmation PDF, rendered before the apply, saying so too.
+  const [creditFailed, setCreditFailed] = useState(false)
   // Default to full payment per product spec. Only meaningful when the event
   // has a deposit_amount — otherwise the radio is hidden entirely.
   const [payDepositOnly, setPayDepositOnly] = useState<boolean>(initialDetails?.pay_deposit_only ?? false)
@@ -925,10 +929,10 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
     for (const a of addons) if (addonIds.has(a.id)) total += a.price ?? 0
     return total
   }, [addons, addonIds])
-  // Both PayPal and credit card incur a 5% surcharge (PayPal absorbs ~3% on
-  // paypal.me transfers; the card processor's fee is similar). Cash and
+  // Both PayPal and credit card incur the shop's card surcharge (PayPal absorbs
+  // ~3% on paypal.me transfers; the card processor's fee is similar). Cash and
   // local bank transfer pass through at face value.
-  const paymentSurcharge = payment === 'credit_card' || payment === 'paypal' ? 0.05 : 0
+  const paymentSurcharge = surchargeRate(payment)
   const base = event.price ?? 0
   // Transport pricing comes from the linked prices row. NULL or 0 means
   // it's bundled into the base price — the form hides the opt-in checkbox
@@ -1391,6 +1395,8 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
         setCreditApplied(await applyCreditToBooking({ bookingId: data.booking_id, amount: availableCredit }))
       } catch (e) {
         console.error('account credit apply failed:', e)
+        setCreditApplied(0)
+        setCreditFailed(true)
       }
     }
 
@@ -1426,6 +1432,11 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
         {creditApplied > 0 && (
           <p className="text-sm font-semibold text-emerald-800 bg-emerald-50 border border-emerald-400 rounded-lg p-3">
             {t.register.done.creditApplied(event.currency, creditApplied.toLocaleString())}
+          </p>
+        )}
+        {creditFailed && (
+          <p className="text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-400 rounded-lg p-3">
+            {t.register.done.creditNotApplied}
           </p>
         )}
         <WhatHappensNext waitlisted={waitlisted} />
