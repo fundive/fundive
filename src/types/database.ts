@@ -700,6 +700,14 @@ export interface Database {
           notes: string | null
           details: BookingDetails
           refund_requested_at: string | null
+          /** An admin acknowledged that the shop keeps what is left on this
+           *  cancelled booking (a cancellation fee). Moves no money — the cash
+           *  is already recorded as paid — it takes the booking off the
+           *  "still holding money" list. Staff-only; the diver-status guard
+           *  rejects a diver writing it. */
+          cancellation_settled_at: string | null
+          cancellation_settled_by: string | null
+          cancellation_settled_note: string | null
           /** Shared id linking all bookings submitted together by a parent
            *  as a group registration. Null on solo registrations. Added in
            *  20260514030000_parent_child_accounts.sql; populated by the
@@ -721,6 +729,9 @@ export interface Database {
           notes?: string | null
           details?: BookingDetails
           refund_requested_at?: string | null
+          cancellation_settled_at?: string | null
+          cancellation_settled_by?: string | null
+          cancellation_settled_note?: string | null
           group_id?: string | null
           payer_id?: string | null
         }
@@ -732,6 +743,9 @@ export interface Database {
           notes?: string | null
           details?: BookingDetails
           refund_requested_at?: string | null
+          cancellation_settled_at?: string | null
+          cancellation_settled_by?: string | null
+          cancellation_settled_note?: string | null
           group_id?: string | null
           payer_id?: string | null
         }

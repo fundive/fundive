@@ -19,6 +19,7 @@ import { ChargeBreakdown, type AmendmentLine } from '../components/ChargeBreakdo
 import type { AppEvent, Booking, BookingDetails, Credit, Payment } from '../types/database'
 import {
   CARD, BTN_GHOST, BTN_PRIMARY, TEXT_HEADING, TEXT_BODY, TEXT_MUTED, TEXT_SUBTLE, TEXT_ERROR, PAGE_BODY,
+  TEXT_WARNING,
 } from '../styles/tokens'
 import { t } from '../i18n'
 
@@ -521,6 +522,15 @@ function LineCard({
             <div className={`flex justify-between ${TEXT_BODY}`}>
               <span>{t.bookings.creditThisEvent}</span>
               <span className="text-emerald-700 font-semibold">{currency} {credit.toLocaleString()}</span>
+            </div>
+          )}
+          {/* The shop kept part of what this diver paid. They are told outright,
+              on the booking it came off — a withheld fee that only surfaces as
+              a refund that never arrives is how a diver finds out by noticing. */}
+          {isCancelled && booking.cancellation_settled_at && paid > 0 && (
+            <div className={`flex justify-between ${TEXT_BODY}`}>
+              <span>{t.bookings.cancellationFeeKept}</span>
+              <span className={`${TEXT_WARNING} font-semibold`}>{currency} {paid.toLocaleString()}</span>
             </div>
           )}
           {total > 0 && (
