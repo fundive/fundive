@@ -21,6 +21,7 @@ import { ChargeBreakdown } from '../components/ChargeBreakdown'
 import type { AppEvent, Booking, BookingAmendment, BookingDetails, Payment, WaitlistOffer } from '../types/database'
 import {
   CARD, BTN_GHOST, BTN_DANGER, TEXT_HEADING, TEXT_BODY, TEXT_MUTED, TEXT_SUBTLE, TEXT_ERROR, PAGE_BODY,
+  TEXT_WARNING,
 } from '../styles/tokens'
 import { t } from '../i18n'
 import { EVENT_KIND_LABELS } from '../lib/event-kind-labels'
@@ -330,6 +331,15 @@ function Card({
             <div className={`flex justify-between ${TEXT_BODY}`}>
               <span>{t.bookings.creditThisEvent}</span>
               <span className="text-emerald-700 font-semibold">{currency} {row.credit.toLocaleString()}</span>
+            </div>
+          )}
+          {/* The shop kept part of what this diver paid. They are told outright,
+              on the booking it came off — a withheld fee that only surfaces as
+              a refund that never arrives is how a diver finds out by noticing. */}
+          {row.status === 'cancelled' && row.cancellation_settled_at && row.paidSum > 0 && (
+            <div className={`flex justify-between ${TEXT_BODY}`}>
+              <span>{t.bookings.cancellationFeeKept}</span>
+              <span className={`${TEXT_WARNING} font-semibold`}>{currency} {row.paidSum.toLocaleString()}</span>
             </div>
           )}
           {total > 0 && (
