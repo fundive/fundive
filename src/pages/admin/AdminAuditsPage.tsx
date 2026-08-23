@@ -99,7 +99,8 @@ function EntryRow({ entry, currency, actorName }: EntryRowProps) {
       <div className={`text-xs ${TEXT_SUBTLE} mt-0.5`}>
         {format(shopZoned(new Date(entry.at)), 'yyyy-MM-dd HH:mm')}
         {entry.method ? ` · ${entry.method}` : ''}
-        {entry.actorId ? ` · ${au.byActor(actorName(entry.actorId))}` : ''}
+        {entry.actorId ? ` · ${t.admin.actor.by(actorName(entry.actorId))}` : ''}
+        {entry.reference ? ` · ${t.admin.bookingPayments.refShort(entry.reference)}` : ''}
       </div>
       {entry.note && <div className={`text-xs ${TEXT_MUTED} mt-1`}>{entry.note}</div>}
       {entry.changed && entry.changed.length > 0 && (
@@ -294,7 +295,8 @@ export function AdminAuditsPage() {
     [profiles],
   )
   const actorName = (id: string | null): string =>
-    (id && nameById.get(id)) || (id ? `${au.unknownActor} (${id.slice(0, 8)})` : au.unknownActor)
+    (id && nameById.get(id))
+    || (id ? t.admin.actor.unknown(id.slice(0, 8)) : t.admin.actor.system)
 
   // Bumped on every select() so a slower earlier fetch can't overwrite a later
   // selection's trail (click diver A then B quickly, A resolves last).
