@@ -54,6 +54,7 @@ const KIND_META: Record<AuditKind, { label: string; tone: string }> = {
   payment_voided:   { label: au.kinds.paymentVoided,   tone: `${TEXT_SUBTLE} line-through` },
   payment_pending:  { label: au.kinds.paymentPending,  tone: TEXT_MUTED },
   credit_issued:    { label: au.kinds.creditIssued,    tone: MONEY_IN },
+  account_charge:   { label: au.kinds.accountCharge,  tone: OWES },
   credit_settled:   { label: au.kinds.creditSettled,   tone: TEXT_MUTED },
   amendment:        { label: au.kinds.amendment,       tone: OWES },
   booking_insert:   { label: au.kinds.bookingCreated,  tone: TEXT_BODY },
