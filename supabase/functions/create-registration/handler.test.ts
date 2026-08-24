@@ -694,7 +694,7 @@ describe('handleRegistration — rollback semantics', () => {
   })
 })
 
-describe('handleRegistration — email behaviour', () => {
+describe('handleRegistration — email behavior', () => {
   it('null transporter skips email entirely without breaking the response', async () => {
     const { deps, captured } = makeDeps()
     deps.transporter = null
@@ -1058,7 +1058,7 @@ describe('handleRegistration — happy path returns the booking id and session',
 })
 
 describe('handleRegistration — group ownership', () => {
-  // send-group-summary authorises on "you hold a booking in this group", and
+  // send-group-summary authorizes on "you hold a booking in this group", and
   // the group PDF carries every member's name, DOB, nationality and cert. If
   // anyone could attach a booking to a group_id they learned, that read is
   // theirs too.

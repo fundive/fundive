@@ -47,7 +47,7 @@ function money(n: number, cur: string): string {
   return `${sign}${cur} ${Math.abs(Math.round(n)).toLocaleString()}`
 }
 
-// Per-kind label + colour tone. Labels are localized; tones read on both themes.
+// Per-kind label + color tone. Labels are localized; tones read on both themes.
 const KIND_META: Record<AuditKind, { label: string; tone: string }> = {
   payment_paid:     { label: au.kinds.paymentPaid,     tone: MONEY_IN },
   payment_refunded: { label: au.kinds.paymentRefunded, tone: OWES },

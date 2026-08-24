@@ -123,7 +123,7 @@ const PIECE_UNPACKED = pick(
 /**
  * The eyebrow label above each Overall block. Small, dim and letter-spaced by
  * design: it must sit clearly *below* the section's <h2> in the hierarchy, so
- * it deliberately shares none of the heading's size, colour or case. `care`
+ * it deliberately shares none of the heading's size, color or case. `care`
  * carries the amber warning tone and `tentative` the waitlist violet, each
  * picked for the surface the label sits on rather than the chips' light fill.
  */
@@ -779,7 +779,7 @@ export function AdminLogisticsPage() {
             )}
             {/* Two columns from sm up — the blocks are short, so one column left
                 half the board empty on anything wider than a phone. items-start
-                keeps a tall block (the fleet plan) from stretching its neighbour. */}
+                keeps a tall block (the fleet plan) from stretching its neighbor. */}
             <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2 items-start">
               {allRows.length > 0 && (
                 <div className="space-y-1">

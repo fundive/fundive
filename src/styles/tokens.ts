@@ -126,8 +126,8 @@ export const BTN_SECONDARY = pick(
 // where a full-height BTN_* would dominate. inline-flex so a <Link> and a
 // <button> line up identically.
 // Geometry for the app's small buttons. Exported so surfaces that need their
-// own colours — a button sitting on a light status-palette banner, where the
-// BTN_XS_* dark-surface colours would be invisible — still get the same size,
+// own colors — a button sitting on a light status-palette banner, where the
+// BTN_XS_* dark-surface colors would be invisible — still get the same size,
 // padding and radius as every other small button.
 export const BTN_XS_BASE = 'inline-flex items-center justify-center text-xs font-semibold px-3 py-1 rounded-lg transition-colors disabled:opacity-50'
 // Small buttons that sit ON a light status banner (bg-amber-50, bg-emerald-50
