@@ -37,7 +37,7 @@ import type { WaiverDef } from '../../config/waivers'
 import { ShareEventButton } from '../../components/ShareEventButton'
 import { AddToGoogleCalendarButton } from '../../components/AddToGoogleCalendarButton'
 import type { AppEvent, Booking, BookingAmendment, BookingDetails, Credit, DiverNote, Payment, Profile, EventKind } from '../../types/database'
-import { BTN_SECONDARY, BTN_XS_BASE, BTN_XS_GHOST, ERROR_NOTE_LIGHT, TEXT_DANGER, TEXT_PROXY, TEXT_WARNING } from '../../styles/tokens'
+import { BTN_SECONDARY, BTN_XS_BASE, BTN_XS_GHOST, ERROR_NOTE_LIGHT, TEXT_DANGER, TEXT_ORIGIN, TEXT_PROXY, TEXT_WARNING } from '../../styles/tokens'
 import { t } from '../../i18n'
 
 const ed = t.admin.eventDetail
@@ -181,6 +181,7 @@ export function AdminEventDetailPage() {
         ...credits.map(c => c.settled_by),
         ...bookings.map(b => b.cancelled_by),
         ...bookings.map(b => b.cancellation_settled_by),
+        ...bookings.map(b => b.created_by),
       ]).then(names => { if (!cancelled) setActorNames(names) }).catch(() => {})
 
       // Resolve any add-on / room IDs referenced in the bookings to display
@@ -1318,6 +1319,10 @@ function RegistrantCard({ r, waiverMissing, waiverState, addonNames, roomNames, 
   const isLeadOwn = !!r.booking.payer_id && r.booking.payer_id === r.booking.user_id
   const [expanded, setExpanded] = useState(false)
 
+  const addedBy = r.booking.created_by && r.booking.created_by !== r.booking.user_id
+    ? actorName(r.booking.created_by)
+    : null
+
   // Balance nets open credit-for-this-event against what's owed. 'overpaid' is
   // kept distinct from 'credit' so a plain overpayment is never mislabelled as
   // an awarded account credit.
@@ -1408,6 +1413,13 @@ function RegistrantCard({ r, waiverMissing, waiverState, addonNames, roomNames, 
           )}
           {isLeadOwn && (
             <span className={`ml-2 text-xs font-semibold ${TEXT_PROXY}`}>{ed.leadPayer}</span>
+          )}
+          {/* Somebody other than the diver put them on this event — an admin
+              using Add diver, or a parent registering a child. No badge means
+              they registered themselves; a booking made before created_by
+              existed has nobody to name and reads the same way. */}
+          {addedBy && (
+            <span className={`ml-2 text-xs font-semibold ${TEXT_ORIGIN}`}>{ed.addedBy(addedBy)}</span>
           )}
         </span>
         <span className="shrink-0 flex items-center gap-1.5">
