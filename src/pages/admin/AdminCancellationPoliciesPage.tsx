@@ -7,7 +7,7 @@ import {
 } from '../../lib/cancellation-policies'
 import type { CancellationPolicy } from '../../types/database'
 import { t } from '../../i18n'
-import { TEXT_SUBTLE } from '../../styles/tokens'
+import { TEXT_SUBTLE, TEXT_WARNING } from '../../styles/tokens'
 
 const cp = t.admin.cxlPolicies
 const wv = t.admin.waivers
@@ -91,6 +91,9 @@ export function AdminCancellationPoliciesPage() {
                 <p className="font-medium text-brand-900 text-sm truncate">
                   {p.title || cp.untitled}{!p.active && <span className={`ml-2 text-xs ${TEXT_SUBTLE}`}>{wv.inactive}</span>}
                   {p.language ? <span className={`ml-2 text-xs ${TEXT_SUBTLE}`}>{p.language}</span> : null}
+                  {!p.deposit_refundable && (
+                    <span className={`ml-2 text-xs font-semibold ${TEXT_WARNING}`}>{cp.depositKeptBadge}</span>
+                  )}
                 </p>
                 <p className="text-xs text-brand-900/70 truncate">{p.cancellation_policy}</p>
               </div>
@@ -139,6 +142,7 @@ function PolicyForm({
   const [language, setLanguage] = useState(policy?.language ?? '')
   const [body, setBody] = useState(policy?.cancellation_policy ?? '')
   const [active, setActive] = useState(policy?.active ?? true)
+  const [depositRefundable, setDepositRefundable] = useState(policy?.deposit_refundable ?? true)
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
@@ -152,6 +156,7 @@ function PolicyForm({
         language: language.trim() || null,
         cancellation_policy: body.trim(),
         active,
+        deposit_refundable: depositRefundable,
       }
       await saveCancellationPolicy(values, policy?.id)
       await onSaved()
@@ -176,6 +181,18 @@ function PolicyForm({
           <textarea className={`${FIELD} text-xs`} rows={8} value={body} onChange={e => setBody(e.target.value)}
             placeholder={cp.policyTextPh} />
         </Labelled>
+        {/* The one field on this page that moves money. Ticking it off makes
+            bookings_credit_on_cancel withhold the deposit from every
+            cancellation credit on an event using this policy, so the wording
+            says what it does rather than naming the column. */}
+        <label className="flex items-start gap-2 text-sm text-brand-900">
+          <input type="checkbox" checked={!depositRefundable}
+            onChange={e => setDepositRefundable(!e.target.checked)} className="accent-brand-900 mt-0.5" />
+          <span>
+            {cp.depositNonRefundableLabel}
+            <span className={`block text-xs ${TEXT_SUBTLE}`}>{cp.depositNonRefundableHint}</span>
+          </span>
+        </label>
         <label className="flex items-center gap-2 text-sm text-brand-900">
           <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} className="accent-brand-900" />
           {cp.activeLabel}

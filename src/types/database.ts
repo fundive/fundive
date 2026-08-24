@@ -1718,9 +1718,14 @@ export interface Database {
           id: string
           title: string | null
           cancellation_policy: string | null
-          // Free-form label for the shop's own organisation (e.g. 'en', 'zh-TW').
+          // Free-form label for the shop's own organization (e.g. 'en', 'zh-TW').
           language: string | null
           active: boolean
+          /** False when the deposit is money the shop cannot recover — a PADI
+           *  eLearning code, a prepaid room. `bookings_credit_on_cancel` then
+           *  withholds it from the cancellation credit and stamps the booking
+           *  settled for that amount. */
+          deposit_refundable: boolean
         }
         Insert: {
           id?: string
@@ -1728,6 +1733,7 @@ export interface Database {
           cancellation_policy?: string | null
           language?: string | null
           active?: boolean
+          deposit_refundable?: boolean
         }
         Update: Partial<Database['public']['Tables']['cancellation_policies']['Insert']>
         Relationships: []

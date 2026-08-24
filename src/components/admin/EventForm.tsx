@@ -15,7 +15,7 @@ import { EVENT_KIND_LABELS } from '../../lib/event-kind-labels'
 import { EVENT_KINDS } from '../../types/database'
 import { DATE_ENVELOPE_KINDS, COURSE_DAY_KINDS } from '../../lib/event-kinds'
 import { newestPerGroup, type PastEventOption } from '../../lib/event-preload'
-import { BTN_XS_GHOST, ERROR_NOTE } from '../../styles/tokens'
+import { BTN_XS_GHOST, ERROR_NOTE, TEXT_WARNING } from '../../styles/tokens'
 import { t } from '../../i18n'
 
 // Shared form for creating and editing an EO_dive / EO_course. Owns all
@@ -798,6 +798,12 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
                 <option key={p.id} value={p.id}>{p.title ?? p.id}</option>
               ))}
             </Select>
+            {/* Whether the deposit comes back is decided here, at the moment
+                the policy is chosen, because nothing downstream asks again:
+                cancelling the booking issues the credit on its own. */}
+            {cancelPolicies.find(p => p.id === form.cancel_policy)?.deposit_refundable === false && (
+              <p className={`text-xs font-semibold mt-1 ${TEXT_WARNING}`}>{ef.depositNonRefundable}</p>
+            )}
           </Field>
         </div>
       </Section>
