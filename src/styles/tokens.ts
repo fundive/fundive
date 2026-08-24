@@ -88,6 +88,8 @@ export const TEXT_WARNING = pick('text-amber-800',   'text-amber-300')
 export const TEXT_SUCCESS = pick('text-emerald-800', 'text-emerald-300')
 /** "Covered by someone else" — the payer/proxy marker on a booking row. */
 export const TEXT_PROXY   = pick('text-violet-700',  'text-violet-300')
+/** "Added by someone else" — who created a booking, when it was not the diver. */
+export const TEXT_ORIGIN  = pick('text-sky-800',     'text-sky-300')
 
 export const TEXT_ERROR   = `${TEXT_DANGER} font-semibold`
 
