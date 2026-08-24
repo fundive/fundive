@@ -248,7 +248,16 @@ doing it:
 | SECURITY DEFINER RPC | Falls back to `auth.uid()` — the JWT claim survives even though `current_user` is the owner |
 | service_role (the edge function) | The value supplied, already resolved from a verified Bearer token |
 
+The trigger carries one exception ahead of all three, inert until
+FunDive takes the course-continuation feature: a booking that continues
+another inherits that booking's `created_by` rather than naming the
+admin who split it, because the two rows are one registration. It reads
+`continues_booking_id` through `to_jsonb` precisely so it costs nothing
+on a `bookings` table that has no such column.
+
 An UPDATE never moves it: who made a booking is a fact about the past.
+Deleting a profile sets it null (`ON DELETE SET NULL`) rather than
+pinning the booking in place.
 
 Reading it: `created_by = user_id` is "registered themselves". **Null is
 not the same as self** — it means nobody can be named, which covers the

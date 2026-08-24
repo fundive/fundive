@@ -3,9 +3,13 @@
 //
 // Three insert paths need three different answers — a diver or admin posting
 // straight to PostgREST, a SECURITY DEFINER RPC, and create-registration
-// running as service_role after it has verified a Bearer token — and only the
-// first two can be exercised here. The edge-function path is covered by
-// create-registration's own handler test.
+// running as service_role after it has verified a Bearer token. All three are
+// exercised here (service_role stands in for the edge function, whose own
+// resolution of the caller is covered by create-registration's handler test).
+//
+// The one exception the trigger carries -- a course continuation inherits its
+// origin instead of naming the admin who split the booking -- has no test here
+// because FunDive has not taken that feature; the branch is inert until it does.
 import { describe, it, expect, afterAll, beforeAll } from 'vitest'
 import {
   adminClient, userClient,
@@ -94,7 +98,9 @@ describe('bookings.created_by', () => {
     const dive = await freshDive()
     const sb = await userClient(diver.email, diver.password)
     const { data, error } = await sb.from('bookings')
-      .insert({ user_id: diver.id, event_id: dive, status: 'pending', created_by: adminUser.id })
+      // Cast because `created_by` is deliberately absent from the Insert type
+      // — writing it is exactly what this test is proving the DB ignores.
+      .insert({ user_id: diver.id, event_id: dive, status: 'pending', created_by: adminUser.id } as never)
       .select('id').single()
     expect(error).toBeNull()
     const id = track((data as { id: string }).id)
@@ -111,7 +117,7 @@ describe('bookings.created_by', () => {
 
     const diverSb = await userClient(diver.email, diver.password)
     const { error } = await diverSb.from('bookings')
-      .update({ status: 'cancelled', created_by: diver.id }).eq('id', id)
+      .update({ status: 'cancelled', created_by: diver.id } as never).eq('id', id)
     expect(error).toBeNull()
 
     // Who created it is a fact about the past. Cancelling does not rewrite it,
