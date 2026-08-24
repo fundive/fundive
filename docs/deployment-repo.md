@@ -70,7 +70,7 @@ resolves `virtual:fundive-config` from `process.cwd()`.
 | `fundive functions deploy` | deploy the edge functions to your Supabase |
 | `fundive version` | print the platform version |
 
-`fundive functions deploy` also serialises your `fundive.config.ts` into the
+`fundive functions deploy` also serializes your `fundive.config.ts` into the
 `FUNDIVE_CONFIG` Supabase secret. The edge functions read it through
 `supabase/functions/_shared/config.ts`, so your shop's name, currency and
 **language** are the ones used in emails and the registration PDF — not the
