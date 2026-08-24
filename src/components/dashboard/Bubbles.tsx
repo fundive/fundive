@@ -48,7 +48,7 @@ export function Bubbles() {
         // frame isn't empty; respawns enter from below the bottom edge.
         y: spawnAtRandomY ? Math.random() * height : height + r + Math.random() * 40,
         r,
-        // Smaller bubbles drift up slower (matches real fluid behaviour
+        // Smaller bubbles drift up slower (matches real fluid behavior
         // and reads as depth — bigger = closer to the surface).
         speed: 0.6 + Math.random() * 0.9 + (r / MAX_RADIUS) * 0.4,
         wobbleAmp: 8 + Math.random() * 24,
