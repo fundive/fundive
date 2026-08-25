@@ -106,10 +106,13 @@ export interface Database {
     Functions: {
       // Defined in 20260706000000_trusted_partners.sql; security-definer.
       // Public projection of the trusted-partner directory (no email) so a
-      // plain diver can list partners without seeing the RLS-hidden rows.
+      // plain diver can list partners without seeing the RLS-hidden rows. Every
+      // active partner is returned; `contactable` (20260827000000) just says
+      // whether there is an email for the contact-trusted-partner edge function
+      // to resolve, without exposing it.
       list_trusted_partners: {
         Args: Record<string, never>
-        Returns: Array<{ id: string; name: string; region: string | null; blurb: string | null; website: string | null }>
+        Returns: Array<{ id: string; name: string; region: string | null; blurb: string | null; website: string | null; contactable: boolean }>
       }
       // Owner-privileged projection of published products joined to the vouched
       // partner shop — diver-safe columns only (no kickback rate). Divers have
