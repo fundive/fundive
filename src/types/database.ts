@@ -475,6 +475,7 @@ export interface Database {
           p_site_id: string
           p_soundings?: unknown
           p_features?: unknown
+          p_entries?: unknown
           p_note?: string | null
         }
         Returns: string
@@ -2118,7 +2119,6 @@ export interface Database {
           rotation_deg: number | null
           provenance: Record<string, unknown>
           bearings: unknown[]
-          entries: unknown[]
         }
         Insert: {
           site_id: string
@@ -2128,7 +2128,6 @@ export interface Database {
           rotation_deg?: number | null
           provenance?: Record<string, unknown>
           bearings?: unknown[]
-          entries?: unknown[]
         }
         Update: Partial<Database['public']['Tables']['dive_site_maps']['Insert']>
         Relationships: []
@@ -2209,6 +2208,34 @@ export interface Database {
           contribution_id?: string | null
         }
         Update: Partial<Database['public']['Tables']['dive_site_features']['Insert']>
+        Relationships: []
+      }
+      // Defined in 20260828000000_dive_site_entries.sql. Ways into the water,
+      // moved off `dive_site_maps.entries` once divers started marking them:
+      // an entry is an observation, so it carries who said so.
+      dive_site_entries: {
+        Row: {
+          /** Derived from the coordinate (`ent:x:y`), so two divers marking one
+           *  slipway reconcile instead of each adding one. */
+          id: string
+          site_id: string
+          x: number
+          y: number
+          label: string | null
+          source: 'hand_drawn' | 'diver' | 'survey' | 'placeholder'
+          contribution_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          site_id: string
+          x: number
+          y: number
+          label?: string | null
+          source: 'hand_drawn' | 'diver' | 'survey' | 'placeholder'
+          contribution_id?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['dive_site_entries']['Insert']>
         Relationships: []
       }
       dive_site_aliases: {

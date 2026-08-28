@@ -151,6 +151,11 @@ export const BTN_XS_DANGER  = `${BTN_XS_BASE} ${pick('bg-surface-100 hover:bg-re
  *  scene it sits on. */
 export const BADGE_READOUT = `rounded-md px-2 py-0.5 text-xs font-semibold ${pick('bg-brand-900 text-white', 'bg-reef-500 text-slate-950')}`
 
+/** A tray of controls floating over a rendered scene. The scene paints its own
+ *  colors and they are not the app's, so the tray brings a ground of its own
+ *  rather than trusting whatever the camera happens to be pointing at. */
+export const OVERLAY_PANEL = `rounded-lg p-1 backdrop-blur-sm ${pick('bg-white/80', 'bg-brand-950/70')}`
+
 export const INPUT       = pick(
   'w-full bg-white border border-surface-300 rounded-lg px-3 py-2 text-brand-900 focus:outline-none focus:border-brand-900',
   'w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-brand-50 placeholder:text-brand-100/40 focus:outline-none focus:border-reef-400',
