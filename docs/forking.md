@@ -31,6 +31,8 @@ Walking the fields:
 | `urls.site` / `app` / `radio` | Your marketing site, the app origin (also the share-link origin), and (optional) radio stream. No trailing slashes. |
 | `locale.timezone` | IANA zone, e.g. `Asia/Taipei` or `America/Los_Angeles`. |
 | `locale.currency` / `currencyLabel` | ISO code and the label shown in the UI. |
+| `locale.language` | The one language the app renders in: `'en'`, `'zh-TW'` or `'ja'`. See [i18n.md](./i18n.md). |
+| `locale.units` | Which side of the height/weight toggle a diver sees first: `'metric'` or `'imperial'`. Storage is always metric; each diver can flip it per browser. Not derived from `language` — a shop can render in English from a metric country. |
 | `theme.themeColor` / `backgroundColor` | **PWA manifest** colors (browser chrome + splash). See the note below about the in-app brand palette. |
 | `theme.design` | Visual design variant: `'light'` (default — light cards on navy) or `'dark'` (dark ocean glass). See the note below. Omit for `light`. |
 | `assets.*` | Paths to your branding files under `public/` — see §2. |

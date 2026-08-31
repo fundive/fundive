@@ -178,6 +178,10 @@ export const INPUT       = pick(
   'w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-brand-50 placeholder:text-brand-100/40 focus:outline-none focus:border-reef-400',
 )
 export const INPUT_LABEL = pick('block text-sm text-brand-900 mb-1', 'block text-sm text-brand-100 mb-1')
+// The input the two registration forms use. Their steps render on a pale card
+// in both looks — bg-white and text-brand-900 are remapped for the dark theme
+// in index.css — so this is one literal, not a pick().
+export const INPUT_REGISTER = 'w-full bg-white border border-surface-300 rounded-lg px-2 py-2 text-sm text-brand-900 focus:outline-none focus:border-brand-900'
 
 // ── Inline error notes ─────────────────────────────────────────────
 // ERROR_NOTE sits on the navy chrome; ERROR_NOTE_LIGHT inside a card. In dark

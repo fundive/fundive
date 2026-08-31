@@ -15,7 +15,7 @@ import { defineConfig } from 'fundive/config'
 
 export const siteConfig = defineConfig({
   // Bump only when the platform CHANGELOG says to.
-  configVersion: 9,
+  configVersion: 10,
 
   identity: {
     // Printed in italics on the registration PDF. Leave blank to omit it.
@@ -51,6 +51,10 @@ export const siteConfig = defineConfig({
     currencyLabel: 'USD',
     // The one language the whole app renders in. 'en' | 'zh-TW' | 'ja'.
     language: 'en',
+    // Which side of the height / weight toggle a diver sees first. Storage
+    // is always metric (cm / kg) — this only picks the default view, and each
+    // diver can flip it. 'metric' | 'imperial'.
+    units: 'metric',
   },
 
   theme: {
