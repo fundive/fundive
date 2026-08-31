@@ -63,6 +63,12 @@ export interface SiteLocale {
   currencyLabel: string
   /** The single language the whole app renders in for this deployment. */
   language: SupportedLanguage
+  /** Which units the height / weight fields open in. Storage is always metric
+   *  (profiles.height_cm, profiles.weight_kg) — this only picks the side of the
+   *  toggle a diver sees first, and they can flip it per browser. Deliberately
+   *  separate from `language`: a shop can render in English from a metric
+   *  country, so the language is no guide to the unit. */
+  units: 'metric' | 'imperial'
 }
 
 export interface SiteTheme {

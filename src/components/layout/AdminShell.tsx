@@ -42,10 +42,14 @@ export function AdminShell() {
   const [pendingCount, setPendingCount] = useState<number | null>(null)
   const [refundCount, setRefundCount] = useState<number | null>(null)
 
-  // Refetch pending-applications and open-refund-request counts on every admin
-  // route change so the badges reflect reality after approve/reject without a
-  // global event bus. Only admins can read these rows via RLS, so we gate the
-  // fetch (and the rendered badges below) on role.
+  // Refetch the on-hold and open-refund-request counts on every admin route
+  // change so the badges reflect reality after a decision without a global
+  // event bus. Only admins can read these rows via RLS, so we gate the fetch
+  // (and the rendered badges below) on role.
+  //
+  // The on-hold count reads 0 in normal operation now that signing up no
+  // longer parks anyone at 'pending' — a non-zero badge means an admin has
+  // suspended someone and not yet resolved it.
   useEffect(() => {
     if (profile?.role !== 'admin') return
     let cancelled = false

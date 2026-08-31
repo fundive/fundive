@@ -57,7 +57,7 @@ deploy time.
 | --- | --- | --- |
 | `VITE_SUPABASE_URL`        | `src/lib/supabase.ts` | Cloud project URL; local is `http://127.0.0.1:64321` |
 | `VITE_SUPABASE_ANON_KEY`   | `src/lib/supabase.ts` | Public; ships to the browser |
-| `VITE_TURNSTILE_SITE_KEY`  | Turnstile widget      | **Required** — the build fails without it |
+| `VITE_TURNSTILE_SITE_KEY`  | Turnstile widget      | **Required** — the build fails without it. Gates both `/signup` and guest `/register` |
 | `VITE_VAPID_PUBLIC_KEY`    | `src/lib/push.ts`     | Push toggle is hidden if unset |
 | `SUPABASE_PROJECT_REF`     | `make link`, `make push` | e.g. `abcdefghij` |
 | `SUPABASE_DB_PASSWORD`     | `make push`, `make pull` | DB password for migrations |
@@ -183,6 +183,7 @@ Required secrets (`supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" �
 | --- | --- |
 | `GMAIL_USER`          | Gmail account that sends the mail |
 | `GMAIL_APP_PASSWORD`  | Gmail [app password](https://support.google.com/accounts/answer/185833) — not the normal password |
+| `TURNSTILE_SECRET`    | Cloudflare Turnstile secret key, paired with `VITE_TURNSTILE_SITE_KEY`. Required by **`create-registration`** and **`create-account`**; both return 500 without it rather than accept an unverifiable token. Cloudflare's always-pass test secret `1x0000000000000000000000000000000AA` covers local dev |
 
 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` are
 auto-injected by the edge runtime.
@@ -193,7 +194,8 @@ Deploy:
 make deploy-functions      # ships every function under supabase/functions/
 supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" \
   GMAIL_USER=<shop-gmail-account> \
-  GMAIL_APP_PASSWORD=<app-password>
+  GMAIL_APP_PASSWORD=<app-password> \
+  TURNSTILE_SECRET=<turnstile-secret-key>
 ```
 
 Local testing:

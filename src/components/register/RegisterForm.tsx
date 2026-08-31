@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { personName } from '../../lib/names'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '../../lib/supabase'
@@ -11,10 +11,11 @@ import { needsShoeSize } from '../../lib/logistics'
 import { usesCourseDays } from '../../lib/event-kinds'
 import { siteConfig } from '../../config/site'
 import { t } from '../../i18n'
-import { BTN_XS_ON_AMBER, TEXT_DANGER, TEXT_SUCCESS } from '../../styles/tokens'
+import { BTN_XS_ON_AMBER, INPUT_REGISTER, TEXT_DANGER, TEXT_SUCCESS } from '../../styles/tokens'
 import { buildCharges, surchargeRate, NITROX_COURSE_FEE } from '../../lib/booking-charges'
 import { fetchCreditsForUser, openCreditBalance, applyCreditToBooking } from '../../lib/credits'
 import { invokeWithRetry, edgeErrorMessage } from '../../lib/edge-invoke'
+import { readSignupFailure } from '../../lib/signup-errors'
 import { fetchRideSeats, canRequestRide, type RideSeats } from '../../lib/event-vehicles'
 import { missingWaivers, fetchEventWaiverOverrides, fetchDiverSignatures, fetchWaivers } from '../../lib/waivers'
 import { WaiverSignDialog } from '../waivers/WaiverSignDialog'
@@ -26,6 +27,9 @@ import { isHeicFile } from '../../lib/image-compress'
 import { TurnstileWidget } from './TurnstileWidget'
 import { WhatHappensNext } from './WhatHappensNext'
 import { TextField } from './TextField'
+import { HeightField, WeightField } from '../MeasureField'
+import { MeasureRow } from './MeasureRow'
+import { numOrNullStr } from '../../lib/units'
 import { ShoeSizeField } from '../ShoeSizeField'
 import {
   registrationDraftKey,
@@ -84,12 +88,21 @@ export function RegisterForm({ event, profile, userId, onClose, onBooked, existi
 
 // The server's message, then a softener over the most common case (email
 // already taken) pointing at the inline sign-in banner.
+// Guest failures go through the shared signup mapper, so a captcha or
+// rate-limit rejection reads the same here as it does on /signup instead of
+// surfacing the handler's log string. A taken address keeps this form's own
+// longer copy, which names the "Sign in" control at the top of the page.
+//
+// Authed callers are a different audience: the errors they hit are booking
+// errors (duplicate booking, event full, event passed), authored by the
+// handler as diver-facing sentences, and the duplicate-booking recovery below
+// matches on them. Those stay verbatim.
 async function readFunctionsError(error: { message: string; context?: unknown }, isGuest: boolean): Promise<string> {
-  const msg = await edgeErrorMessage(error)
-  if (isGuest && /already.*registered|already.*exists/i.test(msg)) {
-    return t.register.errors.emailExists
+  if (isGuest) {
+    const failure = await readSignupFailure(error as Error & { context?: unknown }, t.register.errors.registrationFailed)
+    return failure.emailTaken ? t.register.errors.emailExists : failure.message
   }
-  return msg
+  return edgeErrorMessage(error)
 }
 
 // Read back a diver's own active booking for an event — used to recover from a
@@ -687,6 +700,11 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
   const [guestPassword, setGuestPassword] = useState('')
   const [guestAgreedTerms, setGuestAgreedTerms] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  // The challenge script could not be fetched, so no token will ever arrive.
+  // Without this the guest is stuck on step 2 behind a Next button that never
+  // enables — same "contact us" fallback as a missing site key.
+  const [captchaDead, setCaptchaDead] = useState(false)
+  const onCaptchaUnavailable = useCallback(() => setCaptchaDead(true), [])
 
   // Local resume: autosave the diver's in-progress answers to localStorage so a
   // dropped connection or closed tab doesn't force a restart of the four-step
@@ -1556,8 +1574,12 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
                   <a href="/terms" target="_blank" rel="noreferrer" className="text-brand-700 hover:underline">{t.register.account.termsLink}</a>.
                 </span>
               </label>
-              {turnstileSiteKey ? (
-                <TurnstileWidget siteKey={turnstileSiteKey} onToken={setTurnstileToken} />
+              {turnstileSiteKey && !captchaDead ? (
+                <TurnstileWidget
+                  siteKey={turnstileSiteKey}
+                  onToken={setTurnstileToken}
+                  onUnavailable={onCaptchaUnavailable}
+                />
               ) : (
                 <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
                   {t.register.account.unavailable}
@@ -1586,8 +1608,20 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
             <TextField label={t.register.step2.idLabel} value={idNumber} onChange={setIdNumber} />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <TextField label={t.register.step2.heightLabel} type="number" step="0.1" value={heightCm} onChange={setHeightCm} hint={t.register.step2.sizesHint} />
-              <TextField label={t.register.step2.weightLabel} type="number" step="0.1" value={weightKg} onChange={setWeightKg} />
+              <MeasureRow label={t.register.step2.heightLabel} hint={t.register.step2.sizesHint}>
+                <HeightField
+                  valueCm={numOrNullStr(heightCm)}
+                  onChange={cm => setHeightCm(cm == null ? '' : String(cm))}
+                  inputClassName={INPUT_REGISTER}
+                />
+              </MeasureRow>
+              <MeasureRow label={t.register.step2.weightLabel}>
+                <WeightField
+                  valueKg={numOrNullStr(weightKg)}
+                  onChange={kg => setWeightKg(kg == null ? '' : String(kg))}
+                  inputClassName={INPUT_REGISTER}
+                />
+              </MeasureRow>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
