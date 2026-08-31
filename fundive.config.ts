@@ -14,7 +14,7 @@
 
 export const siteConfig = {
   // Leave as-is for a new deployment; only bump when the CHANGELOG says to.
-  configVersion: 10,
+  configVersion: 11,
 
   identity: {
     // Printed in italics on the registration PDF. Leave blank to omit it.
@@ -34,7 +34,6 @@ export const siteConfig = {
     mapsUrl: 'https://maps.google.com/?q=your+shop',
     lineUrl: 'https://line.me/R/ti/p/%40yourshop',
     whatsappUrl: 'https://wa.me/15550000000',
-    paypalLink: 'https://paypal.me/yourshop',
   },
 
   // No trailing slashes.
@@ -99,7 +98,6 @@ export const siteConfig = {
       'Boots (rubber sole)': 3, 'Boots (felt sole)': 3, 'Dive computer': 10,
     },
     paymentDeadlineFallbackDays: 7,
-    cardSurchargePercent: 5,
     nitroxCourseFee: 6000,
     // Length of a single-day event in the "Add to Google Calendar" link.
     eventDurationHours: 8,

@@ -177,14 +177,17 @@ total = base_price
                          else 0 — surcharge=0 means transport is bundled
                          and we render "Included with base price")
       + nitrox_course   (business.nitroxCourseFee if required-and-not-certified and ticked)
-total *= (1 + business.cardSurchargePercent/100)   (if payment_method === 'credit_card')
+      + surcharge       (subtotal × the chosen payment method's surcharge_percent;
+                         0 for a method that carries none)
 ```
 
 Gear prices come from `business.gearPrices` in `fundive.config.ts`; the nitrox
 fee is `business.nitroxCourseFee`, read through `NITROX_COURSE_FEE` in
 `src/lib/booking-charges.ts` (shared by both register forms and the display-time
-recompute). The card surcharge is `business.cardSurchargePercent`. All three are
-shop-config fields, not literals — see [forking.md](./forking.md). Gear is
+recompute). Both are shop-config fields, not literals — see
+[forking.md](./forking.md). The surcharge comes off the chosen `payment_methods`
+row instead, since it varies per method — see
+[payments.md § Payment methods](./payments.md#payment-methods). Gear is
 à-la-carte only — there is no full-set package. **Transport** is a per-event
 integer on the linked `prices.transport` row, surfaced on `AppEvent` as
 `transport_price` (a `surcharge` of 0 means transport is bundled into the base
