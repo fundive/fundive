@@ -34,7 +34,6 @@ export interface SiteContact {
   mapsUrl: string
   lineUrl: string
   whatsappUrl: string
-  paypalLink: string
 }
 
 export interface SiteUrls {
@@ -124,8 +123,6 @@ export interface SiteBusiness {
   gearPrices: Record<string, number>
   /** Fallback full-payment deadline when an event sets none: N days before start. */
   paymentDeadlineFallbackDays: number
-  /** Surcharge shown for card / PayPal payment methods, as a whole percent. */
-  cardSurchargePercent: number
   /** Flat fee to add a Nitrox course to a dive registration, in shop currency. */
   nitroxCourseFee: number
   /** How long a single-day event runs, in hours, for the "Add to Google

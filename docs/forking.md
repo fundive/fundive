@@ -38,7 +38,7 @@ Walking the fields:
 | `assets.*` | Paths to your branding files under `public/` — see §2. |
 | `features.radio` / `push` / `broadcast` | Toggle optional features off if you don't run them. |
 | `business.gearItems` / `gearPrices` | Your rental gear list and per-item prices. See the note below on renaming items and on stocking one item in several styles. |
-| `business.paymentDeadlineFallbackDays` / `cardSurchargePercent` | Payment defaults. |
+| `business.paymentDeadlineFallbackDays` | Fallback full-payment deadline when an event sets none. Per-method payment surcharges are not config — they live on the `payment_methods` rows an admin edits at `/admin/payment-methods`. |
 | `business.tripKeywords` | Case-insensitive regex fragments that classify a dive as a "trip" by title. Empty = never. |
 | `business.eventDurationHours` | How long a single-day event runs, for the "Add to Google Calendar" link. Optional — omit for 8. |
 | `weatherRegion` | Lat/long + label for the admin weather baseline. |

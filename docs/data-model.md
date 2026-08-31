@@ -49,6 +49,7 @@ public.push_subscriptions / push_notifications_sent  (cron infra)
 | `event_waivers` | `id`, `event_id`, `waiver_code`, `mode` | Per-event override of a waiver's global rule: `mode` `require` adds it, `exempt` drops it for one event. `event_id` NOT NULL → `events`; one override per `(event_id, waiver_code)`. Read by any authenticated user (the registration form needs it); admin write. Edited on the admin Edit-event form. |
 | `cert_levels` | `id`, `agency`, `name`, `prereq_cert_id` | Reference data for the certification picker. Self-referential prerequisite chain. |
 | `cancellation_policies` | `id`, `title`, `cancellation_policy` | Bubble-imported reference data linked from `events` rows via `cancel_policy`. |
+| `payment_methods` | `id`, `key`, `label`, `surcharge_percent`, `bank_name`, `bank_code`, `account_number`, `account_holder`, `swift_bic`, `pay_url`, `notes`, `collects_invoice_email`, `shows_shop_contact`, `sort_order`, `active` | How divers can pay. `key` is the stable value `bookings.details.payment_method` records, so a method can be renamed or repriced without orphaning a booking; everything else is what the register form and the emailed PDF print. Publicly readable (the register form renders before sign-in), admin-written. Admin-managed at `/admin/payment-methods`; see [payments.md § Payment methods](./payments.md#payment-methods). |
 | `trip_templates` | catalog | Reusable "what's included" / not-included / transportation / itinerary / prerequisites copy an event links to via `events.trip_template_id`; surfaces in the booking form. Renamed from `dive_travel` (`20260708050000`). |
 | `scheduled_trips` | `id`, `title`, `destination`, `status`, `price`, `addon_ids`, `room_type_ids` | The shop's own curated, dated trips shown on the diver Scheduled Trips tab. Admin-managed base table (admin-only RLS); divers read published rows via `list_scheduled_trips()`. Carries `addon_ids`/`room_type_ids` (into the shop `addons`/`rooms` catalog) so divers register self-contained for a cost estimate — same flow as `packages`, minus tiers/partner. Distinct from `packages` (open-ended travel abroad) and the `events.is_trip` flag. See [packages.md](./packages.md). |
 | `scheduled_trip_registrations` | `id`, `scheduled_trip_id`, `diver_id`, `estimated_cost`, `details`, `status` | One row per diver-registration for a scheduled trip; frozen estimate snapshot in `details`. No kickback (the shop's own trip). Admin-only base table; divers create via the `register-scheduled-trip` edge fn and read their own via `list_my_scheduled_trip_registrations()`. Partial unique index keeps one live registration per diver per trip. |
@@ -340,7 +341,7 @@ interface BookingDetails {
   room?: { option_id?: string | null; notes?: string | null }
   add_ons?: string[]                // addons.id list
   transportation?: boolean
-  payment_method?: 'bank_transfer' | 'credit_card' | 'paypal' | 'cash'
+  payment_method?: string           // payment_methods.key the diver chose
   pay_deposit_only?: boolean        // deposit-only-at-registration flag
   nitrox_course_addon?: boolean
   charges?: ChargeLine[]            // itemized snapshot — see below

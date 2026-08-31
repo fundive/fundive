@@ -64,6 +64,10 @@ interface MockOpts {
   priceStartingAt?: number
   priceDeposit?: number
   priceTransport?: number
+  /** The payment_methods row the posted payment_method key resolves to. The
+   *  surcharge is read from here, never from the request. */
+  paymentMethodSurcharge?: number
+  paymentMethodMissing?: boolean
 }
 
 function makeDeps(opts: MockOpts = {}): { deps: Deps; captured: CapturedWrites } {
@@ -104,6 +108,12 @@ function makeDeps(opts: MockOpts = {}): { deps: Deps; captured: CapturedWrites }
             ...(opts.eventPast
               ? { start_date: '2020-01-01', end_date: '2020-01-03', course_days: ['2020-01-01', '2020-01-02'] }
               : { start_date: '2030-06-01', end_date: '2030-06-03', course_days: ['2030-06-01', '2030-06-02', '2030-06-03'] }),
+          }
+        case 'payment_methods':
+          return opts.paymentMethodMissing ? null : {
+            key: 'credit_card', label: 'Credit card',
+            surcharge_percent: opts.paymentMethodSurcharge ?? 0,
+            collects_invoice_email: true, shows_shop_contact: false,
           }
         case 'prices':
           return {
@@ -867,8 +877,11 @@ describe('handleRegistration — email behavior', () => {
     expect(details.total).toBe(4000)
   })
 
-  it('recomputes details.deposit (face + card surcharge) from the catalog', async () => {
-    const { deps, captured } = makeDeps({ eventPriceId: 'p1', priceStartingAt: 10000, priceDeposit: 3000 })
+  it("recomputes details.deposit (face + the method's surcharge) from the catalog", async () => {
+    const { deps, captured } = makeDeps({
+      eventPriceId: 'p1', priceStartingAt: 10000, priceDeposit: 3000,
+      paymentMethodSurcharge: 5,
+    })
     await handleRegistration(postJson({
       ...goodBody,
       email:    'g@example.com',
@@ -880,6 +893,25 @@ describe('handleRegistration — email behavior', () => {
     // subTotal 10000 + 5% full-card surcharge (500) = 10500; deposit 3000 + 5% (150) = 3150.
     expect(details.total).toBe(10500)
     expect(details.deposit).toBe(3150)
+  })
+
+  // The surcharge is the shop's published rate for the named method. A request
+  // naming a method the shop deleted must not fall back to some other rate.
+  it('bills no surcharge when the posted payment_method resolves to no row', async () => {
+    const { deps, captured } = makeDeps({
+      eventPriceId: 'p1', priceStartingAt: 10000, priceDeposit: 3000,
+      paymentMethodMissing: true,
+    })
+    await handleRegistration(postJson({
+      ...goodBody,
+      email:    'g@example.com',
+      password: 'hunter2hunter2',
+      turnstile_token: 'tk',
+      details:  { total: 1, deposit: 1, payment_method: 'deleted_method' },
+    }), deps)
+    const details = captured.bookingInsert[0].details as { total: number; deposit: number }
+    expect(details.total).toBe(10000)
+    expect(details.deposit).toBe(3000)
   })
 })
 
