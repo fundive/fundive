@@ -92,7 +92,7 @@ export function AdminPaymentMethodsPage() {
               <div className="min-w-0">
                 <p className="font-medium text-brand-900 text-sm truncate">
                   {paymentMethodLabel(m)}
-                  {!m.active && <span className="ml-2 text-xs text-brand-900/60">{pm.inactive}</span>}
+                  {!m.active && <span className="ml-2 text-xs text-brand-900/70">{pm.inactive}</span>}
                 </p>
                 <p className="text-xs text-brand-900/70 truncate">{summarize(m)}</p>
               </div>
