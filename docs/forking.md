@@ -218,5 +218,11 @@ Then point at your own backend and ship:
 3. Set the push-worker secrets (`wrangler secret put`) and edge-function secrets
    (`supabase secrets set`) — see [deployment.md](./deployment.md).
 
+Steps 1 and 2 also exist as manual GitHub Actions in your fork — **Push
+Supabase migrations** and **Deploy** — once you have put the same values in
+Settings → Secrets → Actions. Useful when more than one person ships, or when
+you would rather not keep production credentials on a laptop. See
+[deployment.md § Deploying from GitHub Actions](./deployment.md#deploying-from-github-actions).
+
 Because FunDive runs as a network service under the AGPL, keep a visible link to
 your source from the deployed app (see the [README](https://github.com/fundive/fundive/blob/main/README.md#license)).
