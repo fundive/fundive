@@ -13,6 +13,11 @@ Three things get deployed:
 Database changes deploy via `supabase db push` — a separate workflow
 described below.
 
+All four can go out from your machine with `make`, or from the GitHub
+Actions UI — see [§ Deploying from GitHub Actions](#deploying-from-github-actions).
+Both routes run the same commands against the same project; the buttons
+exist so shipping does not depend on one machine holding the credentials.
+
 ## Environment variables
 
 The single source of truth for what to fill in is
@@ -96,8 +101,9 @@ Two Cloudflare Workers are deployed separately:
 
 `make deploy` runs both worker deploys in sequence from your machine, reading
 the `CLOUDFLARE_*` creds and `VITE_*` build vars from `.env.local` — no
-`wrangler login`, no GitHub Actions. Use `make deploy-app` or `make deploy-push`
-to ship only one. Each target first checks the Cloudflare creds are present and
+`wrangler login`. Use `make deploy-app` or `make deploy-push` to ship only one,
+or the **Deploy** workflow in GitHub Actions with a `target`
+([below](#deploying-from-github-actions)). Each target first checks the Cloudflare creds are present and
 fails fast with a clear message if not.
 
 > An experimental `fundive` CLI (`npx fundive deploy`) also exists for the future
@@ -245,15 +251,73 @@ make dump-data    # writes cloud data into supabase/seed.sql
 make reset        # rebuilds local from migrations + seed
 ```
 
+## Deploying from GitHub Actions
+
+Two manual workflows, both **`workflow_dispatch` only** — nothing ships
+because a commit landed. Actions → pick the workflow → *Run workflow*. A
+fork gets both; they do nothing until the fork sets its own secrets.
+
+| Workflow | File | Does | Inputs |
+| --- | --- | --- | --- |
+| **Deploy** | `.github/workflows/deploy.yml` | `make deploy` from a clean checkout: SPA Worker, push cron Worker, edge functions | `target` (all / spa / push-worker / edge-functions), `skip_checks` |
+| **Push Supabase migrations** | `.github/workflows/supabase-push.yml` | `make push` against the linked project | `dry_run` (**default on**) |
+
+They are deliberately two buttons. Schema goes first, gets looked at, and
+then the code that expects it ships — one press that did both would make
+"the column exists" and "the code needs the column" the same event, which
+is the ordering that takes a site down.
+
+**The migration push dry-runs by default.** The run prints
+`supabase migration list` (local against cloud) and then
+`supabase db push --dry-run`, applying nothing. Reading that list is the
+review step a local `make push` does not have. Untick `dry_run` to apply.
+Migrations are forward-only and immutable once pushed — there is no undo
+in this workflow, or anywhere else.
+
+**Deploy runs the checks first.** Lint, `tsc -b` and the unit project run
+before any deploy job, because the commit at the top of `main` is not
+necessarily the commit the tab was opened on. `skip_checks` exists for a
+rollback that has to go out now; it shows in the run so nobody has to
+wonder later.
+
+Both refuse to run from anything but `main`, and both declare
+`environment: production`, so whatever reviewers or wait timers a fork
+sets in Settings → Environments apply to them. Every action is SHA-pinned.
+
+### Repository secrets
+
+Settings → Secrets and variables → Actions. Same values as `.env.local`,
+which stays the source of truth for a local `make deploy`:
+
+| Secret | Used by |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Deploy (spa, push-worker) |
+| `CLOUDFLARE_ACCOUNT_ID` | Deploy (spa, push-worker) |
+| `VITE_SUPABASE_URL` | Deploy (spa) |
+| `VITE_SUPABASE_ANON_KEY` | Deploy (spa) |
+| `VITE_TURNSTILE_SITE_KEY` | Deploy (spa) — **the build fails without it** |
+| `VITE_VAPID_PUBLIC_KEY` | Deploy (spa); optional, push UI hides itself |
+| `VITE_PUSH_WORKER_URL` | Deploy (spa); optional |
+| `SUPABASE_ACCESS_TOKEN` | Deploy (edge-functions), Push migrations |
+| `SUPABASE_PROJECT_REF` | Deploy (edge-functions), Push migrations |
+| `SUPABASE_DB_PASSWORD` | Push migrations |
+
+Nothing else belongs in GitHub. `VAPID_PRIVATE_KEY`, the service-role key
+and every other runtime secret stay on Cloudflare (`wrangler secret put`)
+and on Supabase (`supabase secrets set`) — the workflows deploy code, they
+never rotate a runtime secret.
+
 ## Release checklist
 
 Small feature or bug fix:
 
 1. Run `make test` locally — unit + integration.
 2. If the change touches the schema: `make reset` first, then
-   `make test`, then `make push` after review.
-3. `make deploy` — ships both workers (SPA + push cron). Use
-   `make deploy-app` or `make deploy-push` if you're touching only one.
+   `make test`, then `make push` after review — or the **Push Supabase
+   migrations** workflow, dry run first.
+3. `make deploy` — ships both workers (SPA + push cron) and the edge
+   functions. Use `make deploy-app` or `make deploy-push` if you're
+   touching only one, or the **Deploy** workflow with a `target`.
 4. `make verify` — confirm cloud schema + row counts match local
    expectations post-deploy.
 
@@ -328,3 +392,7 @@ a refactor cannot quietly reduce it to checking nothing.
 
 Integration and security suites are **not** in CI: they need the local Supabase
 stack. Run them with `make test`.
+
+Nothing deploys from CI. The two workflows that touch a live project —
+`deploy.yml` and `supabase-push.yml` — are manual only; see
+[§ Deploying from GitHub Actions](#deploying-from-github-actions).
