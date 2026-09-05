@@ -8,6 +8,7 @@
 
 import { Buffer } from "node:buffer"
 import { corsHeaders, safeError } from "../_shared/responses.ts"
+import { fetchShopContact } from "../_shared/shop-contact.ts"
 import { takeActionSlot, rateLimitedBody, type RpcClient } from "../_shared/rate-limit.ts"
 import { siteConfig } from "../../../fundive.config.ts"
 import type { GroupRegistrationPdfPayload, GroupDiverColumn } from "../_shared/pdf.ts"
@@ -209,6 +210,7 @@ export async function handleGroupSummary(req: Request, deps: Deps): Promise<Resp
   const payload: GroupRegistrationPdfPayload = {
     generatedFor: divers.find(d => d.name)?.name ?? "the group",
     leadEmail:    callerEmail ?? "",
+    shop:         await fetchShopContact(admin),
     paymentMethod,
     creditCardInvoiceEmail,
     groupTotal,

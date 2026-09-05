@@ -19,8 +19,8 @@ import {
   buildTermsRequestEmail, termsConsentUrl, TERMS_CONSENT_TOKEN_DAYS,
 } from "../_shared/terms-consent-email.ts"
 import { siteConfig } from "../_shared/config.ts"
+import { shopEmail } from "../_shared/shop-contact.ts"
 
-const COMPANY_EMAIL = siteConfig.contact.email
 
 Deno.serve(async (req) => {
   const json = (body: unknown, status = 200) => jsonResponse(req, body, status)
@@ -79,10 +79,11 @@ Deno.serve(async (req) => {
       host: "smtp.gmail.com", port: 465, secure: true,
       auth: { user: GMAIL_USER, pass: GMAIL_PASS },
     })
+    const shopMail = await shopEmail(admin)
     await transporter.sendMail({
       from: { name: siteConfig.identity.shopName, address: GMAIL_USER },
       to,
-      bcc: COMPANY_EMAIL,
+      ...(shopMail ? { bcc: shopMail } : {}),
       subject,
       text,
     })
