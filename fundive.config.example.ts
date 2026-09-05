@@ -15,7 +15,7 @@ import { defineConfig } from 'fundive/config'
 
 export const siteConfig = defineConfig({
   // Bump only when the platform CHANGELOG says to.
-  configVersion: 11,
+  configVersion: 12,
 
   identity: {
     // Printed in italics on the registration PDF. Leave blank to omit it.
@@ -28,14 +28,6 @@ export const siteConfig = defineConfig({
     logoAlt: 'Your Dive Shop',
   },
 
-  contact: {
-    email: 'hello@example.com',
-    phone: '+1 555-000-0000',
-    address: '123 Harbour Rd, Your City',
-    mapsUrl: 'https://maps.google.com/?q=your+shop',
-    lineUrl: 'https://line.me/R/ti/p/%40yourshop',
-    whatsappUrl: 'https://wa.me/15550000000',
-  },
 
   // No trailing slashes.
   urls: {

@@ -25,8 +25,8 @@ import {
   buildWalkInAccountEmail, termsConsentUrl, TERMS_CONSENT_TOKEN_DAYS,
 } from "../_shared/terms-consent-email.ts"
 import { siteConfig } from "../_shared/config.ts"
+import { shopEmail } from "../_shared/shop-contact.ts"
 
-const COMPANY_EMAIL = siteConfig.contact.email
 
 interface Body {
   email:         string
@@ -138,10 +138,11 @@ Deno.serve(async (req) => {
       const { subject, text } = buildWalkInAccountEmail({
         name: fullName, email, eventTitle, acceptUrl,
       })
+      const shopMail = await shopEmail(admin)
       await transporter.sendMail({
         from: { name: siteConfig.identity.shopName, address: GMAIL_USER },
         to:   email,
-        bcc:  COMPANY_EMAIL,
+        ...(shopMail ? { bcc: shopMail } : {}),
         subject,
         text,
       })

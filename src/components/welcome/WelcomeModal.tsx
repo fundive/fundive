@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
 import { siteConfig } from '../../config/site'
+import { useShopContact } from '../../hooks/useShopContact'
 import { BTN_GHOST, BTN_PRIMARY } from '../../styles/tokens'
 import { t } from '../../i18n'
 
@@ -29,6 +30,7 @@ import { t } from '../../i18n'
 // onAuthStateChange (USER_UPDATED) so useAuth picks up the new value without a
 // page reload.
 export function WelcomeModal({ user, onDismiss }: { user: User; onDismiss: () => void }) {
+  const { contact } = useShopContact()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
 
@@ -65,10 +67,14 @@ export function WelcomeModal({ user, onDismiss }: { user: User; onDismiss: () =>
           <p>
             {t.welcome.profileNoRush}
           </p>
-          <p className="text-brand-950 font-medium">
-            {t.welcome.contactPrefix(siteConfig.identity.shortName)}{' '}
-            <a href={`mailto:${siteConfig.contact.email}`} className="text-brand-700 underline hover:text-brand-900">{siteConfig.contact.email}</a>.
-          </p>
+          {/* Only when there is an address to give: a sentence that ends in
+              "reach us at ." is worse than one that was never shown. */}
+          {contact.email && (
+            <p className="text-brand-950 font-medium">
+              {t.welcome.contactPrefix(siteConfig.identity.shortName)}{' '}
+              <a href={`mailto:${contact.email}`} className="text-brand-700 underline hover:text-brand-900">{contact.email}</a>.
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <button

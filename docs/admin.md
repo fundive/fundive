@@ -46,6 +46,7 @@ Write/manage routes — gated by `AdminRoute` (admin only):
 | `/admin/waivers`                        | `AdminWaiversPage`      | Shop-authored waivers: text or uploaded PDF, per-event attach, e-signed by divers |
 | `/admin/cancellation-policies`          | `AdminCancellationPoliciesPage` | Shop-authored cancellation policies, attached per event |
 | `/admin/payment-methods`                | `AdminPaymentMethodsPage` | How divers can pay: the method list, each one's bank account / payment link / surcharge — see [payments.md § Payment methods](./payments.md#payment-methods) |
+| `/admin/contact`                        | `AdminContactPage` | How divers reach the shop: the company email / phone / address / map link, and the ordered list of Contact-tab buttons (LINE, WhatsApp, Telegram, a phone number, …). Replaces what used to be `siteConfig.contact` |
 | `/admin/terms`                          | `AdminTermsPage`        | The shop's Terms of Use: one Markdown document, versioned. Ticking **material change** bumps the version, and every diver re-accepts on their next visit |
 | `/admin/applications`                   | `AdminApplicationsPage` | Approve or reject pending diver accounts |
 | `/admin/logistics`                      | `AdminLogisticsPage`    | Day-of board: who is diving, what to pack, who owes money, who rides in which car |

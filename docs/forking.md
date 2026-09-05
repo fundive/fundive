@@ -26,8 +26,6 @@ Walking the fields:
 | `configVersion` | Leave as-is; only bump when the CHANGELOG says to. |
 | `app.name` / `shortName` | Full shop name and a short label (used for the PWA short name and staff-facing copy). |
 | `app.description` / `logoAlt` | PWA description and logo alt text. |
-| `app.supportEmail` | Where registration mail and support requests go. |
-| `contact.*` | Phone, address, Google Maps URL, LINE / WhatsApp links, PayPal link. Leave a link empty to hide it. |
 | `urls.site` / `app` / `radio` | Your marketing site, the app origin (also the share-link origin), and (optional) radio stream. No trailing slashes. |
 | `locale.timezone` | IANA zone, e.g. `Asia/Taipei` or `America/Los_Angeles`. |
 | `locale.currency` / `currencyLabel` | ISO code and the label shown in the UI. |
@@ -42,6 +40,16 @@ Walking the fields:
 | `business.tripKeywords` | Case-insensitive regex fragments that classify a dive as a "trip" by title. Empty = never. |
 | `business.eventDurationHours` | How long a single-day event runs, for the "Add to Google Calendar" link. Optional — omit for 8. |
 | `weatherRegion` | Lat/long + label for the admin weather baseline. |
+
+> **Contact details are not here.** Your email, phone, address, map link and
+> the chat buttons on the Contact tab are **admin-edited rows**, not config:
+> set them at Manage → Contact once the app is running. They were config fields
+> until 20260905120000, and an email address that needs a developer, a build
+> and a deploy to change is not a setting. A fresh install ships them empty —
+> the Contact tab says so, and every surface that would print an address simply
+> omits it — so filling them in is part of first-run setup. See
+> [deployment.md](./deployment.md) and
+> [data-model.md](./data-model.md#shop_contact).
 
 > **Event sharing.** The in-app "share this event" button needs no toggle: it
 > copies `<urls.app>/register/<event id>`, the app's own public registration
