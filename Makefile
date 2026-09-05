@@ -158,5 +158,5 @@ dev:
 	fi
 	@npm run dev
 
-studio: ; @command -v xdg-open >/dev/null && xdg-open http://127.0.0.1:64323 || echo "Open http://127.0.0.1:64323"
-mail:   ; @command -v xdg-open >/dev/null && xdg-open http://127.0.0.1:64324 || echo "Open http://127.0.0.1:64324"
+studio: ; @command -v xdg-open >/dev/null && xdg-open http://127.0.0.1:64423 || echo "Open http://127.0.0.1:64423"
+mail:   ; @command -v xdg-open >/dev/null && xdg-open http://127.0.0.1:64424 || echo "Open http://127.0.0.1:64424"

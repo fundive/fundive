@@ -15,13 +15,13 @@ describe('supabase client module', () => {
   })
 
   it('throws when VITE_SUPABASE_ANON_KEY is missing', async () => {
-    vi.stubEnv('VITE_SUPABASE_URL', 'http://127.0.0.1:64321')
+    vi.stubEnv('VITE_SUPABASE_URL', 'http://127.0.0.1:64421')
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', '')
     await expect(import('./supabase')).rejects.toThrow(/Missing.*VITE_SUPABASE_ANON_KEY/i)
   })
 
   it('exports a supabase client when both env vars are present', async () => {
-    vi.stubEnv('VITE_SUPABASE_URL', 'http://127.0.0.1:64321')
+    vi.stubEnv('VITE_SUPABASE_URL', 'http://127.0.0.1:64421')
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon')
     const mod = await import('./supabase')
     expect(mod.supabase).toBeDefined()

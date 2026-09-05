@@ -55,7 +55,7 @@ deploy time.
 
 | Var | Where used | Notes |
 | --- | --- | --- |
-| `VITE_SUPABASE_URL`        | `src/lib/supabase.ts` | Cloud project URL; local is `http://127.0.0.1:64321` |
+| `VITE_SUPABASE_URL`        | `src/lib/supabase.ts` | Cloud project URL; local is `http://127.0.0.1:64421` |
 | `VITE_SUPABASE_ANON_KEY`   | `src/lib/supabase.ts` | Public; ships to the browser |
 | `VITE_TURNSTILE_SITE_KEY`  | Turnstile widget      | **Required** — the build fails without it. Gates both `/signup` and guest `/register` |
 | `VITE_VAPID_PUBLIC_KEY`    | `src/lib/push.ts`     | Push toggle is hidden if unset |
@@ -303,7 +303,7 @@ It edits the registry table only: never your schema, never your data.
 Rehearse it against a restored snapshot before you point it at production:
 
 ```sh
-ADOPT_DB_URL=postgresql://postgres:postgres@127.0.0.1:64322/postgres \
+ADOPT_DB_URL=postgresql://postgres:postgres@127.0.0.1:64422/postgres \
   scripts/adopt-existing-deployment.sh --baseline <version> --apply
 ```
 
