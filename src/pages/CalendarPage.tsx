@@ -11,7 +11,7 @@ import { MultiRegisterForm } from '../components/register/MultiRegisterForm'
 import { ShareEventButton } from '../components/ShareEventButton'
 import { AddToGoogleCalendarButton } from '../components/AddToGoogleCalendarButton'
 import { siteConfig } from '../config/site'
-import { BTN_XS_ON_DEEP, MODAL_BACKDROP, MODAL_PANEL, TEXT_BODY, TEXT_HEADING } from '../styles/tokens'
+import { ACTION_BAR, ACTION_BAR_CLEARANCE, BTN_XS_ON_DEEP, MODAL_BACKDROP, MODAL_PANEL, TEXT_BODY, TEXT_HEADING } from '../styles/tokens'
 import { canSelfCancel } from '../lib/booking-status'
 import { netPaidByBooking } from '../lib/payments'
 import { t } from '../i18n'
@@ -142,7 +142,7 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className={`max-w-2xl mx-auto ${mode === 'multi' ? ACTION_BAR_CLEARANCE : ''}`}>
       {user && mode === 'single' && (
         <button
           type="button"
@@ -193,7 +193,7 @@ export function CalendarPage() {
       />
 
       {mode === 'multi' && (
-        <div className="fixed inset-x-0 bottom-0 bg-brand-900/95 backdrop-blur-md border-t border-brand-950 px-4 py-3 z-40">
+        <div className={ACTION_BAR}>
           <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
             <div className="text-white text-sm">
               <p className="font-semibold">
