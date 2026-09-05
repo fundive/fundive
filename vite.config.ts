@@ -59,6 +59,11 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     root: platformDir,
+    // Pinned, and strict about it. app-fundivers' dev server takes Vite's
+    // default 5173, so an unpinned second server here would silently drift to
+    // whatever port was free and hand out a different URL each run. Failing to
+    // start beats guessing which tab is which.
+    server: { port: 5273, strictPort: true },
     publicDir: path.join(deploymentDir, 'public'),
     envDir: deploymentDir,
     build: { outDir: path.join(deploymentDir, 'dist'), emptyOutDir: true },
