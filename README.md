@@ -139,6 +139,11 @@ commands. The free tiers of GitHub, Supabase, and Cloudflare cover a small shop,
 so you can launch for **$0**. The developer-oriented reference below and in
 [`docs/deployment.md`](docs/deployment.md) covers the same ground in less detail.
 
+Closing the shop, or moving on? **[docs/shutdown.md](docs/shutdown.md)** is the
+same walkthrough in reverse — settle what is outstanding, take your records out
+as spreadsheets, and switch the services and accounts off in an order that
+leaves nothing stranded.
+
 ## Deployment
 
 FunDive deploys to Cloudflare Workers (an SPA worker + a push-cron worker) with a

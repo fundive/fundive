@@ -175,6 +175,10 @@ and add it any time; the app works fine without it.
       running a modified copy over the network, so AGPL §13 obliges you to offer
       users the source.
 
+**Closing down one day?** [`shutdown.md`](shutdown.md) is this walkthrough in
+reverse: what to settle first, how to take your records with you, and the order
+to switch things off in.
+
 **Stuck?** Open an issue on the repo, or read the deeper docs in this folder —
 [`deployment.md`](deployment.md) maps every key to where it goes, and
 [`forking.md`](forking.md) covers the config fields in detail.

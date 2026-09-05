@@ -23,4 +23,7 @@ features:
   - title: Deploy it
     details: Cloudflare Workers for the app, Supabase for the data, published from a GitHub Actions workflow.
     link: /deployment
+  - title: Close it down
+    details: Leaving? Settle up, export your records as spreadsheets, and switch every service off in the right order.
+    link: /shutdown
 ---
