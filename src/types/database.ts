@@ -465,6 +465,7 @@ export interface Database {
           elevation_m: number | null
           route_condition: AlmanacRouteCondition | null
           summit_visible: boolean | null
+          trash_band: AlmanacTrashBand | null
           trash_count: number | null
           trash_kinds: AlmanacTrashKind[] | null
           diver_display: string | null
@@ -563,6 +564,7 @@ export interface Database {
           elevation_m: number | null
           route_condition: AlmanacRouteCondition | null
           summit_visible: boolean | null
+          trash_band: AlmanacTrashBand | null
           trash_count: number | null
           trash_kinds: AlmanacTrashKind[] | null
           diver_display: string | null
@@ -585,7 +587,7 @@ export interface Database {
           p_elevation_m?: number | null
           p_route_condition?: AlmanacRouteCondition | null
           p_summit_visible?: boolean | null
-          p_trash_count?: number | null
+          p_trash_band?: AlmanacTrashBand | null
           p_trash_kinds?: AlmanacTrashKind[] | null
         }
         Returns: string
@@ -2340,6 +2342,7 @@ export interface Database {
           elevation_m: number | null
           route_condition: AlmanacRouteCondition | null
           summit_visible: boolean | null
+          trash_band: 'none' | 'minimal' | 'noticeable' | 'heavy' | 'severe' | null
           trash_count: number | null
           trash_kinds: string[]
           status: AlmanacStatus
@@ -2366,6 +2369,7 @@ export interface Database {
           elevation_m?: number | null
           route_condition?: AlmanacRouteCondition | null
           summit_visible?: boolean | null
+          trash_band?: 'none' | 'minimal' | 'noticeable' | 'heavy' | 'severe' | null
           trash_count?: number | null
           trash_kinds?: string[]
           status?: AlmanacStatus
@@ -2674,6 +2678,14 @@ export const ALMANAC_TRASH_KINDS = [
   'metal', 'rubber', 'fabric', 'paper', 'other',
 ] as const
 export type AlmanacTrashKind = typeof ALMANAC_TRASH_KINDS[number]
+// How much trash, as a band rather than a tally. Nobody counts pieces on a
+// normal dive, so an integer field bought precision the diver never had; the
+// bands are ranges a dive can honestly be placed either side of. `none` is
+// deliberately not folded into `minimal` — "looked, saw nothing" is the
+// reading a clean site exists to file. Ordered least to worst, and pinned to
+// almanac_records_trash_band_check.
+export const ALMANAC_TRASH_BANDS = ['none', 'minimal', 'noticeable', 'heavy', 'severe'] as const
+export type AlmanacTrashBand = typeof ALMANAC_TRASH_BANDS[number]
 // The dive_sites vocabulary: the event kinds the shop travels to a site for.
 // Pinned to the DB's `dive_sites_kind_check`, and asserted against
 // SITE_CONDITION_KINDS in dive-sites.test.ts — the two answer the same
