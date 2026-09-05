@@ -118,8 +118,9 @@ Divers submit environmental and weather observations for the places the shop
 goes; staff/admin rule on each one. A record is a **site on a date**, drawn
 from the `dive_sites` catalog below, and the almanac reads them back by
 calendar date — a day is the unit, and every site observed that day shares a
-bucket. Only approved records reach the crowd, on `/almanac` — the page also shows a diver their own pending and
-rejected submissions, and shows staff the review queue.
+bucket. Only approved records reach the crowd, on `/almanac` — the page also lists a
+diver every entry they have filed, on its own **Your entries** tab, and shows
+staff the review queue.
 
 | Column | Type | Notes |
 | --- | --- | --- |
@@ -157,6 +158,14 @@ the client — a diver has no way to mint an already-approved record:
   coalesced (the form posts the whole record, so a cleared field clears), the
   date may not be in the future, and a record staff have already ruled on
   cannot be revised.
+- `withdraw_almanac_record(record_id)` — deletes a **pending** record of the
+  **caller's own**, and nothing else: `security definer` runs past RLS, so the
+  function checks both itself, and answers "no such record" and "not yours"
+  identically so ids cannot be probed. How a diver takes back an observation
+  filed against the wrong site or day, which an edit cannot fix — site and date
+  are what identify the record. A reviewed one stays: it is part of what the
+  crowd has been shown, and a reading its author could delete afterwards would
+  make every published figure provisional.
 - `moderate_almanac_record(record_id, status, staff_notes)` — staff/admin
   only; stamps `approved_by` / `approved_at`. `status` must be `approved` or
   `rejected`.
@@ -168,7 +177,10 @@ the client — a diver has no way to mint an already-approved record:
   else.
 
 Reads of the table itself are governed by RLS: a diver sees their own rows
-(any status) plus every approved row; staff and admin see all of them.
+(any status) plus every approved row; staff and admin see all of them. The
+**Your entries** tab reads whole rows for exactly that reason: an edit is
+seeded from the record, and since `submit_almanac_record` writes every column,
+a form filled from half a record would blank the other half on save.
 
 ## `coral_surveys` / `coral_survey_colonies` — crowdsourced coral monitoring
 
