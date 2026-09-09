@@ -138,7 +138,6 @@ staff the review queue.
 | `wave_height_m` | numeric(3,1) | Optional |
 | `wave_period_s` | numeric(3,1) | Optional |
 | `weather` | text | `clear` / `partly_cloudy` / `cloudy` / `overcast` / `rain` / `thunderstorm` / `windy` / `fog` / `typhoon` |
-| `wildlife` | text[] | Optional, array of species names |
 | `coral_health` | text | `excellent` / `good` / `fair` / `poor` / `bleaching` |
 | `elevation_m` | numeric(5,0) | Adventure-specific |
 | `route_condition` | text | `dry` / `wet` / `muddy` / `icy` / `snow` / `rockfall` |
@@ -183,6 +182,18 @@ Reads of the table itself are governed by RLS: a diver sees their own rows
 **Your entries** tab reads whole rows for exactly that reason: an edit is
 seeded from the record, and since `submit_almanac_record` writes every column,
 a form filled from half a record would blank the other half on save.
+
+### What was seen is not on this row
+
+Wildlife used to be a `text[]` on this table, filled from one comma-separated
+box, which made `turtle`, `Turtle`, `green turtle` and `ウミガメ` four different
+animals in every tally. It is now `almanac_sightings` — one row per animal,
+pointing at a `taxa` row keyed on its **scientific name**, with every
+language's word for it in `taxon_names`. `submit_almanac_record` takes
+`p_taxon_ids uuid[]`, and the read RPCs return `wildlife_taxa uuid[]` plus
+`wildlife_unmatched text[]` (the pre-catalog free text staff have yet to map).
+A record naming a taxon a diver proposed and nobody has ruled on cannot be
+approved. See [wildlife-taxa.md](./wildlife-taxa.md).
 
 ## `coral_surveys` / `coral_survey_colonies` — crowdsourced coral monitoring
 

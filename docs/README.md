@@ -18,6 +18,7 @@ dive into source.
 | [payments.md](./payments.md)                           | Money rules: owed/paid/balance math, the two ledgers, spending credit, and what each kind of cancellation does to the money. Print-ready copy: [payments.pdf](./payments.pdf) (generated — see the recipe at the top of the markdown) |
 | [admin.md](./admin.md)                                 | Admin routes, event memos, user search, role-view toggle |
 | [dive-site-maps.md](./dive-site-maps.md)               | Diver-contributed 3D seafloor maps: the implicit 1 m lattice, honest-gap surfacing, contribution model. Admin-only, not yet persisted |
+| [wildlife-taxa.md](./wildlife-taxa.md)                 | The wildlife catalog: sightings keyed on scientific name, every language's name hung off that one row, diver proposals, synonym merges |
 | [coral-surveys.md](./coral-surveys.md)                 | Crowdsourced coral monitoring against the CoralWatch Coral Health Chart: survey plus colony rows, RPC-only writes, staff moderation, the bleaching arithmetic |
 | [packages.md](./packages.md)                           | Partner-shop registration network: product tiers, add-on/room estimate, recommendation email, kickback ledger |
 | [trusted-partners.md](./trusted-partners.md)           | Vouched partner-shop directory + server-relayed diver→partner messaging (email privacy) |
