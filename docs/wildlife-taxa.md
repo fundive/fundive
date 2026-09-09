@@ -82,7 +82,12 @@ target to be accepted itself, so resolution is one hop and cannot loop.
 ## Divers propose; staff rule
 
 A diver who cannot find their animal supplies a **scientific name** —
-`propose_taxon` — and files the sighting against the proposal straight away.
+`propose_taxon` — plus as many **other names** as they know it by, and files
+the sighting against the proposal straight away. Several names rather than one:
+a fish is a lionfish and a turkeyfish and a firefish, and the one a single box
+made them drop is the one the next diver would have searched for. A name that
+already belongs to another taxon in that language is skipped rather than
+stolen — the taxon is still created and still usable.
 The proposal is `pending`: nobody else's picker offers it and no crowd tally
 counts it until staff rule.
 
@@ -108,7 +113,7 @@ blocked — throwing a record out does not need its wildlife adjudicated first.
 
 | Function | Who | What |
 | --- | --- | --- |
-| `propose_taxon` | any signed-in diver | Get-or-propose a taxon by scientific name, with an optional common name in one language. |
+| `propose_taxon` | any signed-in diver | Get-or-propose a taxon by scientific name, with any number of common names in one language. |
 | `save_taxon` | staff / admin | Create or edit a catalog entry. |
 | `moderate_taxon` | staff / admin | Approve or reject a proposal. With `p_accepted_id` it **merges**: every sighting moves to that taxon, colliding ones are dropped, and the rejected name becomes a synonym of it. |
 | `delete_taxon` | staff / admin | Remove an entry nothing stands on. Refuses one with sightings or children — those are merged. |
@@ -184,10 +189,25 @@ purpose: that ambiguity is what the schema exists to surface.
 The column is then dropped. Leaving it would leave two answers to "what did
 this record say was in the water", one of which nothing updates any more.
 
+## Entries the almanac's own history asked for
+
+`20260909130000` adds three the first deployment's records needed, and any
+shop's will:
+
+| Entry | Rank | Why |
+| --- | --- | --- |
+| *Pterois* | genus | Somebody who writes "lionfish" has not said which one, and filing it as *P. volitans* would invent an identification they did not make. *Pterois volitans* moves under it |
+| Ephippidae | family | In this ocean "batfish" is *Platax*, and every diver who says it means one |
+| Actinopterygii | class | For an observation like "small schools of fish": not an identification of anything, but not nothing either. The rank says exactly how coarse it is, which is what having ranks is for. It should stay rare |
+
+Mapping a particular shop's leftover labels onto entries is data repair, so it
+belongs in that shop's deployment repo, not here.
+
 ## Surfaces
 
 - `/almanac` — `WildlifePicker` replaces the text box: search, chips, and an
-  inline propose form. Pre-catalog labels on an entry being corrected are shown
+  inline propose form that takes a scientific name and any number of other
+  names. Pre-catalog labels on an entry being corrected are shown
   read-only, because mapping them is staff's call.
 - `/admin/wildlife` — the catalog, the proposal queue, and the unmatched-label
   queue, in the order the work arrives.
