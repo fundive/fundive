@@ -74,47 +74,37 @@ architecture notes (in the deployment repo).
 
 ## Getting started
 
-**Prerequisites**
-
-- [Node.js](https://nodejs.org) (LTS) and npm
-- [Docker](https://www.docker.com) (for the local Supabase stack)
-- A [Supabase](https://supabase.com) project (for the hosted backend)
-- A [Cloudflare](https://cloudflare.com) account (for deployment)
-
-The Supabase CLI ships as a dev dependency, so `npm install` provides it — no
-global install needed.
-
-**1. Clone and install**
+You need [Node.js](https://nodejs.org) LTS and [Docker](https://www.docker.com).
+Nothing else — no accounts, no cloud services, no cost. The Supabase CLI ships as
+a dev dependency, so `npm install` provides it.
 
 ```sh
 git clone https://github.com/fundive/fundive.git
 cd fundive
 npm install
+cp .env.example .env.local   # ships working local values — nothing to fill in
+make start                   # boot the Supabase stack in Docker (first run: a few minutes)
+make dev                     # Vite against that stack
 ```
 
-**2. Configure your environment**
+Open the URL Vite prints and sign in as **`admin@admin.admin`** / **`adminadmin`**
+— one of three seeded accounts (diver, admin, staff) that the login page offers
+as one-click buttons in dev builds. That's the whole app: create events, manage
+divers, take bookings.
 
 ```sh
-cp .env.example .env.local   # then fill in the values
+make test     # typecheck + lint + every test suite (integration needs the stack up)
+make reset    # wipe the local database back to migrations + seed data
 ```
 
-`.env.local` is what the `make`/`npm` scripts read. The build fails loudly if
-`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, or `VITE_TURNSTILE_SITE_KEY` are
-missing. See [`docs/deployment.md`](docs/deployment.md) for what each variable is
-and where it belongs.
+**[docs/development.md](docs/development.md)** covers the same ground with the
+detail: what each seeded account is for, where local email lands, running the
+edge functions, and what to do when something won't start.
 
-**3. Run it locally**
-
-```sh
-make start    # boot the local Supabase stack (Docker)
-make dev      # start Vite against the local stack
-```
-
-**Testing**
-
-```sh
-make test     # unit + integration + security (integration needs the local stack up)
-```
+The local values in `.env.example` are deliberately not deployable — the
+production build refuses a bundle pointing at `127.0.0.1` or carrying
+Cloudflare's always-pass test captcha key. Going live means replacing them; see
+[`docs/deployment.md`](docs/deployment.md).
 
 ## Make it yours
 

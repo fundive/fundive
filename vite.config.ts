@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fundive, loadSiteConfig, configPathFor } from './src/vite'
+import { buildEnvProblems } from './src/vite/build-env'
 
 // The platform ships index.html + src; a deployment supplies only config, brand
 // assets, and env. So the Vite `root` is the platform (where this config lives),
@@ -30,29 +31,19 @@ const configAlias = {
 }
 
 export default defineConfig(({ command, mode }) => {
-  // Client env vars whose absence silently breaks a core flow at runtime
-  // rather than at build. Each baked into the bundle at build time, so a
-  // missing value ships a broken app that only fails in the browser. Fail
-  // the production build loudly instead. Vars that degrade gracefully
-  // (VITE_VAPID_PUBLIC_KEY / VITE_PUSH_WORKER_URL — push just stays off) are
-  // intentionally not gated here.
-  const REQUIRED_BUILD_ENV: Record<string, string> = {
-    VITE_SUPABASE_URL:       'Supabase client cannot initialise — the whole app fails to boot.',
-    VITE_SUPABASE_ANON_KEY:  'Supabase client cannot initialise — the whole app fails to boot.',
-    VITE_TURNSTILE_SITE_KEY: 'Guest registration captcha cannot render, yet the edge function still requires a token — guest signup dead-ends.',
-  }
-
+  // Vars that degrade gracefully (VITE_VAPID_PUBLIC_KEY / VITE_PUSH_WORKER_URL —
+  // push just stays off) are intentionally not gated. See src/vite/build-env.ts
+  // for what is, and why.
   if (command === 'build') {
     // loadEnv merges matching process.env keys, so this also catches a
     // missing CI secret in the GitHub Actions build (no .env.local present).
     const env = loadEnv(mode, process.cwd(), 'VITE_')
-    const missing = Object.keys(REQUIRED_BUILD_ENV)
-      .filter(key => !env[key] && !process.env[key])
-    if (missing.length > 0) {
-      const lines = missing.map(key => `  - ${key}: ${REQUIRED_BUILD_ENV[key]}`)
+    const problems = buildEnvProblems({ ...process.env, ...env })
+    if (problems.length > 0) {
       throw new Error(
-        `Missing required build env var(s):\n${lines.join('\n')}\n` +
-        'Set the GitHub Actions secret(s) (or .env value) before building.',
+        `This env cannot produce a shippable bundle:\n${problems.map(p => `  - ${p}`).join('\n')}\n` +
+        'Set the GitHub Actions secret(s) (or .env.local value) before building. ' +
+        'See docs/deployment.md.',
       )
     }
   }
