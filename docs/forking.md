@@ -157,6 +157,12 @@ are:
 | `assets.appleTouchIcon` | `public/apple-touch-icon.png` | iOS home-screen icon |
 | `assets.broadcast` | `public/imgs/broadcast.png` | Admin broadcast illustration |
 
+> **The logo is the one asset a shop can change without a developer.** Upload it
+> in **Manage → Shop Profile** and it takes effect immediately, in the app and on
+> the registration PDF, overriding `assets.logo`. The rest of the table — the
+> favicon and the PWA icons — is baked in at build time and still has to be
+> swapped here.
+
 Swap the files in place (keeping the paths) or point the config keys at new
 paths. Also replace any social / OG preview image you reference so link previews
 show your brand, not FunDivers TW.

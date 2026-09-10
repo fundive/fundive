@@ -47,6 +47,8 @@ Write/manage routes — gated by `AdminRoute` (admin only):
 | `/admin/cancellation-policies`          | `AdminCancellationPoliciesPage` | Shop-authored cancellation policies, attached per event |
 | `/admin/payment-methods`                | `AdminPaymentMethodsPage` | How divers can pay: the method list, each one's bank account / payment link / surcharge — see [payments.md § Payment methods](./payments.md#payment-methods) |
 | `/admin/contact`                        | `AdminContactPage` | How divers reach the shop: the company email / phone / address / map link, and the ordered list of Contact-tab buttons (LINE, WhatsApp, Telegram, a phone number, …). Replaces what used to be `siteConfig.contact` |
+| `/admin/shop-profile`                   | `AdminShopProfilePage` | The shop's own identity: upload and size its logo, pick the training agency the app names certifications in, and record the currency and app language. Logo and agency apply at once; currency and language are compiled in, so the page says so and names the `fundive.config.ts` lines to change |
+| `/admin/cert-equivalence`               | `AdminCertEquivalencePage` | Every agency's certification ladder lined up against one agency's words — the chart the app reads a diver's certification through |
 | `/admin/terms`                          | `AdminTermsPage`        | The shop's Terms of Use: one Markdown document, versioned. Ticking **material change** bumps the version, and every diver re-accepts on their next visit |
 | `/admin/applications`                   | `AdminApplicationsPage` | Approve or reject pending diver accounts |
 | `/admin/logistics`                      | `AdminLogisticsPage`    | Day-of board: who is diving, what to pack, who owes money, who rides in which car |
