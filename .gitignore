@@ -19,8 +19,6 @@ dist-ssr
 # repo: Wix site code, competitor research, scratch notes, etc.
 ignore/
 
-# Local Claude Code orientation — not shipped with the open-source package
-CLAUDE.md
 
 # Editor directories and files
 .vscode/*

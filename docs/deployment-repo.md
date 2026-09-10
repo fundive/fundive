@@ -101,7 +101,8 @@ Verified against a packed tarball installed with `npm install --omit=dev`:
    imported by `cli/load-site-config.mjs` and resolves only via `vite`'s
    transitive tree.
 2. **The package needs a `files` allowlist.** The tarball currently ships
-   `docs/`, `tests/`, `dist/`, `.claude/`, and the platform's *own*
+   `docs/`, `tests/`, `dist/`, local agent-worktree directories, and the
+   platform's *own*
    `fundive.config.ts` — so a deployment installs FunDive's development shop
    config alongside its own.
 3. **`private: true` must go**, or the platform must be consumed by git URL only
