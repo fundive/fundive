@@ -45,10 +45,12 @@ export type { SupportedLanguage } from './languages'
 export interface SiteLocale {
   /** IANA timezone, e.g. "Asia/Taipei". */
   timezone: string
-  /** ISO 4217 currency code used as the code-side default, e.g. "TWD". */
+  /** What the shop writes on a price, e.g. "NTD". One field, not a code plus a
+   *  label: nothing here ever machine-reads a currency — no Intl currency
+   *  formatting, no payment processor — so a second field bought only the
+   *  chance for two screens to name the same money differently, which is
+   *  exactly what happened. Per-row `currency` columns override it. */
   currency: string
-  /** Human-facing currency label, e.g. "NTD". */
-  currencyLabel: string
   /** The single language the whole app renders in for this deployment. */
   language: SupportedLanguage
   /** Which units the height / weight fields open in. Storage is always metric

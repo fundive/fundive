@@ -15,7 +15,7 @@ import { defineConfig } from 'fundive/config'
 
 export const siteConfig = defineConfig({
   // Bump only when the platform CHANGELOG says to.
-  configVersion: 12,
+  configVersion: 13,
 
   identity: {
     // Printed in italics on the registration PDF. Leave blank to omit it.
@@ -39,7 +39,6 @@ export const siteConfig = defineConfig({
   locale: {
     timezone: 'Asia/Taipei',
     currency: 'USD',
-    currencyLabel: 'USD',
     // The one language the whole app renders in. 'en' | 'zh-TW' | 'ja'.
     language: 'en',
     // Which side of the height / weight toggle a diver sees first. Storage

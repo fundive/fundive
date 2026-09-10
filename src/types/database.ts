@@ -2462,7 +2462,6 @@ export interface Database {
           logo_path: string | null
           standards_org: string | null
           currency: string | null
-          currency_label: string | null
           language: string | null
           updated_at: string
           updated_by: string | null
@@ -2472,7 +2471,6 @@ export interface Database {
           logo_path?: string | null
           standards_org?: string | null
           currency?: string | null
-          currency_label?: string | null
           language?: string | null
           updated_at?: string
           updated_by?: string | null
