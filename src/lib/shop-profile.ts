@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { siteConfig, type SupportedLanguage } from '../config/site'
+import { siteConfig, SUPPORTED_LANGUAGES, type SupportedLanguage } from '../config/site'
 
 // The shop's own identity settings: logo, training agency, currency, language.
 //
@@ -66,16 +66,16 @@ export interface ConfigDrift {
   chosen: string
   /** What this bundle was actually built with. */
   running: string
-  /** The line to change in `fundive.config.ts` to make them agree. */
-  configLine: string
 }
 
 /**
- * The compiled-in settings this shop has asked to change and not yet deployed.
+ * The compiled-in settings this shop has asked for that this bundle was not
+ * built with — that is, saved but not yet deployed.
  *
- * Empty when the shop has expressed no preference or the build already matches.
- * A page showing this is telling the truth about a control that cannot take
- * effect on its own; a page not showing it would be lying by omission.
+ * Empty when the shop has expressed no preference or the running build already
+ * matches. The build reads these from the same row (src/vite/shop-profile-overlay.ts),
+ * so the gap closes on the next deploy with nothing to hand-edit; until then the
+ * two genuinely disagree and the page has to say so.
  */
 export function configDrift(profile: ShopProfile): ConfigDrift[] {
   const drift: ConfigDrift[] = []
@@ -85,7 +85,6 @@ export function configDrift(profile: ShopProfile): ConfigDrift[] {
       field: 'currency',
       chosen: profile.currency,
       running: siteConfig.locale.currency,
-      configLine: `currency: '${profile.currency}',`,
     })
   }
   if (profile.language && profile.language !== siteConfig.locale.language) {
@@ -93,14 +92,13 @@ export function configDrift(profile: ShopProfile): ConfigDrift[] {
       field: 'language',
       chosen: profile.language,
       running: siteConfig.locale.language,
-      configLine: `language: '${profile.language}' as const,`,
     })
   }
   return drift
 }
 
 /** The languages this build actually ships a catalog for. */
-export const BUILT_IN_LANGUAGES: readonly SupportedLanguage[] = ['en', 'zh-TW', 'ja']
+export const BUILT_IN_LANGUAGES: readonly SupportedLanguage[] = SUPPORTED_LANGUAGES
 
 interface ShopProfileRow {
   logo_path: string | null

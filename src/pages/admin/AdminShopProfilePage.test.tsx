@@ -75,11 +75,11 @@ describe('AdminShopProfilePage', () => {
 
   // The page's whole honesty: a compiled-in setting the admin changed has not
   // taken effect, and saying nothing would be a control that quietly lies.
-  it('says a saved currency has not taken effect, and names the line to change', async () => {
+  it('says a saved currency has not taken effect yet', async () => {
     renderPage({ ...NO_SHOP_PROFILE, currency: 'XXX' })
     await waitFor(() => expect(screen.getByText(sp.driftHeading)).toBeInTheDocument())
     expect(screen.getByText(sp.driftRow('currency', 'XXX', siteConfig.locale.currency))).toBeInTheDocument()
-    expect(screen.getByText(/currency: 'XXX',/)).toBeInTheDocument()
+    expect(screen.getByText(sp.driftBody)).toBeInTheDocument()
   })
 
   it('says nothing about drift when the build already matches', async () => {

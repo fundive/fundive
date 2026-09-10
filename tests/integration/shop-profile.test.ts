@@ -111,3 +111,36 @@ describe('cert_level_equivalences', () => {
     expect(padiOw!.equivalent_name).toBe('OW')
   })
 })
+
+// The build reads this row to apply the shop's currency and language, because
+// neither can be applied at runtime. It reads it over PostgREST with the anon
+// key — no service role, no session — so what actually has to hold is that the
+// row is reachable that way. Proven against the live stack rather than a mock
+// of it, because a mock cannot fail the way RLS can.
+describe('the build-time overlay read', () => {
+  it('reads the compiled-in settings with the anon key alone', async () => {
+    await admin.from('shop_profile')
+      .update({ currency: 'JPY', currency_label: '¥', language: 'ja' })
+      .eq('singleton', true)
+
+    const { fetchShopProfileOverlay } = await import('../../src/vite/shop-profile-overlay')
+    const overlay = await fetchShopProfileOverlay({
+      VITE_SUPABASE_URL: process.env.API_URL,
+      VITE_SUPABASE_ANON_KEY: process.env.ANON_KEY,
+    })
+
+    expect(overlay).toEqual({ currency: 'JPY', currencyLabel: '¥', language: 'ja' })
+  })
+
+  it('reports no preference when the shop has expressed none', async () => {
+    await admin.from('shop_profile')
+      .update({ currency: null, currency_label: null, language: null })
+      .eq('singleton', true)
+
+    const { fetchShopProfileOverlay } = await import('../../src/vite/shop-profile-overlay')
+    expect(await fetchShopProfileOverlay({
+      VITE_SUPABASE_URL: process.env.API_URL,
+      VITE_SUPABASE_ANON_KEY: process.env.ANON_KEY,
+    })).toEqual({ currency: null, currencyLabel: null, language: null })
+  })
+})

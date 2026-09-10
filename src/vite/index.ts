@@ -54,14 +54,25 @@ export function loadSiteConfig(cwd = process.cwd()): SiteConfig {
  * config and bakes config values into index.html at build. Add it to the
  * platform's vite.config plugins.
  */
-export function fundive(): Plugin {
+export function fundive(overlaid?: SiteConfig): Plugin {
   const file = configPathFor()
-  const siteConfig = loadSiteConfig()
+  const siteConfig = overlaid ?? loadSiteConfig()
+
+  // Without an overlay the virtual module resolves to the config file itself,
+  // exactly as it always has — the app imports the shop's own module. With one,
+  // it serves the merged object instead, because the values the build changed
+  // are not in that file. Serializing is safe precisely because the config is
+  // pure data: that is the property the whole seam is built on.
+  const RESOLVED = '\0' + VIRTUAL_ID
   return {
     name: 'fundive:config',
     enforce: 'pre',
     resolveId(id) {
-      if (id === VIRTUAL_ID) return file
+      if (id === VIRTUAL_ID) return overlaid ? RESOLVED : file
+    },
+    load(id) {
+      if (id !== RESOLVED) return
+      return `export const siteConfig = ${JSON.stringify(siteConfig)}\nexport default siteConfig\n`
     },
     transformIndexHtml(html) {
       const replacements: Record<string, string> = {

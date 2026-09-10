@@ -22,8 +22,10 @@ const sp = t.admin.shopProfile
 // currency and the language are compiled into the bundle — the language decides
 // which message catalog is even present, and the currency is read by
 // vite.config.ts and the service worker as well — so this page stores the
-// choice and then says plainly that it takes a redeploy, naming the lines to
-// change. A control that silently does nothing would be worse than no control.
+// choice and then says plainly that it takes a redeploy. The build reads the
+// same row, so the deploy applies it with nothing to hand-edit — but between
+// the save and that deploy the two really do disagree, and saying so is the
+// difference between a control and a control that lies.
 
 const FIELD = 'w-full bg-white border border-surface-300 rounded-md px-3 py-2 text-sm text-brand-900 focus:outline-none focus:border-brand-900'
 const LABEL = 'block text-xs font-semibold text-brand-900 mb-1'
@@ -248,9 +250,6 @@ export function AdminShopProfilePage() {
             <ul className="text-xs text-amber-900 space-y-1">
               {drift.map(d => <li key={d.field}>{sp.driftRow(d.field, d.chosen, d.running)}</li>)}
             </ul>
-            <pre className="text-xs bg-white border border-amber-200 rounded p-2 overflow-x-auto text-brand-900">
-              {drift.map(d => d.configLine).join('\n')}
-            </pre>
           </div>
         )}
       </section>

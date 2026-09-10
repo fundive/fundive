@@ -1978,14 +1978,14 @@ export const en = {
       standardsApplies: 'Applies straight away.',
       // ── Compiled-in settings
       buildHeading: 'Currency and language',
-      buildIntro: 'These two are built into the app rather than read from the database, so changing them here records what you want — it takes a redeploy to apply.',
+      buildIntro: 'These two are built into the app rather than read while it runs, so a change here takes effect the next time the app is deployed.',
       currency: 'Currency code',
       currencyHint: 'ISO code, e.g. TWD, USD, JPY.',
       currencyLabel: 'What divers see',
       currencyLabelHint: 'The wording on prices. Taiwan writes NTD rather than TWD.',
       language: 'App language',
       driftHeading: 'Not applied yet',
-      driftBody: 'This build is still running the values below. To apply your choice, change these lines in fundive.config.ts and deploy again.',
+      driftBody: 'Saved. This build is still running the values below — deploy the app again and your choice takes effect. Nothing else to change.',
       driftRow: (field: string, chosen: string, running: string) =>
         `${field}: you chose ${chosen}, this build runs ${running}`,
       save: 'Save',

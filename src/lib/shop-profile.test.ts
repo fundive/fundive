@@ -38,19 +38,19 @@ describe('configDrift', () => {
   it('reports a currency the build is not running, with the config line', () => {
     const drift = configDrift(profile({ currency: 'JPY' }))
     expect(drift).toHaveLength(1)
-    expect(drift[0]).toMatchObject({
+    expect(drift[0]).toEqual({
       field: 'currency',
       chosen: 'JPY',
       running: siteConfig.locale.currency,
-      configLine: "currency: 'JPY',",
     })
   })
 
-  it('reports a language the build is not running, keeping the as const the config needs', () => {
+  it('reports a language the build is not running', () => {
     const other = siteConfig.locale.language === 'ja' ? 'en' : 'ja'
     const drift = configDrift(profile({ language: other }))
-    expect(drift).toHaveLength(1)
-    expect(drift[0].configLine).toBe(`language: '${other}' as const,`)
+    expect(drift).toEqual([
+      { field: 'language', chosen: other, running: siteConfig.locale.language },
+    ])
   })
 
   it('reports both when both differ', () => {

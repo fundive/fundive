@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { CONFIG_CONTRACT_VERSION } from './contract'
 import type { SiteConfig } from './site'
+import { SUPPORTED_LANGUAGES } from './languages'
 
 // Runtime validation of a fork's fundive.config.ts. Kept separate from site.ts
 // (which stays dependency-free so the pure config file's import graph never pulls
@@ -35,7 +36,7 @@ export const siteConfigSchema = z.object({
     timezone: z.string().min(1),
     currency: z.string().min(1),
     currencyLabel: z.string().min(1),
-    language: z.enum(['en', 'zh-TW', 'ja']),
+    language: z.enum(SUPPORTED_LANGUAGES),
     units: z.enum(['metric', 'imperial']),
   }),
   theme: z.object({

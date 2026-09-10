@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fundive, loadSiteConfig, configPathFor } from './src/vite'
+import { applyShopProfile, fetchShopProfileOverlay } from './src/vite/shop-profile-overlay'
+import { SUPPORTED_LANGUAGES } from './src/config/languages'
 import { buildEnvProblems } from './src/vite/build-env'
 
 // The platform ships index.html + src; a deployment supplies only config, brand
@@ -30,10 +32,16 @@ const configAlias = {
   'fundive/config': path.join(platformDir, 'src/config/define.ts'),
 }
 
-export default defineConfig(({ command, mode }) => {
+export default defineConfig(async ({ command, mode }) => {
   // Vars that degrade gracefully (VITE_VAPID_PUBLIC_KEY / VITE_PUSH_WORKER_URL —
   // push just stays off) are intentionally not gated. See src/vite/build-env.ts
   // for what is, and why.
+  //
+  // A production build also asks the database what the shop chose for its
+  // currency and language, because neither can be applied at runtime and the
+  // Shop Profile page promises they take effect on the next deploy. This is
+  // what makes that true. See src/vite/shop-profile-overlay.ts.
+  let config = siteConfig
   if (command === 'build') {
     // loadEnv merges matching process.env keys, so this also catches a
     // missing CI secret in the GitHub Actions build (no .env.local present).
@@ -46,7 +54,16 @@ export default defineConfig(({ command, mode }) => {
         'See docs/deployment.md.',
       )
     }
+
+    const overlay = await fetchShopProfileOverlay({ ...process.env, ...env })
+    const applied = applyShopProfile(siteConfig, overlay, SUPPORTED_LANGUAGES)
+    config = applied.config
+    for (const change of applied.changes) {
+      console.log(`fundive: ${change.field} ${change.from} → ${change.to} (from Shop Profile)`)
+    }
   }
+
+  const overlaid = config === siteConfig ? undefined : config
 
   return {
     root: platformDir,
@@ -62,7 +79,7 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
     react(),
     tailwindcss(),
-    fundive(),
+    fundive(overlaid),
     VitePWA({
       // injectManifest so src/sw.ts owns the service worker — we need the
       // `push` + `notificationclick` handlers on top of workbox precaching
