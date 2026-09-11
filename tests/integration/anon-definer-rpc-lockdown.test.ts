@@ -34,4 +34,23 @@ describe('anon-granted SECURITY DEFINER RPC lockdown', () => {
     })
     expect(refresh.error).toBeNull()
   })
+
+  // H1 of the 2026-09-11 audit. normalize_profile_values() is SECURITY DEFINER,
+  // owned by postgres, and has no authorization check of its own: it rewrites
+  // cert_level and nationality across every row of `profiles` and brackets that
+  // in `alter table ... disable trigger`, which locks the table against writes.
+  // 20260910100000 revoked it from `public, authenticated` but not from `anon`,
+  // and this repo's baseline had handed `anon` an explicit grant that a revoke
+  // aimed at PUBLIC does not touch. Before 20260911100000 this call returned
+  // 200 and rewrote the table.
+  it('normalize_profile_values is not callable by an unauthenticated client', async () => {
+    const { error } = await anonClient().rpc('normalize_profile_values')
+    expect(error).not.toBeNull()
+    expect(error!.message).toMatch(/permission denied/i)
+  })
+
+  it('normalize_profile_values remains callable by the service role', async () => {
+    const { error } = await adminClient().rpc('normalize_profile_values')
+    expect(error).toBeNull()
+  })
 })

@@ -1,0 +1,35 @@
+-- Close H1 of the 2026-09-11 audit: normalize_profile_values() was callable by
+-- `anon`.
+--
+-- The function is SECURITY DEFINER, owned by postgres, and carries no
+-- authorization check of its own — it is meant to be run once, by an admin,
+-- through the service role. PostgREST exposes every executable function as an
+-- RPC, so while `anon` held EXECUTE the whole capability was reachable with
+-- nothing but the public anon key that ships in the SPA bundle:
+--
+--   POST /rest/v1/rpc/normalize_profile_values  ->  200, every profile rewritten
+--
+-- Two impacts. It rewrites cert_level and nationality across every row of
+-- `profiles` — the fields the shop reads to decide who may dive what. And it
+-- brackets that work in `alter table ... disable trigger`, which takes a
+-- ShareRowExclusiveLock on `profiles`, so a loop on the endpoint is an
+-- unauthenticated write-outage on signup and every profile edit.
+--
+-- Why the original grant survived its own revoke: 20260910100000 wrote
+--
+--   revoke all on function public.normalize_profile_values() from public, authenticated;
+--
+-- `revoke ... from public` removes PostgreSQL's built-in "EXECUTE to PUBLIC"
+-- default, and in app-fundivers that was enough. This repo's squashed baseline
+-- additionally carries `ALTER DEFAULT PRIVILEGES ... GRANT ALL ON FUNCTIONS TO
+-- anon`, so `anon` also held an *explicit* grant — and an explicit grant is not
+-- touched by a revoke aimed at PUBLIC. Identical migration text, two different
+-- outcomes. 20260911110000 removes that default so the next one cannot repeat
+-- it; this migration closes the instance.
+--
+-- Naming `public` and `anon` together is the pattern every other function in
+-- this schema already follows. Left alone: service_role, which is how the admin
+-- Manage page invokes it.
+
+revoke all on function public.normalize_profile_values() from public, anon, authenticated;
+grant execute on function public.normalize_profile_values() to service_role;
