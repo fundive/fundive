@@ -31,6 +31,7 @@ dive into source.
 | [deployment.md](./deployment.md)                       | Env vars (which secret lives where), Cloudflare deploy, Supabase push / verify, edge functions |
 | [deployment-repo.md](./deployment-repo.md)             | The thin per-shop repo: `fundive.config.ts` + `.env` + the `fundive` CLI. What works today and what does not |
 | [security-audit.md](./security-audit.md)               | Audit (2026-08-07): findings by severity, what was verified clean, residual risks |
+| [security-audit-2026-09.md](./security-audit-2026-09.md) | Audit (2026-09-11): 2 High here (anon-executable RPC, baseline default privileges), 2 Medium in both repos |
 
 ## Conventions called out across docs
 
