@@ -41,6 +41,7 @@ export function AdminShell() {
   const location = useLocation()
   const [pendingCount, setPendingCount] = useState<number | null>(null)
   const [refundCount, setRefundCount] = useState<number | null>(null)
+  const [discountCount, setDiscountCount] = useState<number | null>(null)
 
   // Refetch the on-hold and open-refund-request counts on every admin route
   // change so the badges reflect reality after a decision without a global
@@ -65,10 +66,25 @@ export function AdminShell() {
       .not('refund_requested_at', 'is', null)
       .neq('status', 'cancelled')
       .then(({ count }) => { if (!cancelled) setRefundCount(count ?? 0) })
+    // Discount requests nobody has decided. Undecided is the state that costs
+    // something: the diver has been told the shop will confirm, and until it
+    // does their balance and their expectation disagree.
+    //
+    // The cancelled-booking exclusion matches the queue this badge links to
+    // (fetchOpenDiscountRequests), and has to: decide_booking_discount refuses
+    // a cancelled booking, so counting one here would be a badge pointing at a
+    // decision nobody can make.
+    supabase
+      .from('booking_discounts')
+      .select('id, bookings!inner(status)', { count: 'exact', head: true })
+      .eq('status', 'requested')
+      .neq('bookings.status', 'cancelled')
+      .then(({ count }) => { if (!cancelled) setDiscountCount(count ?? 0) })
     return () => { cancelled = true }
   }, [profile?.role, location.pathname])
   const displayPendingCount = profile?.role === 'admin' ? pendingCount : null
   const displayRefundCount = profile?.role === 'admin' ? refundCount : null
+  const displayDiscountCount = profile?.role === 'admin' ? discountCount : null
 
   async function handleSignOut() {
     await signOut()
@@ -96,6 +112,15 @@ export function AdminShell() {
               aria-label={t.shell.pendingRefundsAria(displayRefundCount)}
             >
               {t.shell.pendingRefunds(displayRefundCount)}
+            </Link>
+          )}
+          {displayDiscountCount != null && displayDiscountCount > 0 && (
+            <Link
+              to="/admin/discounts"
+              className="text-xs font-semibold bg-accent text-white px-2 py-0.5 rounded-full hover:bg-red-400"
+              aria-label={t.shell.pendingDiscountsAria(displayDiscountCount)}
+            >
+              {t.shell.pendingDiscounts(displayDiscountCount)}
             </Link>
           )}
         </div>
