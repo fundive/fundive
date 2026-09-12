@@ -45,6 +45,7 @@ Write/manage routes — gated by `AdminRoute` (admin only):
 | `/admin/gear-sizing`                    | `AdminGearSizingPage`   | Wetsuit / BCD / fin sizing charts that drive the logistics fit lookup |
 | `/admin/waivers`                        | `AdminWaiversPage`      | Shop-authored waivers: text or uploaded PDF, per-event attach, e-signed by divers |
 | `/admin/cancellation-policies`          | `AdminCancellationPoliciesPage` | Shop-authored cancellation policies, attached per event |
+| `/admin/discounts`                      | `AdminDiscountsPage`    | Two halves of one subject: the requests waiting on a decision, and the shop's discount catalog. Approving is the only thing that takes money off a booking — see [payments.md § Discounts](./payments.md#discounts) |
 | `/admin/payment-methods`                | `AdminPaymentMethodsPage` | How divers can pay: the method list, each one's bank account / payment link / surcharge — see [payments.md § Payment methods](./payments.md#payment-methods) |
 | `/admin/contact`                        | `AdminContactPage` | How divers reach the shop: the company email / phone / address / map link, and the ordered list of Contact-tab buttons (LINE, WhatsApp, Telegram, a phone number, …). Replaces what used to be `siteConfig.contact` |
 | `/admin/shop-profile`                   | `AdminShopProfilePage` | The shop's own identity: upload and size its logo, pick the training agency the app names certifications in, and record the currency and app language. Logo and agency apply at once; currency and language are compiled in, so the page says so and names the `fundive.config.ts` lines to change |
@@ -479,6 +480,8 @@ with their own test bookings.
 | Read any profile / bookings / payments | no | yes | yes |
 | Create / update own bookings | yes | yes | yes |
 | Insert / update payments | no | no | yes |
+| Ask for a discount (own booking, or a child's) | yes | yes | yes |
+| Approve / reject a discount | no | no | yes |
 | Create / resolve event memos | no | no | yes |
 | Read & insert `admin_notes` (own attribution) | no | yes | yes |
 | Update / delete `admin_notes` | no | no | yes |

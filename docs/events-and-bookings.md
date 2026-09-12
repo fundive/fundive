@@ -210,6 +210,11 @@ integer on the linked `prices.transport` row, surfaced on `AppEvent` as
 `transport_price` (a `surcharge` of 0 means transport is bundled into the base
 price rather than added).
 
+**A discount is not in that formula.** The form quotes the undiscounted
+price and says so: ticking a discount records a request an admin still has
+to approve, and until they do it changes no figure the diver is shown or
+the booking stores. See [payments.md § Discounts](./payments.md#discounts).
+
 `buildCharges()` in `src/lib/booking-charges.ts` turns these into an
 itemized `ChargeLine[]` that is both shown in the form summary and
 snapshotted onto the booking as `details.charges`, so the breakdown is
@@ -235,10 +240,16 @@ The form does **not** write to `bookings` directly. It invokes the
    - `details` JSONB — see
      [data-model.md § BookingDetails](./data-model.md#bookingdetails-jsonb-shape)
      (`total`, `deposit`, and the itemized `charges` are snapshots).
-4. Builds a registration PDF (`supabase/functions/_shared/pdf.ts`) and
+4. Inserts one `booking_discounts` row per discount the diver ticked, each
+   at `status: 'requested'`. The amount is never computed here and never
+   comes from the request body; `booking_discounts_validate` refuses any id
+   the event does not offer or the shop has retired, so a crafted list gets
+   the same answer the form would have given — and a refused one does not
+   fail a booking that already exists.
+5. Builds a registration PDF (`supabase/functions/_shared/pdf.ts`) and
    sends it via Gmail SMTP to the shop (`siteConfig.app.supportEmail`) and
    the diver — unless `suppress_email` is set (group registration; see below).
-5. Returns `{ booking_id, session? }` — `session` populated on the
+6. Returns `{ booking_id, session? }` — `session` populated on the
    guest path so the SPA can `setSession()` without a second
    round-trip.
 

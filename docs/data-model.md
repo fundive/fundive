@@ -55,7 +55,9 @@ public.push_subscriptions / push_notifications_sent  (cron infra)
 | `trip_templates` | catalog | Reusable "what's included" / not-included / transportation / itinerary / prerequisites copy an event links to via `events.trip_template_id`; surfaces in the booking form. Renamed from `dive_travel` (`20260708050000`). |
 | `scheduled_trips` | `id`, `title`, `destination`, `status`, `price`, `addon_ids`, `room_type_ids` | The shop's own curated, dated trips shown on the diver Scheduled Trips tab. Admin-managed base table (admin-only RLS); divers read published rows via `list_scheduled_trips()`. Carries `addon_ids`/`room_type_ids` (into the shop `addons`/`rooms` catalog) so divers register self-contained for a cost estimate — same flow as `packages`, minus tiers/partner. Distinct from `packages` (open-ended travel abroad) and the `events.is_trip` flag. See [packages.md](./packages.md). |
 | `scheduled_trip_registrations` | `id`, `scheduled_trip_id`, `diver_id`, `estimated_cost`, `details`, `status` | One row per diver-registration for a scheduled trip; frozen estimate snapshot in `details`. No kickback (the shop's own trip). Admin-only base table; divers create via the `register-scheduled-trip` edge fn and read their own via `list_my_scheduled_trip_registrations()`. Partial unique index keeps one live registration per diver per trip. |
-| `event_rooms` / `event_addons` / `event_destinations` | junctions | FK junctions linking rooms / add-ons / destinations to `events` by `event_id`. Reconciled by the `set_event_relations` RPC (the single write path). |
+| `event_rooms` / `event_addons` / `event_destinations` / `event_discounts` | junctions | FK junctions linking rooms / add-ons / destinations / offered discounts to `events` by `event_id`. Reconciled by the `set_event_relations` RPC (the single write path). |
+| `discounts` | `id`, `label`, `description`, `kind`, `value`, `active`, `sort_order` | The shop's discount catalog — `kind` is `percent` (1–100) or `fixed` (a flat amount). Publicly readable so the register form can render the offer before sign-in; admin-written. See [payments.md § Discounts](./payments.md#discounts). |
+| `booking_discounts` | `id`, `booking_id`, `discount_id`, `status`, `amount`, `amendment_id`, `requested_*`, `decided_*` | One diver asking for one discount on one booking. **No write policy at all** — every write goes through `request_booking_discount` / `decide_booking_discount`, so no client can mint an approval. An approval stamps the `amount` and the negative `booking_amendments` row that is the actual money; `discount_id` is `ON DELETE RESTRICT` so a granted discount outlives the shop's decision to stop offering it. |
 | `push_subscriptions` | `endpoint` (unique), `user_id`, `p256dh`, `auth` | One row per device. Diver owns their rows (RLS). |
 | `push_notifications_sent` | `(user_id, event_id, kind)` composite PK | Idempotency ledger for the push cron. Service-role-only. |
 | `trusted_partners` | `id`, `name`, `country`, `location`, `website`, `contact_name`, `contact_email`, `vouch_notes`, `logo_url`, `default_kickback_rate`, `active`, `created_by` | Unified registry of vouched partner dive shops — powers **both** the diver Trusted Partners directory and the shops that host **Packages** (unified from the old thin `trusted_partners` + richer `partner_shops` by `20260708080000`). **Admin-only RLS on every verb** — divers never see `contact_email`; they read `id` / `name` / `region` (= `coalesce(location, country)`) / `blurb` (= `vouch_notes`) / `website` for active, reachable rows through the `list_trusted_partners()` RPC, and message a partner via the `contact-trusted-partner` edge function (which resolves `contact_email` server-side). `packages.trusted_partner_id` FK-references it. See [trusted-partners.md](./trusted-partners.md) and [packages.md](./packages.md). |
@@ -366,6 +368,11 @@ interface BookingDetails {
   }
   room?: { option_id?: string | null; notes?: string | null }
   add_ons?: string[]                // addons.id list
+  discount_requests?: string[]      // discounts.id list, IN-FLIGHT ONLY: the
+                                    //   register form sends it,
+                                    //   create-registration turns each into a
+                                    //   booking_discounts row and strips the
+                                    //   key. Never present on a stored booking
   transportation?: boolean
   payment_method?: string           // payment_methods.key the diver chose
   pay_deposit_only?: boolean        // deposit-only-at-registration flag
@@ -376,6 +383,11 @@ interface BookingDetails {
   cancellation_policy_acked_at?: string  // gate for submit when policy attached
 }
 ```
+
+`discount_requests` is the one key that never survives the write. A discount
+is worth nothing until an admin approves it, so letting the frozen details
+carry it would give the booking a second, unapproved account of what it owes —
+see [payments.md § Discounts](./payments.md#discounts).
 
 **Design note:** `total`, `deposit`, and `charges` are snapshotted into
 the booking so later catalog price changes don't retroactively alter what
