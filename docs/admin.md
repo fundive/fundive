@@ -51,7 +51,7 @@ Write/manage routes — gated by `AdminRoute` (admin only):
 | `/admin/shop-profile`                   | `AdminShopProfilePage` | The shop's own identity: upload and size its logo, pick the training agency the app names certifications in, and record the currency and app language. Logo and agency apply at once; currency and language are compiled in, so the page says so and names the `fundive.config.ts` lines to change |
 | `/admin/cert-equivalence`               | `AdminCertEquivalencePage` | Every agency's certification ladder lined up against one agency's words — the chart the app reads a diver's certification through |
 | `/admin/terms`                          | `AdminTermsPage`        | The shop's Terms of Use: one Markdown document, versioned. Ticking **material change** bumps the version, and every diver re-accepts on their next visit |
-| `/admin/applications`                   | `AdminApplicationsPage` | Approve or reject pending diver accounts |
+| `/admin/applications`                   | `AdminApplicationsPage` | Suspended accounts: reinstate one you put on hold, reopen one you closed (closing never deleted it), or close an active account |
 | `/admin/logistics`                      | `AdminLogisticsPage`    | Day-of board: who is diving, what to pack, who owes money, who rides in which car |
 | `/admin/dashboard`                      | `AdminDashboardPage`    | Revenue, bookings, fill rate |
 | `/admin/history`                        | `AdminHistoryPage`      | Season-over-season comparison against a weather baseline |
