@@ -279,24 +279,27 @@ a waitlisted diver's gear isn't packed today, so it can't be kept out
 for tomorrow. `gearDayDiff` in `src/lib/logistics.ts` is pure and
 unit-tested; the panel is `src/components/admin/NextDayGearDiff.tsx`.
 
-## Event memos
+## Event memos (`admin_notes`)
 
-`event_memos` is a free-form "sticky note" table for operational flags.
-Memos surface on the admin event-detail page and are **not visible to
-divers**.
+`admin_notes` is the free-form "sticky note" table for operational flags.
+Memos surface on the admin event-detail page and the per-diver gear card,
+and are **not visible to divers**.
 
 Every memo is:
 
-- Attached to a single `event_id → events(id)`.
-- Tagged with one of: `urgent`, `payment`, `gear`, `logistics`,
-  `cert`, `medical`, `note`. The tag drives the color in the UI.
+- Attached to exactly one target — `event_id` **or** `booking_id`, never
+  both and never neither (CHECK `admin_notes_target_present`). This is the
+  one XOR left in the schema; events themselves are a single table now.
+- Tagged with one of: `urgent`, `payment`, `gear`, `logistics`, `cert`,
+  `medical`, `note`, `general`. The tag drives the color in the UI, and
+  the gear card filters to `gear`-tagged notes on the booking.
 - Free-text content, 1–2000 chars.
 - **Resolvable** — when resolved, `resolved`, `resolved_by`, and
-  `resolved_at` are set as a trio (DB CHECK enforces this). Resolved
-  memos stay in the table but are visually separated.
+  `resolved_at` are set as a trio (CHECK `admin_notes_resolved_consistency`).
+  Resolved memos stay in the table but are visually separated.
 
-UI: `src/components/admin/EventMemos.tsx`. Admins create memos, tag
-them, and flip resolved when handled.
+UI: `src/components/admin/AdminNotes.tsx`, which takes a
+`target={{ kind: 'event' | 'booking', id }}`.
 
 ## Users
 

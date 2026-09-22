@@ -8,26 +8,36 @@ auth.users (Supabase)
     ↓
 public.profiles ─────────── one row per diver / staff / admin
     │
-    │ 1-many             ┌── EO_dives        (Bubble-imported catalog)
-    │                    │── EO_courses
+    │ 1-many             ┌── events          (ONE table: dives, courses,
+    │                    │                    adventures — see `kind`)
     ↓                    │── prices          (linked by events.price)
-public.bookings ──── eo_dive_id XOR eo_course_id (text FK)
-    │                    │── rooms           (room types — linked via
-    │ 1-many             │                    event_rooms junction)
-    ↓                    │── addons          (linked via
-public.payments          │                    event_addons junction)
-    (staff ledger)       │
-                         │── cancellation_policies
-                         │── trip_templates   (reusable trip copy)
-                         └── cert_levels
+public.bookings ──── event_id → events(id)
+    │                    │── rooms           (via the event_rooms junction)
+    │ 1-many             │── addons          (via the event_addons junction)
+    ↓                    │── travel_destinations
+public.payments          │                   (via the event_destinations junction)
+    (staff ledger)       │── cancellation_policies
+    │                    │── trip_templates  (reusable trip copy)
+    │ 1-many             └── cert_levels
+    ↓
+public.credits ────────── money the shop owes a diver (see payments.md)
+public.booking_discounts  one diver asking for one discount on one booking;
+                          approving writes a booking_amendments row
+                          (discounts ── event_discounts ── the event's offer)
 
-public.event_memos ────── eo_dive_id XOR eo_course_id  (admin flags)
-public.admin_notes ────── per-profile staff notes
+public.admin_notes ────── event_id XOR booking_id  (operational memos)
+public.diver_notes ────── per-diver standing facts (allergies, accommodations)
 public.admin_audit_log ── append-only changelog of admin mutations
 public.duties ─────────── staff/admin assignments per event
 public.dive_sites ─────── public catalog rendered on /map
 public.push_subscriptions / push_notifications_sent  (cron infra)
 ```
+
+Every child of an event — `bookings`, `duties`, `event_waivers`,
+`event_vehicles`, `event_ride_groups`, `event_discounts`, `notifications` —
+points at it with a plain `event_id`. There is no `eo_dive_id` / `eo_course_id`
+XOR anywhere in the schema — the only XOR left is `admin_notes`, which pins a
+memo to either an event or a booking.
 
 ## App-owned tables
 
@@ -36,9 +46,8 @@ public.push_subscriptions / push_notifications_sent  (cron infra)
 | `profiles` | `id` (= `auth.users.id`), `role` | `role in ('diver','staff','admin')`. Row auto-created by `handle_new_user()` on signup. Personal + cert + sizing + emergency contact + gear-owned + gear sizes + `agreed_to_terms_at`. |
 | `bookings` | `id`, `user_id`, `event_id`, `status`, `details` (jsonb), `refund_requested_at` | `event_id` NOT NULL → `events(id)` (ON DELETE CASCADE). `details` shape enforced app-side by `BookingDetails` in `src/types/database.ts`. Unique per (user, event). After insert, most columns are immutable for divers — a trigger in the baseline schema makes a diver's booking tamper-resistant by design. |
 | `payments` | `id`, `user_id`, `booking_id`, `amount`, `status`, `method`, `recorded_by` | Ledger entries, staff-inserted. `status in ('pending','paid','refunded')`. |
-| `event_memos` | `id`, `event_id`, `tag`, `content`, `resolved_*` | XOR FK to dive/course. Tags: `urgent` / `payment` / `gear` / `logistics` / `cert` / `medical` / `note`. Resolution flags come as a trio (all null or all set, DB-enforced). |
 | `diver_notes` | `id`, `profile_id`, `created_by`, `content`, `edited_*` | Per-diver standing facts (allergies, accommodations) — staff/admin can read+insert under their own attribution; admin or own-author can update/delete. `profile_id`/`created_by`/`created_at` frozen by trigger so RLS can't be sidestepped. |
-| `admin_notes` | `id`, `profile_id`, `created_by`, `content` | Free-text staff notes attached to a diver's profile. Read/insert open to staff+admin (insert requires `created_by = auth.uid()`); update/delete admin-only. |
+| `admin_notes` | `id`, `event_id` \| `booking_id`, `created_by`, `tag`, `content`, `resolved_*` | The operational memo table — a note pinned to one event **or** one booking (CHECK `admin_notes_target_present`: exactly one, the last XOR in the schema). Tags: `urgent` / `payment` / `gear` / `logistics` / `cert` / `medical` / `note` / `general`. Resolution flags come as a trio (all null or all set, DB-enforced). Read/insert open to staff+admin (insert requires `created_by = auth.uid()`); update/delete admin-only. See [admin.md](./admin.md#event-memos-admin_notes). |
 | `admin_audit_log` | `id`, `actor_id`, `action`, `target_table`, `target_id`, `before`, `after` | Append-only audit trail for admin mutations. Insert via DB triggers; reads admin-only. |
 | `duties` | `id`, `assignee_id`, `role`, `start_date`, `end_date`, `event_id` | Staff-or-admin shift assignments. Trigger enforces `assignee_id` references a profile with role in (admin, staff). |
 | `vehicles` | `id`, `name`, `passenger_seats`, `active` | Transport-fleet catalog. `passenger_seats` is the car's **total physical seats**, and every one of them is rideable: there is no driver-assignment concept, so divers and on-duty staff compete for the same seats and `event_ride_seats()` simply subtracts the staff. Staff+admin read, admin write. |
@@ -253,9 +262,9 @@ RLS is **on** for every `public.*` table. The important patterns:
 - **Diver-owned rows** (`bookings`, `payments`, `push_subscriptions`):
   users can read/insert/update/delete rows where `auth.uid() = user_id`.
 - **Staff+admin read** on `profiles`, `bookings`, `payments`,
-  `event_memos`, `admin_notes` — broadened from admin-only by the
+  `admin_notes`, `diver_notes` — broadened from admin-only by the
   `staff_role` migration. Writes on those tables stay admin-only
-  except `admin_notes` (staff can insert their own).
+  except `admin_notes` / `diver_notes` (staff can insert their own).
 - **`bookings` is largely immutable** for divers post-insert: the
   trigger `bookings_diver_immutable` (in
   `20260423130000_core_rls_and_booking_immutability.sql`) blocks

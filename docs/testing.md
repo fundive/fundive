@@ -104,7 +104,7 @@ the full list. Representative slices:
 | `eo-*-admin-writes.test.ts` / `eo-public-read.test.ts`     | RLS on the EO_\* catalog tables (admin can write, anon/diver read what's public) |
 | `eo-events-*.test.ts`                                      | Event-level constraints (cancellation, payment deadlines) |
 | `event-addons.test.ts` / `event-rooms.test.ts`             | Junction tables (`eo_dive_addons`, `eo_dive_rooms`) |
-| `memos.test.ts`                                            | `event_memos` XOR + resolved-trio CHECK |
+| `memos.test.ts`                                            | `admin_notes` target XOR + resolved-trio CHECK |
 | `duties.test.ts`                                           | Duty assignee trigger (must be staff or admin) |
 | `dive-sites-rls.test.ts` / `cert-levels-rls.test.ts`       | Reference data: read-open, write-admin |
 | `admin-audit-log.test.ts`                                  | Admin mutations land in the audit log |
