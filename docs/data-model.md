@@ -73,26 +73,54 @@ memo to either an event or a booking.
 
 ## `events` table + catalog reference tables
 
-Dives and courses are ONE table, `public.events`, discriminated by
-`kind ('dive' | 'course')` (migrations `20260702000000`–`20260702000400`
-collapsed the old Bubble `EO_dives` / `EO_courses` pair). Bookings, duties,
-admin_notes, event_vehicles, and waiver rows all reference it by a single
+Dives, courses and adventures are ONE table, `public.events`, discriminated
+by `kind` (migrations `20260702000000`–`20260702000400` collapsed the old
+Bubble `EO_dives` / `EO_courses` pair). Bookings, duties, admin_notes,
+event_vehicles, and waiver rows all reference it by a single
 `event_id → events(id)` (no more `eo_dive_id` / `eo_course_id` XOR).
 
 | `events` columns | Notes |
 | --- | --- |
-| `id` (uuid), `kind`, `admin_title`, `display_title`, `calendar_title` | shared identity |
+| `id` (uuid), `kind`, `admin_title`, `display_title`, `calendar_title` | shared identity. `kind in ('dive','course','adventure')` — the DB's `events_kind_check` |
 | `price` → `prices`, `cancel_policy` → `cancellation_policies`, `prereq_cert_id` → `cert_levels`, `trip_template_id` → `trip_templates` | catalog links |
 | `capacity`, `fully_booked`, `full_payment_deadline`, `cancel_date`, `cancelled_at`, `dive_days`, `prereqs`, `req_dives`, `featured_image` | shared |
 | `has_transport` (NOT NULL, default true) | shared. False when the shop drives nobody to this event — a dry course held at the shop. The register forms then put no ride question and fetch no seat tally, and `create-registration` forces `details.transportation` false. Set in the vehicle section of the admin event form; see [admin.md](./admin.md#transport-runs-seats-riders). Every payload to `create_events_with_relations` must carry it: `jsonb_populate_record` leaves an absent key NULL rather than falling back to the default |
-| **dive-only:** `start_date`, `end_date`, `start_time`, `featured`, `is_private`, `nitrox_required`, `gear_rental`, `notes`, `is_trip`, `is_boat_dive` | scalar date envelope; `is_trip`/`is_boat_dive` are independent `boolean not null default false` flags (see [events-and-bookings.md](./events-and-bookings.md)) |
+| **date-envelope kinds:** `start_date`, `end_date`, `start_time` | dives and adventures carry a scalar start/end envelope |
+| **dive-only:** `nitrox_required`, `is_boat_dive` | the genuinely diving-specific flags |
+| **dive-only (form-gated):** `is_trip`, `notes`, `featured`, `is_private` | `is_trip`/`is_boat_dive` are independent `boolean not null default false` flags (see [events-and-bookings.md](./events-and-bookings.md)). The columns sit on every envelope kind; the admin form offers them on dives, under `hasDiveFlags` |
+| **non-course kinds:** `gear_rental` | free text describing the rental terms. It does not decide whether gear is offered — `gear_included` does |
 | `gear_included` (NOT NULL, default false) | shared. True when the event puts no gear question and bills no gear: the fee covers a set, or nothing goes in the water. `create-registration` re-reads it and overwrites `details.gear`, the same way it forces `details.transportation`. Whether a set is physically packed is `packsAGearSet()` — this flag **and** `entersTheWater(kind)`, so an overland outing that bundles "gear" packs none. Replaced a substring match on course titles (20260911120000), which now only pre-ticks the box on the admin form |
-| **course-only:** `course_days` (`date[]`, max 4 — the days a course runs on; see [events-and-bookings.md](./events-and-bookings.md#course_days)), `course_name`, `included`, `schedule`, `starting_at` | discrete session days (no envelope) |
+| **course kinds:** `course_days` (`date[]`, max 4 — the days a course runs on; see [events-and-bookings.md](./events-and-bookings.md#course_days)), `course_name`, `included`, `schedule`, `starting_at` | discrete session days, no envelope |
 
-**Temporal model:** dives use the scalar `start_date`/`end_date`/`start_time`
-envelope; courses use `course_days[]`. This asymmetry is genuine domain logic —
+`series_id` groups the batch of occurrences a recurrence rule generated
+(`event_series`); each occurrence is otherwise fully independent.
+
+**Temporal model:** date-envelope kinds use the scalar
+`start_date`/`end_date`/`start_time` envelope; course kinds use
+`course_days[]`. This asymmetry is genuine domain logic —
 `src/lib/events.ts` (`courseToEvents` / `groupConsecutive`) explodes a course's
 day-array into calendar segments, while a dive is one segment.
+
+### Ask what a kind *does*
+
+**Never branch on `kind === 'dive'`.** The vocabulary and the questions
+live in `src/lib/event-kinds.ts` — `usesDateEnvelope`, `usesCourseDays`,
+`heldAtShop`, `isInstructorLed`, `hasDiveFlags`, `entersTheWater`,
+`hasTerrainConditions`, `recordsSiteConditions`, plus the
+`DATE_ENVELOPE_KINDS` / `COURSE_DAY_KINDS` / `SITE_CONDITION_KINDS` value
+lists that queries filter on. That file is deliberately import-free so the
+Deno edge functions and the push worker share it, and `src/types/database.ts`
+carries a compile-time guard pinning it to the DB's `events_kind_check`.
+
+A `kind === 'dive' ? … : …` ternary silently means "course" in its else
+branch, so a new kind inherits course behavior with no compile error and
+often no visible symptom — an event that is simply never fetched.
+
+Adding a kind touches separate DB vocabularies that no FK keeps in step:
+`events_kind_check`, `push_notifications_sent_event_type_check` (no FK to
+`events`, so a miss only shows up as rejected push rows), `waivers.applies_to`,
+and the `kind` check on `dive_sites` (asserted against `SITE_CONDITION_KINDS`
+in `src/lib/dive-sites.test.ts`).
 
 The **reference tables** (`prices`, `rooms`, `addons`, `trip_templates`,
 `cancellation_policies`, `travel_destinations`) were renamed from their Bubble
@@ -103,10 +131,12 @@ data, admin-editable. (`dive_travel` was later renamed to `trip_templates`, and
 `northeast_diving` columns — see the migration history below.)
 Rooms/add-ons/destinations link to events through the junctions `event_rooms`,
 `event_addons`, `event_destinations` (each `(event_id, <ref>_id)`), reconciled
-by the `set_event_relations` RPC. All dates are **Asia/Taipei local** (no DST).
+by the `set_event_relations` RPC. All dates are interpreted as **shop-local**
+(`locale.timezone`).
 
-Normalization into the uniform `AppEvent` shape lives in `src/lib/events.ts`.
-Use that everywhere in the UI rather than reading raw `events` rows.
+Normalization into the uniform `AppEvent` shape lives in `src/lib/events.ts` —
+`fetchEventsInRange`, `fetchEventsForBookings`, `fetchUpcomingEventDays`. Use
+`AppEvent` everywhere in the UI rather than reading raw `events` rows.
 
 ## `dive_sites` — the shop's places
 

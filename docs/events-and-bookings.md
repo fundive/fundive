@@ -2,39 +2,51 @@
 
 ## Event data flow
 
-One `events` table drives everything shown on the calendar, discriminated by
-`kind`:
-
-- `kind = 'dive'` — single-session dives (scalar `start_date`/`end_date`/`start_time`).
-- `kind = 'course'` — courses that run on an explicit list of days
-  (`course_days`; see [#course_days](#course_days)).
+**One table drives the calendar:** `events`, discriminated by `kind`
+(`dive` | `course` | `adventure`). Dives and adventures carry a
+`start_date` / `end_date` envelope; courses run on an explicit list of days
+(`course_days`; see [#course_days](#course_days)). Which shape a kind uses is
+a question you ask — `usesDateEnvelope(kind)` / `usesCourseDays(kind)` from
+`src/lib/event-kinds.ts` — never a `kind === 'dive'` test. See
+[data-model.md](./data-model.md#ask-what-a-kind-does).
 
 Normalization into a uniform `AppEvent` type happens in `src/lib/events.ts`:
 
 - `fetchEventsInRange(fromDate, toDate)` — calendar month views.
 - `fetchEventsForBookings(eventIds)` — bookings / payments pages that need to
   show event info alongside a booking row.
+- `fetchUpcomingEventDays()` — the dashboard's next-days strip.
 
-Every UI surface reads `AppEvent`, not raw `events` rows.
+Both range queries filter on `DATE_ENVELOPE_KINDS` / `COURSE_DAY_KINDS`
+rather than naming kinds, so a new kind joins the right query the moment it
+answers `usesDateEnvelope`. Every UI surface reads `AppEvent`, not raw
+`events` rows.
 
 ### `AppEvent` shape (abbreviated)
 
 ```ts
 {
   id: string                 // events.id (uuid)
-  type: 'dive' | 'course'    // mirrors events.kind
+  type: EventKind            // 'dive' | 'course' | 'adventure'
   title: string              // display_title || admin_title || fallback
-  start_time: string         // ISO timestamp (shop-tz-local, from the date/time columns)
+  calendar_title: string | null   // short label for the calendar grid pill
+  start_time: string         // ISO timestamp (shop-local, composed from the row)
   end_time:   string | null
+  start_time_hhmm: string | null  // 'HH:mm', null when no time is set
   price:      number | null
   deposit_amount: number | null
-  currency:   string         // from siteConfig.locale.currency
+  transport_price: number | null
+  currency:   string         // locale.currency
+  capacity / confirmed_count / fully_booked / cancelled_at / is_private
   is_boat_dive?: boolean     // dive-only flag (independent of is_trip)
-  is_trip?:      boolean      // dive-only; surfaced under Scheduled Trips
+  is_trip?:      boolean      // dive / adventure; surfaced under Scheduled Trips
   has_rooms / room_type_ids / has_addons / addon_ids / nitrox_required / dive_days
   gear_included / gear_rental_info
+  details?: EventDetails | null   // the calendar modal's descriptive block
 }
 ```
+
+`src/types/database.ts` is the full, commented definition.
 
 ### Trip & boat-dive flags
 
