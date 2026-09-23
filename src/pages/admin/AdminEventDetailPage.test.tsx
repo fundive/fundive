@@ -84,7 +84,7 @@ describe('AdminEventDetailPage', () => {
       details: { add_ons: ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'], gear: { rent: false } },
     }]
     const profiles = [{
-      id: 'u1', name: 'Ada Lovelace', nickname: 'Ada',
+      id: 'u1', name: 'Ada Lovelace', 
       cert_agency: 'PADI', cert_level: 'AOW', nitrox_certified: true,
       logged_dives: 20, height_cm: 165, weight_kg: 60, shoe_size: 'EU 41 M',
       contact_method: null, contact_id: null,
@@ -137,7 +137,7 @@ describe('AdminEventDetailPage', () => {
       event_id: 'dive_x', notes: null, refund_requested_at: null,
       details: { gear: { rent: false } },
     }]
-    const profiles = [{ id: 'u1', name: 'Ada Lovelace', nickname: 'Ada', contact_method: null, contact_id: null }]
+    const profiles = [{ id: 'u1', name: 'Ada Lovelace', contact_method: null, contact_id: null }]
 
     // No signatures on file → both annual dive waivers are missing.
     from.mockImplementation((table: string) => {
@@ -178,7 +178,7 @@ describe('AdminEventDetailPage', () => {
       id: 'b1', user_id: 'u1', status: 'confirmed', created_at: '2026-04-20',
       event_id: 'dive_x', notes: null, refund_requested_at: null, details: { gear: { rent: false } },
     }]
-    const profiles = [{ id: 'u1', name: 'Ada Lovelace', nickname: 'Ada', contact_method: null, contact_id: null }]
+    const profiles = [{ id: 'u1', name: 'Ada Lovelace', contact_method: null, contact_id: null }]
     from.mockImplementation((table: string) => {
       if (table === 'bookings') return mockQueryBuilder({ data: bookings })
       if (table === 'profiles') return mockQueryBuilder({ data: profiles })
@@ -210,7 +210,7 @@ describe('AdminEventDetailPage', () => {
       event_id: 'dive_x', notes: null, refund_requested_at: null,
       details: { gear: { rent: false } },
     }]
-    const profiles = [{ id: 'u1', name: 'Ada Lovelace', nickname: 'Ada', contact_method: null, contact_id: null }]
+    const profiles = [{ id: 'u1', name: 'Ada Lovelace', contact_method: null, contact_id: null }]
 
     from.mockImplementation((table: string) => {
       if (table === 'bookings') return mockQueryBuilder({ data: bookings })
@@ -236,7 +236,7 @@ describe('AdminEventDetailPage', () => {
       details: { add_ons: ['11111111-1111-4111-8111-111111111111', 'legacy-bubble-id'], gear: { rent: false } },
     }]
     const profiles = [{
-      id: 'u1', name: 'Ada Lovelace', nickname: 'Ada',
+      id: 'u1', name: 'Ada Lovelace', 
       cert_agency: 'PADI', cert_level: 'AOW', nitrox_certified: true,
       logged_dives: 20, height_cm: 165, weight_kg: 60, shoe_size: 'EU 41 M',
       contact_method: null, contact_id: null,
@@ -421,7 +421,7 @@ describe('AdminEventDetailPage', () => {
       details: {},
     }]
     const profiles = [{
-      id: 'u1', name: 'Ada Lovelace', nickname: 'Ada',
+      id: 'u1', name: 'Ada Lovelace', 
       cert_agency: 'PADI', cert_level: 'AOW', nitrox_certified: false,
       logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null,
       contact_method: null, contact_id: null,
@@ -463,11 +463,11 @@ describe('AdminEventDetailPage', () => {
     ]))
 
     const profiles = [
-      { id: 'u-ada',  name: 'Ada Lovelace',     nickname: 'Ada',
+      { id: 'u-ada',  name: 'Ada Lovelace',     
         cert_agency: 'PADI', cert_level: 'AOW', nitrox_certified: false,
         logged_dives: 0, contact_method: null, contact_id: null,
         height_cm: null, weight_kg: null, shoe_size: null, status: 'active' },
-      { id: 'u-bob',  name: 'Bob Roberts',      nickname: null,
+      { id: 'u-bob',  name: 'Bob Roberts',      
         cert_agency: 'PADI', cert_level: 'OW', nitrox_certified: false,
         logged_dives: 0, contact_method: null, contact_id: null,
         height_cm: null, weight_kg: null, shoe_size: null, status: 'active' },
@@ -512,7 +512,7 @@ describe('AdminEventDetailPage', () => {
       details: { total: 4900, deposit: 4900, payment_method: 'cash' },
     }]
     const profiles = [{
-      id: 'u1', name: 'Ada Lovelace', nickname: 'Ada',
+      id: 'u1', name: 'Ada Lovelace', 
       cert_agency: 'PADI', cert_level: 'AOW', nitrox_certified: false,
       logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null,
       contact_method: null, contact_id: null,
@@ -577,7 +577,7 @@ describe('AdminEventDetailPage', () => {
         b.update = bookingUpdate
         return b
       }
-      if (table === 'profiles') return mockQueryBuilder({ data: [{ id: 'u1', name: 'Ada Lovelace', nickname: 'Ada' }] })
+      if (table === 'profiles') return mockQueryBuilder({ data: [{ id: 'u1', name: 'Ada Lovelace' }] })
       return mockQueryBuilder({ data: [] })
     })
     invoke.mockResolvedValue({ data: { ok: true, sent: true }, error: null })
@@ -611,7 +611,7 @@ describe('AdminEventDetailPage', () => {
         b.update = bookingUpdate
         return b
       }
-      if (table === 'profiles') return mockQueryBuilder({ data: [{ id: 'u1', name: 'Ada Lovelace', nickname: 'Ada' }] })
+      if (table === 'profiles') return mockQueryBuilder({ data: [{ id: 'u1', name: 'Ada Lovelace' }] })
       return mockQueryBuilder({ data: [] })
     })
     invoke.mockResolvedValue({ data: null, error: new Error('smtp down') })
@@ -643,7 +643,7 @@ describe('AdminEventDetailPage', () => {
         b.update = bookingUpdate
         return b
       }
-      if (table === 'profiles') return mockQueryBuilder({ data: [{ id: 'u1', name: 'Ada Lovelace', nickname: 'Ada' }] })
+      if (table === 'profiles') return mockQueryBuilder({ data: [{ id: 'u1', name: 'Ada Lovelace' }] })
       return mockQueryBuilder({ data: [] })
     })
 
@@ -672,7 +672,7 @@ describe('AdminEventDetailPage', () => {
       details: { total: 12000, deposit: 2000, payment_method: 'bank_transfer' },
     }]
     const profiles = [{
-      id: 'u1', name: 'Ada Lovelace', nickname: 'Ada',
+      id: 'u1', name: 'Ada Lovelace', 
       cert_agency: 'PADI', cert_level: 'AOW', nitrox_certified: false,
       logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null,
       contact_method: null, contact_id: null,
@@ -747,7 +747,7 @@ describe('AdminEventDetailPage', () => {
       details: { total: 12000 },
     }]
     const profiles = [{
-      id: 'u1', name: 'Ada Lovelace', nickname: null,
+      id: 'u1', name: 'Ada Lovelace', 
       cert_agency: null, cert_level: null, nitrox_certified: false,
       logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null,
       contact_method: null, contact_id: null,
@@ -806,7 +806,7 @@ describe('AdminEventDetailPage', () => {
     ]))
 
     const newProfile = {
-      id: 'u-new', name: 'Eve Tester', nickname: 'Eve',
+      id: 'u-new', name: 'Eve Tester', 
       cert_agency: null, cert_level: null, nitrox_certified: false,
       logged_dives: 0, contact_method: null, contact_id: null,
       height_cm: null, weight_kg: null, shoe_size: null, status: 'active',
@@ -844,7 +844,6 @@ describe('AdminEventDetailPage', () => {
 
     await user.type(screen.getByLabelText(/^email \*$/i), 'eve@example.com')
     await user.type(screen.getByLabelText(/^legal name \*/i), 'Eve Tester')
-    await user.type(screen.getByLabelText(/^nickname$/i), 'Eve')
 
     await user.click(screen.getByRole('button', { name: /create account/i }))
 
@@ -853,7 +852,6 @@ describe('AdminEventDetailPage', () => {
     expect(invokeArgs.body).toMatchObject({
       email: 'eve@example.com',
       name: 'Eve Tester',
-      nickname: 'Eve',
       event_title: 'Kenting',
     })
 
@@ -903,7 +901,7 @@ describe('AdminEventDetailPage', () => {
       details: {},
     }]
     const profiles = [{
-      id: 'u1', name: 'Ada Lovelace', nickname: 'Ada',
+      id: 'u1', name: 'Ada Lovelace', 
       cert_agency: 'PADI', cert_level: 'AOW', nitrox_certified: false,
       logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null,
       contact_method: null, contact_id: null,
@@ -980,11 +978,11 @@ describe('AdminEventDetailPage', () => {
         details: { transportation: true } },
     ]
     const profiles = [
-      { id: 'u1', name: 'Ada Lovelace',  nickname: 'Ada',  cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
-      { id: 'u2', name: 'Bob Roberts',   nickname: null,   cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
-      { id: 'u3', name: 'Carol Carlson', nickname: null,   cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
-      { id: 'u4', name: 'Dave Diver',    nickname: null,   cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
-      { id: 'u5', name: 'Eve Tester',    nickname: null,   cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u1', name: 'Ada Lovelace',  cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u2', name: 'Bob Roberts',   cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u3', name: 'Carol Carlson', cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u4', name: 'Dave Diver',    cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u5', name: 'Eve Tester',    cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
     ]
 
     from.mockImplementation((table: string) => {
@@ -1049,9 +1047,9 @@ describe('AdminEventDetailPage', () => {
         event_id: 'dive_x', notes: null, refund_requested_at: null, details: { total: 3000 } },
     ]
     const profiles = [
-      { id: 'u1', name: 'Solo Sam', nickname: null, cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
-      { id: 'u2', name: 'Walkin Wu', nickname: null, cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
-      { id: 'u9', name: 'Admin Ada', nickname: null, cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u1', name: 'Solo Sam', cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u2', name: 'Walkin Wu', cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u9', name: 'Admin Ada', cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
     ]
     from.mockImplementation((table: string) => {
       if (table === 'bookings') return mockQueryBuilder({ data: bookings })
@@ -1078,8 +1076,8 @@ describe('AdminEventDetailPage', () => {
         event_id: 'dive_x', notes: null, refund_requested_at: null, details: { total: 3000, deposit: 1000 } },
     ]
     const profiles = [
-      { id: 'u1', name: 'Parent Pat', nickname: null, cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
-      { id: 'u2', name: 'Kid Casey',  nickname: null, cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u1', name: 'Parent Pat', cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u2', name: 'Kid Casey',  cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
     ]
     const bookingsUpdate = vi.fn(() => ({ eq: () => Promise.resolve({ error: null }) }))
     from.mockImplementation((table: string) => {
@@ -1132,8 +1130,8 @@ describe('AdminEventDetailPage', () => {
         event_id: 'dive_x', notes: null, refund_requested_at: null, details: { total: 3000 } },
     ]
     const profiles = [
-      { id: 'u1', name: 'Ada Lovelace', nickname: null, cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
-      { id: 'u2', name: 'Bob Roberts',  nickname: null, cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u1', name: 'Ada Lovelace', cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u2', name: 'Bob Roberts',  cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
     ]
     // Ada paid in full (3000); Bob has paid nothing → 3000 outstanding.
     const payments = [
@@ -1178,9 +1176,9 @@ describe('AdminEventDetailPage', () => {
         event_id: 'dive_x', notes: null, refund_requested_at: null, details: {} },
     ]
     const profiles = [
-      { id: 'u1', name: 'Ada Lovelace', nickname: null, cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
-      { id: 'u2', name: 'Bob Roberts',  nickname: null, cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
-      { id: 'u5', name: 'Eve Tester',   nickname: null, cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u1', name: 'Ada Lovelace', cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u2', name: 'Bob Roberts',  cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
+      { id: 'u5', name: 'Eve Tester',   cert_agency: null, cert_level: null, nitrox_certified: false, logged_dives: 0, height_cm: null, weight_kg: null, shoe_size: null, contact_method: null, contact_id: null },
     ]
 
     from.mockImplementation((table: string) => {
@@ -1220,7 +1218,7 @@ describe('AdminEventDetailPage', () => {
       event_id: 'dive_x', notes: null, refund_requested_at: '2026-07-10T02:00:00Z',
       details: { gear: { rent: false } },
     }]
-    const profiles = [{ id: 'u1', name: 'Ada Lovelace', nickname: 'Ada', contact_method: null, contact_id: null }]
+    const profiles = [{ id: 'u1', name: 'Ada Lovelace', contact_method: null, contact_id: null }]
 
     const updates: unknown[] = []
     from.mockImplementation((table: string) => {

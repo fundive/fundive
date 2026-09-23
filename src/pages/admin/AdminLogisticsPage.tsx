@@ -457,7 +457,7 @@ export function AdminLogisticsPage() {
           + amendmentsDelta(amendmentsByBookingId.get(b.id) ?? [])
         const paid = paidByBooking.get(b.id) ?? 0
         const payerName = (b.payer_id && b.payer_id !== b.user_id)
-          ? (personName(profMap.get(b.payer_id)?.name, profMap.get(b.payer_id)?.nickname) || lg.leadBooker)
+          ? (personName(profMap.get(b.payer_id)?.name) || lg.leadBooker)
           : null
         balByBooking.set(b.id, { bal: bookingBalance(owed, paid, openCreditForBooking(credits, b.id), { cancelled: b.status === 'cancelled' }), payerName })
       }
@@ -553,7 +553,7 @@ export function AdminLogisticsPage() {
       staffIndex.set(key, i)
       dayStaff.push({
         key,
-        name: personName(s.profile?.name, s.profile?.nickname) || lg.staffFallback,
+        name: personName(s.profile?.name) || lg.staffFallback,
         profileId: s.profile?.id ?? null,
         roles: [],
       })
@@ -573,7 +573,7 @@ export function AdminLogisticsPage() {
     diverKeys.add(key)
     dayDivers.push({
       key,
-      name: personName(r.profile?.name, r.profile?.nickname) || tp.noProfile,
+      name: personName(r.profile?.name) || tp.noProfile,
       profileId: r.profile?.id ?? null,
     })
   }
@@ -587,7 +587,7 @@ export function AdminLogisticsPage() {
     diverKeys.add(key)
     waitlistDivers.push({
       key,
-      name: personName(r.profile?.name, r.profile?.nickname) || tp.noProfile,
+      name: personName(r.profile?.name) || tp.noProfile,
       profileId: r.profile?.id ?? null,
     })
   }
@@ -599,7 +599,7 @@ export function AdminLogisticsPage() {
     if (!e || e.bal.state !== 'due') return []
     return [{
       bookingId: r.booking.id,
-      name: personName(r.profile?.name, r.profile?.nickname) || tp.noProfile,
+      name: personName(r.profile?.name) || tp.noProfile,
       amount: e.bal.amount,
       payerName: e.payerName,
     }]
@@ -648,12 +648,12 @@ export function AdminLogisticsPage() {
       // a waitlisted diver isn't given van space they may never use.
       divers: members.flatMap(g => splitByTransport(partitionByWaitlist(g.rows).seated).needsRide.map((r): Rider => ({
         id: r.profile?.id ?? r.booking.id,
-        name: personName(r.profile?.name, r.profile?.nickname) || tp.noProfile,
+        name: personName(r.profile?.name) || tp.noProfile,
         kind: 'diver',
       }))),
       staff: members.flatMap(g => g.staff.map((s): Rider => ({
         id: s.profile?.id ?? s.dutyId,
-        name: personName(s.profile?.name, s.profile?.nickname) || lg.staffFallback,
+        name: personName(s.profile?.name) || lg.staffFallback,
         kind: 'staff',
       }))),
       fleet: members.flatMap(g => (allocByEvent.get(g.event.id) ?? [])

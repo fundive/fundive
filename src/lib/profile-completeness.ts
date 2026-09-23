@@ -14,10 +14,9 @@ import type { Profile } from '../types/database'
 // cert_level, contact_method and contact_id are all filled. That stamp is a
 // one-way latch and it can't see the `uncertified` flag — a Discover diver who
 // legitimately has no cert_level never earns it — so it's a poor thing to drive
-// UI from. Ask this module instead. Fields nobody chases —
-// nickname, ID number, emergency contact, sizing, medical notes — are absent by
-// design: a blank one is not a gap, and flagging it would make the indicator
-// noise.
+// UI from. Ask this module instead. Fields nobody chases — ID number,
+// emergency contact, sizing, medical notes — are absent by design: a blank
+// one is not a gap, and flagging it would make the indicator noise.
 
 export type ProfileGap =
   | 'name'

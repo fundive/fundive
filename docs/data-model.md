@@ -213,9 +213,8 @@ the client — a diver has no way to mint an already-approved record:
   only; stamps `approved_by` / `approved_at`. `status` must be `approved` or
   `rejected`.
 - `almanac_records_in_range(from, to)` — the approved records for a window of
-  calendar days, each with its site name and the submitter's display name
-  (`coalesce(nickname, name)`). A date range rather than a list of ids,
-  because the page reads the almanac by day.
+  calendar days, each with its site name and the submitter's name. A date
+  range rather than a list of ids, because the page reads the almanac by day.
 - `almanac_pending_records()` — the staff review queue; raises for anyone
   else.
 

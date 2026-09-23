@@ -773,7 +773,6 @@ export interface Database {
            *  writes it — hence absent from Insert/Update. */
           email: string | null
           name: string | null
-          nickname: string | null
           date_of_birth: string | null
           nationality: string | null
           id_number: string | null
@@ -833,7 +832,6 @@ export interface Database {
           created_at?: string
           updated_at?: string
           name?: string | null
-          nickname?: string | null
           date_of_birth?: string | null
           nationality?: string | null
           id_number?: string | null
@@ -870,7 +868,6 @@ export interface Database {
           id?: string
           updated_at?: string
           name?: string | null
-          nickname?: string | null
           date_of_birth?: string | null
           nationality?: string | null
           id_number?: string | null
