@@ -1,6 +1,6 @@
 # About FunDive
 
-FunDive is an **independent, open-source, non-profit project** that exists for
+FunDive is an **open-source, non-profit project** that exists for
 the benefit of the dive community. It is free software under the
 [AGPL-3.0-or-later](https://github.com/fundive/fundive/blob/main/LICENSE), and it
 stays that way: anyone may use it, study it, change it and share it, and no one
@@ -8,15 +8,8 @@ can take it private.
 
 ## Who makes it
 
-FunDive was created in 2026 by **Eric Odle**, who maintains it. The code, the
-`fundive` GitHub organization and the project's direction belong to the project
-and its contributors, not to any business.
-
-## Independence
-
-FunDive is **not owned by, operated by or affiliated with Fun Divers Taiwan or
-any other dive shop, company or organization.** No shop pays for it, directs
-it, or has any special claim on it. It does not sell anything, and it carries no
+FunDive was co-created in 2026 by **Eric Odle** and **Billy Evalt**, and is
+maintained by Eric Odle. It does not sell anything, and it carries no
 commercial tier: the version in this repository is the whole thing.
 
 ## Thanks to Fun Divers Taiwan
@@ -25,7 +18,7 @@ commercial tier: the version in this repository is the whole thing.
 field-test FunDive: running it in real day-to-day shop operations, with real
 divers and real bookings, and reporting what worked and what did not. They did
 this as a way to give back to the dive community. That help shaped a great deal
-of the app, and it is gratefully acknowledged, but it is help, not ownership.
+of the app, and it is gratefully acknowledged.
 Where these docs mention "the reference shop" or the first deployment, that is
 the field test they mean.
 

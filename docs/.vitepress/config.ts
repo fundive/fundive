@@ -59,7 +59,7 @@ export default defineConfig({
     },
     footer: {
       message: 'Released under the AGPL-3.0-or-later license.',
-      copyright: 'Copyright © 2026 Eric Odle and FunDive contributors. An independent, non-profit project.',
+      copyright: 'Copyright © 2026 Eric Odle and FunDive contributors. A non-profit, open-source project.',
     },
   },
 })

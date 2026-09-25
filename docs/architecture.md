@@ -7,7 +7,7 @@ own repository), what is configurable, and what is not.
 > Status: this describes the target architecture. The codebase is still being
 > generalized from its field-test deployment at
 > [Fun Divers Taiwan](https://www.fundiverstw.com) (a shop that helped test the
-> app; FunDive is independent of it — see [About](./about.md)), so parts of this
+> app — see [About](./about.md)), so parts of this
 > are a plan, not yet shipped. See
 > [Status & roadmap](#status--roadmap).
 

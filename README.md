@@ -7,10 +7,9 @@ operations — in one progressive web app you host yourself. Every comparable
 product is paid, closed-source SaaS. FunDive is AGPL-licensed: you own the code
 and your customers' data, with no per-seat fee.
 
-> FunDive is an independent, non-profit, open-source project for the benefit of
-> the dive community, created and maintained by Eric Odle in 2026. It is not
-> owned by or affiliated with Fun Divers Taiwan or any other organization.
-> [Fun Divers Taiwan](https://www.fundiverstw.com), a dive shop in Taipei, helped
+> FunDive is a non-profit, open-source project for the benefit of the dive
+> community, co-created in 2026 by Eric Odle and Billy Evalt and maintained by
+> Eric Odle. [Fun Divers Taiwan](https://www.fundiverstw.com), a dive shop in Taipei, helped
 > field-test the app in real shop operations as a way to give back to the
 > community. See [About](#about).
 
@@ -170,19 +169,15 @@ signed off under the [Developer Certificate of Origin](https://developercertific
 
 ## About
 
-FunDive is an **independent, open-source, non-profit project** that exists for
-the benefit of the dive community. It was created in 2026 by **Eric Odle**, who
-maintains it.
-
-FunDive is **not owned by, operated by or affiliated with Fun Divers Taiwan or
-any other dive shop, company or organization.** No shop pays for it or directs
-it, and there is no commercial tier: this repository is the whole thing.
+FunDive is an **open-source, non-profit project** that exists for the benefit
+of the dive community. It was co-created in 2026 by **Eric Odle** and **Billy
+Evalt**, and is maintained by Eric Odle. There is no commercial tier: this
+repository is the whole thing.
 
 [Fun Divers Taiwan](https://www.fundiverstw.com), a dive shop in Taipei, helped
 field-test FunDive, running it in real day-to-day operations and reporting what
 worked and what did not, as a way to give back to the dive community. That help
-is gratefully acknowledged; it is help, not ownership. More in
-[docs/about.md](docs/about.md).
+is gratefully acknowledged. More in [docs/about.md](docs/about.md).
 
 ## License
 

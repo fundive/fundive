@@ -9,7 +9,7 @@ dive into source.
 
 | Doc | What it covers |
 | --- | --- |
-| [about.md](./about.md)                                 | Who makes FunDive: an independent, non-profit project by Eric Odle, field-tested with help from Fun Divers Taiwan |
+| [about.md](./about.md)                                 | Who makes FunDive: a non-profit project by Eric Odle and Billy Evalt, field-tested with help from Fun Divers Taiwan |
 | [development.md](./development.md)                     | Local development: clone → Docker stack → running app with seeded logins, and what to do when it will not start |
 | [self-hosting.md](./self-hosting.md)                   | Non-technical step-by-step: fork → Supabase → Cloudflare → live app, first admin, go-live checklist |
 | [shutdown.md](./shutdown.md)                           | The reverse: settle up, take the data out, and switch the app, the services and the accounts off in an order that strands nothing |
