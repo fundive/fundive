@@ -27,3 +27,11 @@ features:
     details: Leaving? Settle up, export your records as spreadsheets, and switch every service off in the right order.
     link: /shutdown
 ---
+
+## About
+
+FunDive is an **independent, open-source, non-profit project** for the benefit of
+the dive community, created and maintained by Eric Odle in 2026. It is not owned
+by or affiliated with Fun Divers Taiwan or any other organization. Fun Divers
+Taiwan helped field-test the app in real shop operations as a way to give back
+to the community. [Read more](/about).

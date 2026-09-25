@@ -5,13 +5,15 @@ between the **platform** (this repository) and a **deployment** (each operator's
 own repository), what is configurable, and what is not.
 
 > Status: this describes the target architecture. The codebase is still being
-> generalized from its first deployment ([FunDivers TW](https://fundivers.tw)),
-> so parts of this are a plan, not yet shipped. See
+> generalized from its field-test deployment at
+> [Fun Divers Taiwan](https://www.fundiverstw.com) (a shop that helped test the
+> app; FunDive is independent of it — see [About](./about.md)), so parts of this
+> are a plan, not yet shipped. See
 > [Status & roadmap](#status--roadmap).
 
 ## Philosophy: one platform, many thin deployments
 
-FunDive is **open-core, self-hosted**. There is exactly one authoritative
+FunDive is **open-source, self-hosted**. There is exactly one authoritative
 codebase — this repository. Each dive center that runs FunDive does **not** fork
 or copy the code. Instead they create a small **deployment repository** that
 holds only *their* configuration — branding, infrastructure credentials, and

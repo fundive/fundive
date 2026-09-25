@@ -1,7 +1,7 @@
 # Packages — partner-shop registration network
 
-A board of dive **packages hosted by partner shops abroad** that FunDivers
-vouches for. A diver browses a product, picks a price **tier**, a **preferred
+A board of dive **packages hosted by partner shops abroad** that the
+shop vouches for. A diver browses a product, picks a price **tier**, a **preferred
 date range** and **add-ons / a room** from our catalog, and **registers**. That
 sends a recommendation email — from our shop — to the **partner shop** and the
 **diver**, carrying a **cost estimate**. When the diver books at the partner, the

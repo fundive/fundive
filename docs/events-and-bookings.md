@@ -275,7 +275,7 @@ under the admin's RLS — no PDF, no account creation.
 ### Who registered this diver
 
 `bookings.created_by` answers it, and the admin event page shows
-**"Added by <name>"** on any registrant whose booking somebody else
+**"Added by &lt;name&gt;"** on any registrant whose booking somebody else
 made. No badge means they signed themselves up — the ordinary case, and
 the silence is what makes the badge worth scanning for.
 

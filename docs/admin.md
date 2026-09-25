@@ -317,7 +317,7 @@ Every memo is:
   Resolved memos stay in the table but are visually separated.
 
 UI: `src/components/admin/AdminNotes.tsx`, which takes a
-`target={{ kind: 'event' | 'booking', id }}`.
+<span v-pre>`target={{ kind: 'event' | 'booking', id }}`</span>.
 
 ## Users
 

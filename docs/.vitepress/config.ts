@@ -10,6 +10,7 @@ export default defineConfig({
   cleanUrls: true,
   themeConfig: {
     nav: [
+      { text: 'About', link: '/about' },
       { text: 'Self-hosting', link: '/self-hosting' },
       { text: 'Forking', link: '/forking' },
       { text: 'Deployment', link: '/deployment' },
@@ -20,6 +21,7 @@ export default defineConfig({
         text: 'Get started',
         items: [
           { text: 'Overview', link: '/' },
+          { text: 'About', link: '/about' },
           { text: 'Self-hosting walkthrough', link: '/self-hosting' },
           { text: 'Forking for your shop', link: '/forking' },
           { text: 'Deployment', link: '/deployment' },
@@ -57,7 +59,7 @@ export default defineConfig({
     },
     footer: {
       message: 'Released under the AGPL-3.0-or-later license.',
-      copyright: 'Copyright © 2026 FunDive contributors',
+      copyright: 'Copyright © 2026 Eric Odle and FunDive contributors. An independent, non-profit project.',
     },
   },
 })

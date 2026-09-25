@@ -7,9 +7,12 @@ operations — in one progressive web app you host yourself. Every comparable
 product is paid, closed-source SaaS. FunDive is AGPL-licensed: you own the code
 and your customers' data, with no per-seat fee.
 
-> FunDive was built for and first deployed by [FunDivers TW](https://fundivers.tw),
-> a dive shop in Taipei, Taiwan. This repository is the open-source platform
-> behind it, being prepared for general self-hosting.
+> FunDive is an independent, non-profit, open-source project for the benefit of
+> the dive community, created and maintained by Eric Odle in 2026. It is not
+> owned by or affiliated with Fun Divers Taiwan or any other organization.
+> [Fun Divers Taiwan](https://www.fundiverstw.com), a dive shop in Taipei, helped
+> field-test the app in real shop operations as a way to give back to the
+> community. See [About](#about).
 
 > **Status: v0.1.0 — first public release.** This is the initial fork-and-deploy
 > release: clone it, point it at your own Supabase + Cloudflare, brand it, and run
@@ -165,9 +168,25 @@ Contributions are welcome — anyone can fork the project and open a pull reques
 signed off under the [Developer Certificate of Origin](https://developercertificate.org/)
 (`git commit -s`). See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
+## About
+
+FunDive is an **independent, open-source, non-profit project** that exists for
+the benefit of the dive community. It was created in 2026 by **Eric Odle**, who
+maintains it.
+
+FunDive is **not owned by, operated by or affiliated with Fun Divers Taiwan or
+any other dive shop, company or organization.** No shop pays for it or directs
+it, and there is no commercial tier: this repository is the whole thing.
+
+[Fun Divers Taiwan](https://www.fundiverstw.com), a dive shop in Taipei, helped
+field-test FunDive, running it in real day-to-day operations and reporting what
+worked and what did not, as a way to give back to the dive community. That help
+is gratefully acknowledged; it is help, not ownership. More in
+[docs/about.md](docs/about.md).
+
 ## License
 
-Copyright (C) 2026 FunDive contributors
+Copyright (C) 2026 Eric Odle and FunDive contributors
 
 FunDive is free software, licensed under the **GNU Affero General Public License,
 version 3 or later** (`AGPL-3.0-or-later`). You are free to use, study, share,

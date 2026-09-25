@@ -165,7 +165,7 @@ are:
 
 Swap the files in place (keeping the paths) or point the config keys at new
 paths. Also replace any social / OG preview image you reference so link previews
-show your brand, not FunDivers TW.
+show your brand, not the field-test shop's.
 
 ## 3. Terms of Use & privacy — written in the app, not in code
 

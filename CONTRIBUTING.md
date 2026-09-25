@@ -3,6 +3,10 @@
 Thanks for your interest in contributing! This document explains the legal
 basics so that Fundive can stay free software for everyone.
 
+Fundive is an independent, non-profit project created and maintained by Eric
+Odle. It is not owned by or affiliated with Fun Divers Taiwan (which helped
+field-test it) or any other organization; see [docs/about.md](docs/about.md).
+
 ## License of contributions
 
 By contributing to this project you agree that your contributions are licensed
