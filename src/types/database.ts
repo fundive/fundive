@@ -1689,6 +1689,10 @@ export interface Database {
            *  held at the shop (20260821000000). The registration form then
            *  puts no ride question and the event takes no cars. */
           has_transport: boolean
+          /** False when nobody registered for this event goes in the water —
+           *  EFR/CPR, an equipment class, a BBQ (20260925100000). The logistics
+           *  board counts those registrants as non-divers. */
+          enters_water: boolean
           is_boat_dive: boolean | null
           is_trip: boolean | null
           nitrox_required: boolean
@@ -1733,6 +1737,7 @@ export interface Database {
           course_days?: string[] | null
           is_private?: boolean
           has_transport?: boolean
+          enters_water?: boolean
           is_boat_dive?: boolean | null
           is_trip?: boolean | null
           nitrox_required?: boolean
@@ -2990,6 +2995,13 @@ export interface AppEvent {
   is_boat_dive?: boolean
   /** Dive-only, independent of is_boat_dive: surfaced under Scheduled Trips. */
   is_trip?: boolean
+  /** Admin-set: do this event's registrants go in the water? False for an
+   *  EFR/CPR class, an equipment course, a BBQ — the logistics board lists
+   *  those people as non-divers, which is the split the shop's insurer asks
+   *  for. Ask it through `eventEntersWater()` (src/lib/participants.ts) rather
+   *  than reading it raw: an adventure answers no by kind, whatever the column
+   *  says. */
+  enters_water: boolean
   /**
    * Admin-set full-payment deadline (YYYY-MM-DD). When null the
    * registration form falls back to "7 days before start_date" — see
