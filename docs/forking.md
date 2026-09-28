@@ -64,7 +64,7 @@ Walking the fields:
 
 > **Gear catalog.** `business.gearItems` is the one list behind three surfaces:
 > the profile's "Gear I own" checklist, the à-la-carte rental checklist at
-> registration, and the logistics packing totals.
+> registration, and the logistics pack checklist.
 >
 > **`gearPrices` decides what you rent.** Its keys are the subset of `gearItems`
 > that appears in the rental checklist, each with its daily price. An item left
