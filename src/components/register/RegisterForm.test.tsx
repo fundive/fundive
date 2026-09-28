@@ -11,6 +11,7 @@ import {
 } from '../../lib/registration-draft'
 import { siteConfig } from '../../config/site'
 import { GEAR_ITEMS, FULL_GEAR_SET, GEAR_ALACARTE_PRICES } from '../../lib/gear'
+import { CAPTCHA_REUSE_MAX_AGE_MS } from '../../lib/turnstile'
 import { t } from '../../i18n'
 
 const RUBBER_BOOTS = 'Boots (rubber sole)'
@@ -2485,7 +2486,7 @@ describe('RegisterForm guest captcha freshness', () => {
     await user.click(screen.getByRole('button', { name: /confirm booking/i }))
 
     await waitFor(() => expect(invoke).toHaveBeenCalledOnce())
-    expect(freshToken).toHaveBeenCalledWith(120_000)
+    expect(freshToken).toHaveBeenCalledWith(CAPTCHA_REUSE_MAX_AGE_MS)
     const opts = invoke.mock.calls[0][1] as { body: Record<string, unknown> }
     expect(opts.body.turnstile_token).toBe('minted-at-submit')
   })
