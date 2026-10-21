@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { nondiverLabel } from '../../lib/participants'
 import { personName } from '../../lib/names'
 import { gearPackList } from '../../lib/gear'
 import { shoeAsJp } from '../../lib/shoe-size'
@@ -14,6 +15,7 @@ import { t } from '../../i18n'
 
 const gc = t.admin.gearCard
 const pk = t.admin.logistics.pack
+const lg = t.admin.logistics
 
 // A piece in its three looks. The light design paints the card white, the dark
 // one leaves it glass, so each tone is picked for the card it sits on.
@@ -63,6 +65,7 @@ export function GuestPackCard({
 }) {
   const { booking, profile } = row
   const name = personName(profile?.name) || gc.unknown
+  const nondiver = nondiverLabel(booking)
   const pack = gearPackList(booking)
   const { packed: done, total } = packProgress(pieces, packed)
   const allDone = total > 0 && done === total
@@ -104,6 +107,13 @@ export function GuestPackCard({
                 <Link to={`/admin/users?diver=${profile.id}`} className="hover:underline">{name}</Link>
               ) : name}
             </h3>
+            {nondiver && (
+              // Orange is the board's non-diver colour: a snorkeler can still
+              // rent fins, but nobody should pack them a regulator.
+              <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-300 font-semibold shrink-0">
+                {lg.nondiverTag(nondiver)}
+              </span>
+            )}
             {booking.status === 'waitlisted' && (
               <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-300 font-semibold shrink-0">
                 {gc.waitlisted}
