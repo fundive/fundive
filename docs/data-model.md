@@ -24,6 +24,9 @@ public.credits ────────── money the shop owes a diver (see p
 public.booking_discounts  one diver asking for one discount on one booking;
                           approving writes a booking_amendments row
                           (discounts ── event_discounts ── the event's offer)
+public.nondiver_options ─ snorkeler / boat passenger: own price + deposit
+                          (offered per event via event_nondiver_options;
+                          the choice lives in bookings.details)
 
 public.admin_notes ────── event_id XOR booking_id  (operational memos)
 public.diver_notes ────── per-diver standing facts (allergies, accommodations)
@@ -34,7 +37,8 @@ public.push_subscriptions / push_notifications_sent  (cron infra)
 ```
 
 Every child of an event — `bookings`, `duties`, `event_waivers`,
-`event_vehicles`, `event_ride_groups`, `event_discounts`, `notifications` —
+`event_vehicles`, `event_ride_groups`, `event_discounts`,
+`event_nondiver_options`, `notifications` —
 points at it with a plain `event_id`. There is no `eo_dive_id` / `eo_course_id`
 XOR anywhere in the schema — the only XOR left is `admin_notes`, which pins a
 memo to either an event or a booking.
@@ -65,8 +69,9 @@ memo to either an event or a booking.
 | `trip_templates` | catalog | Reusable "what's included" / not-included / transportation / itinerary / prerequisites copy an event links to via `events.trip_template_id`; surfaces in the booking form. Renamed from `dive_travel` (`20260708050000`). |
 | `scheduled_trips` | `id`, `title`, `destination`, `status`, `price`, `addon_ids`, `room_type_ids` | The shop's own curated, dated trips shown on the diver Scheduled Trips tab. Admin-managed base table (admin-only RLS); divers read published rows via `list_scheduled_trips()`. Carries `addon_ids`/`room_type_ids` (into the shop `addons`/`rooms` catalog) so divers register self-contained for a cost estimate — same flow as `packages`, minus tiers/partner. Distinct from `packages` (open-ended travel abroad) and the `events.is_trip` flag. See [packages.md](./packages.md). |
 | `scheduled_trip_registrations` | `id`, `scheduled_trip_id`, `diver_id`, `estimated_cost`, `details`, `status` | One row per diver-registration for a scheduled trip; frozen estimate snapshot in `details`. No kickback (the shop's own trip). Admin-only base table; divers create via the `register-scheduled-trip` edge fn and read their own via `list_my_scheduled_trip_registrations()`. Partial unique index keeps one live registration per diver per trip. |
-| `event_rooms` / `event_addons` / `event_destinations` / `event_discounts` | junctions | FK junctions linking rooms / add-ons / destinations / offered discounts to `events` by `event_id`. Reconciled by the `set_event_relations` RPC (the single write path). |
+| `event_rooms` / `event_addons` / `event_destinations` / `event_discounts` / `event_nondiver_options` | junctions | FK junctions linking rooms / add-ons / destinations / offered discounts to `events` by `event_id`. Reconciled by the `set_event_relations` RPC (the single write path). |
 | `discounts` | `id`, `label`, `description`, `kind`, `value`, `active`, `sort_order` | The shop's discount catalog — `kind` is `percent` (1–100) or `fixed` (a flat amount). Publicly readable so the register form can render the offer before sign-in; admin-written. See [payments.md § Discounts](./payments.md#discounts). |
+| `nondiver_options` | `id`, `label`, `description`, `price`, `deposit_amount`, `active`, `sort_order` | Ways to join an event without diving (snorkeler, boat passenger), each at its own price and optional deposit. Publicly readable so the register form can render them before sign-in; admin-written. Offered per event via `event_nondiver_options`. See [events-and-bookings.md § Non-diver options](./events-and-bookings.md#non-diver-options). |
 | `booking_discounts` | `id`, `booking_id`, `discount_id`, `status`, `amount`, `amendment_id`, `requested_*`, `decided_*` | One diver asking for one discount on one booking. **No write policy at all** — every write goes through `request_booking_discount` / `decide_booking_discount`, so no client can mint an approval. An approval stamps the `amount` and the negative `booking_amendments` row that is the actual money; `discount_id` is `ON DELETE RESTRICT` so a granted discount outlives the shop's decision to stop offering it. |
 | `push_subscriptions` | `endpoint` (unique), `user_id`, `p256dh`, `auth` | One row per device. Diver owns their rows (RLS). |
 | `push_notifications_sent` | `(user_id, event_id, kind)` composite PK | Idempotency ledger for the push cron. Service-role-only. |
@@ -408,6 +413,11 @@ interface BookingDetails {
   }
   room?: { option_id?: string | null; notes?: string | null }
   add_ons?: string[]                // addons.id list
+  nondiver_option?: { id: string; label: string }
+                                    // set when this person registered as a
+                                    //   non-diver; label snapshotted from the
+                                    //   catalog by create-registration.
+                                    //   Absent = a diver
   discount_requests?: string[]      // discounts.id list, IN-FLIGHT ONLY: the
                                     //   register form sends it,
                                     //   create-registration turns each into a
