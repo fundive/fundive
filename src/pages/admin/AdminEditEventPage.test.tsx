@@ -122,7 +122,7 @@ describe('AdminEditEventPage', () => {
     expect(await screen.findByText(/waiver requirements/i)).toBeInTheDocument()
   })
 
-  it('prefills the featured image URL field and round-trips it into the update payload', async () => {
+  it('prefills the featured image field and round-trips a site path into the update payload', async () => {
     // The input round-trips the image URL verbatim — no parsing/validation.
     const existing = {
       id: 'dive_x', kind: 'dive',
@@ -157,16 +157,16 @@ describe('AdminEditEventPage', () => {
     const user = userEvent.setup()
     renderAt('/admin/events/dive_x/edit')
 
-    const featuredInput = await screen.findByLabelText(/featured image url/i) as HTMLInputElement
+    const featuredInput = await screen.findByLabelText(/featured image/i) as HTMLInputElement
     await waitFor(() => expect(featuredInput.value).toBe(existing.featured_image))
 
     await user.clear(featuredInput)
-    await user.type(featuredInput, 'https://cdn.example/new-hero.jpg')
+    await user.type(featuredInput, '/imgs/media/new-hero.webp')
     await user.click(screen.getByRole('button', { name: /save changes/i }))
 
     await waitFor(() => expect(updateSpy).toHaveBeenCalled())
     const payload = (updateSpy.mock.calls[0]?.[0] ?? {}) as Record<string, unknown>
-    expect(payload.featured_image).toBe('https://cdn.example/new-hero.jpg')
+    expect(payload.featured_image).toBe('/imgs/media/new-hero.webp')
   })
 
   it('renders an error and no form when the dive is not found', async () => {

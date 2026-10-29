@@ -4,7 +4,8 @@ Optional self-hosted event photos. An event's `featured_image` is resolved to a
 displayable image by `src/lib/images.ts` (`resolveImageUrl`):
 
 - a site path such as `/imgs/media/<file>.webp` → a photo in this folder, used as-is.
-- a plain `http(s)://…` URL → used as-is (host it wherever you like).
+- an `https://…` URL → used as-is (the CSP allows `https://*.supabase.co`; add
+  any other host there).
 
 So there is **no CDN dependency at runtime** and nothing extra in the CSP beyond
 `'self'`. This folder ships empty — a fork drops its own optimized `.webp` copies

@@ -21,6 +21,7 @@ import { BTN_XS_GHOST, ERROR_NOTE, TEXT_WARNING } from '../../styles/tokens'
 import { keepsDepositOnCancel } from '../../lib/cancellation-policies'
 import { suggestsGearIncluded } from '../../lib/gear'
 import { discountValueLabel } from '../../lib/discounts'
+import { resolveImageUrl } from '../../lib/images'
 import { t } from '../../i18n'
 
 // Shared form for creating and editing an EO_dive / EO_course. Owns all
@@ -775,7 +776,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
               <Checkbox checked={form.is_trip}         onChange={v => set('is_trip', v)}         label={ef.isTrip} />
               <Checkbox checked={form.is_private}      onChange={v => set('is_private', v)}      label={ef.isPrivate} />
             </div>
-            <UrlImageField
+            <ImageField
               label={ef.featuredImage}
               value={form.featured_image}
               onChange={v => set('featured_image', v)}
@@ -960,7 +961,7 @@ export function EventForm({ mode, initial, onSubmit, onCancel, submitLabel, rend
           <Field label={ef.schedule}>
             <Textarea value={form.schedule} onChange={v => set('schedule', v)} />
           </Field>
-          <UrlImageField
+          <ImageField
             label={ef.featuredImage}
             value={form.featured_image}
             onChange={v => set('featured_image', v)}
@@ -1249,21 +1250,27 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-// A plain image-URL field. The shop hosts its own images (its CDN, object
-// storage, etc.) and pastes the URL; the app stores it verbatim.
-function UrlImageField({
+// Event photos are a site path (/imgs/media/<file>.webp, self-hosted) or an
+// https URL; resolveImageUrl() in src/lib/images.ts displays nothing else.
+// Only a soft hint here — the field still saves whatever is typed.
+function ImageField({
   label, value, onChange,
 }: { label: string; value: string; onChange: (v: string) => void }) {
+  const trimmed = value.trim()
+  const looksRight = trimmed === '' || resolveImageUrl(trimmed) !== null
   return (
     <label className="block space-y-1">
       <span className="text-xs font-medium text-white/80">{label}</span>
       <input
-        type="url"
+        type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
-        placeholder="https://…"
+        placeholder={ef.featuredImagePh}
         className={INPUT_CLASS}
       />
+      {!looksRight && (
+        <span className="block text-[11px] text-amber-300">{ef.featuredImageHint}</span>
+      )}
     </label>
   )
 }
