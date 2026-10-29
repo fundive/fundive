@@ -8,7 +8,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 
 /**
  * Structured payload on public.bookings.details. Mirrors the selections the
- * Wix register form collects (gear/room/addons/transport/payment). The DB
+ * register form collects (gear/room/addons/transport/payment). The DB
  * stores this as jsonb with an "is object" check — TypeScript is the
  * source of truth for shape.
  */
@@ -116,7 +116,7 @@ export interface RegistrationDetails {
 /**
  * EO_* table Row shapes are minimal here — only the columns the app
  * actually reads. Those tables carry dozens of legacy columns from the
- * Wix import; if the app ever needs more, add them.
+ * original website import; if the app ever needs more, add them.
  */
 export interface Database {
   public: {
@@ -3020,9 +3020,9 @@ export interface AppEvent {
    */
   start_time_hhmm: string | null
   featured: boolean
-  /** Stored image ref for the event's featured photo (a `wix:image://…` ref or
-   *  a plain URL). Resolve to a displayable URL with resolveImageUrl() from
-   *  src/lib/images.ts. Null/absent when the event has no image. Optional so
+  /** Stored image ref for the event's featured photo (a site path such as
+   *  /imgs/media/<file>.webp, or a plain URL). Resolve to a displayable URL
+   *  with resolveImageUrl() from src/lib/images.ts. Null/absent when the event has no image. Optional so
    *  lighter event literals can omit it. */
   featured_image?: string | null
   /** Admin-set manual "no more registrations" flag. Independent of capacity:
@@ -3063,7 +3063,7 @@ export interface AppEvent {
   /** ISO timestamp of when the event was cancelled by an admin; null = active. */
   cancelled_at: string | null
   /** Dive flagged private: hidden from all diver-facing listings (in-app +
-   *  Wix calendars, upcoming feeds), registerable only via a direct link.
+   *  public-site calendars, upcoming feeds), registerable only via a direct link.
    *  Always false for courses. */
   is_private: boolean
   /** Admin-set: does the shop drive anybody to this event? False for a dry

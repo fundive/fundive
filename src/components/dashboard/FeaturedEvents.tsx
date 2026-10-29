@@ -10,8 +10,8 @@ import type { AppEvent } from '../../types/database'
 
 // Highlights upcoming events the admin has flagged `featured`, floated over the
 // dashboard background as a stack of image-led hero cards. Each card shows the
-// event's featured photo (resolveImageUrl → self-hosted copy) under a dark
-// gradient so the title stays legible in either design variant, and deep-links
+// event's featured photo (resolveImageUrl → self-hosted /imgs/media photo)
+// under a dark gradient so the title stays legible in either design variant, and deep-links
 // straight into that event's registration form (/register/:id). Renders
 // nothing when there's no featured event coming up, so the background stays clear.
 

@@ -259,6 +259,6 @@ This architecture is the target. Current state:
 - ✅ **Edge-function config injection** — the Supabase functions read a deployment's
   config at deploy time via the `FUNDIVE_CONFIG` secret (the Deno-side counterpart of
   the frontend's build-time `virtual:fundive-config`). See `docs/deployment.md`.
-- ⏳ **Generalize the catalog model.** The event catalog has been de-Wixed and made
-  robust (junctions are the source of truth; no Wix sync). The remaining piece is the
+- ⏳ **Generalize the catalog model.** The event catalog has been cleaned up and made
+  robust (junctions are the source of truth; no external sync). The remaining piece is the
   larger clean-schema rebuild (unified `events` table, `EO_*`→clean renames) — post-1.0.

@@ -4,7 +4,7 @@
 //
 // DESIGN VARIANTS. Every token below is `pick(light, dark)`:
 //   • 'light' — the light look. Cards are translucent white
-//     over navy water; text is dark; nav chrome is deep navy. (Matches the Wix
+//     over navy water; text is dark; nav chrome is deep navy. (Matches the public
 //     site: light-blue surfaces, navy identity, red accent hairline.)
 //   • 'dark'  — the dark ocean look. Cards are frosted glass over a deep
 //     ocean-night body; text is light; accents are reef teal / mauve neon.

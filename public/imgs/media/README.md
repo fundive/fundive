@@ -1,11 +1,9 @@
 # Event photo library
 
-Optional self-hosted event photos. An event's `featured_image` (a `wix:image://…`
-ref from imported data, or a plain URL) is resolved to a displayable image by
-`src/lib/images.ts` (`resolveImageUrl`):
+Optional self-hosted event photos. An event's `featured_image` is resolved to a
+displayable image by `src/lib/images.ts` (`resolveImageUrl`):
 
-- `wix:image://v1/<id>/<file>#…` → `/imgs/media/<slug>.webp`, where `<slug>` is
-  the media-id segment with every non-alphanumeric character replaced by `_`.
+- a site path such as `/imgs/media/<file>.webp` → a photo in this folder, used as-is.
 - a plain `http(s)://…` URL → used as-is (host it wherever you like).
 
 So there is **no CDN dependency at runtime** and nothing extra in the CSP beyond
