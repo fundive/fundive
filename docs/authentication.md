@@ -4,12 +4,12 @@
 
 Users live in `auth.users` (Supabase-managed). Every auth user has a
 matching row in `public.profiles` created automatically by the
-`handle_new_user()` trigger — see migration
-`20260416111642_initial_schema.sql`. **Do not insert into `profiles`
+`handle_new_user()` trigger, defined in the squashed baseline
+(`20260708090000_squashed_baseline.sql`). **Do not insert into `profiles`
 manually during signup.**
 
 The email of record lives in `auth.users`, but `profiles.email` mirrors
-it (added in `20260616000000_profiles_email.sql`) so the admin Users page
+it so the admin Users page
 can show it through the normal `profiles` select instead of a service-role
 lookup. The copy is **read-only** — `handle_new_user` seeds it at signup,
 a `before update` trigger (`profiles_email_mirror_auth`) coerces it back to
@@ -198,7 +198,8 @@ admin" link, and `AdminShell` has "view as diver" — see
 Auth role drives RLS. A diver only sees their own `bookings` /
 `payments` / `push_subscriptions`; staff and admin share broader
 `select` policies on `profiles`, `bookings`, `payments`,
-`admin_notes` (gated through the `is_staff_or_admin()` SQL helper).
+`admin_notes` / `diver_notes` (gated through the `is_staff_or_admin()`
+SQL helper).
 Writes on those tables stay admin-only via `is_admin()`. The push
 worker uses the **service role** key and bypasses RLS entirely — that's
 why it lives server-side, never in the browser.
@@ -213,8 +214,7 @@ for the policy patterns and the `is_admin()` /
 at the top of `src/pages/LoginPage.tsx` — read them from there rather
 than relying on this doc, since they drift. Create them via the
 Supabase dashboard or CLI (`supabase auth admin create-user`) before
-first run; see the header comment in
-`20260416111642_initial_schema.sql`.
+first run.
 
 Integration tests create throwaway users on the fly via
 `createTestUser()` in `tests/integration/helpers.ts` — use those in

@@ -19,6 +19,7 @@ admin):
 | `/admin/events`                         | `AdminEventsPage`       | Month view of every event with registration counts |
 | `/admin/events/:id`               | `AdminEventDetailPage`  | Registrants, memos, status controls for one event |
 | `/admin/events/:id/gear-map`      | `AdminGearMapPage`      | Per-registrant gear/sizing checklist for the event |
+| `/admin/logistics`                      | `AdminLogisticsPage`    | Day-of board in four tabs: the per-guest gear checklist, rides, people and payments — see [Gear](#gear-the-pack-checklist) and [Transport](#transport-runs-seats-riders) |
 | `/admin/accounting`                     | `AdminAccountingPage`   | Revenue by staff + document exports. Staff get the revenue tab only, scoped to themselves — see [Revenue by staff](#revenue-by-staff) |
 
 Write/manage routes — gated by `AdminRoute` (admin only):
@@ -26,13 +27,14 @@ Write/manage routes — gated by `AdminRoute` (admin only):
 | Route | Page | Purpose |
 | --- | --- | --- |
 | `/admin/new`                            | `AdminManagePage`       | Catalog landing — links to event/room/addon/travel/price editors |
-| `/admin/new/event`                      | `AdminNewEventPage`     | Create a new dive or course |
+| `/admin/new/event`                      | `AdminNewEventPage`     | Create an event of any `kind` (dive / course / adventure), optionally as a recurring series |
 | `/admin/events/:id/edit`          | `AdminEditEventPage`    | Edit event details |
 | `/admin/rooms`                          | `AdminRoomsPage`        | Manage `rooms` rows |
 | `/admin/addons`                         | `AdminAddonsPage`       | Manage `addons` rows |
 | `/admin/travel`                         | `AdminTravelPage`       | Manage **Trip Templates** (`trip_templates` rows) |
 | `/admin/prices`                         | `AdminPricesPage`       | Manage `prices` rows |
-| `/admin/users`                          | `AdminUsersPage`        | Searchable diver directory with full profile cards |
+| `/admin/users`                          | `AdminUsersPage`        | Searchable diver directory with full profile cards — see [Users](#users) |
+| `/admin/create-diver`                   | `AdminCreateDiverPage`  | Create an account on a diver's behalf (a walk-in), fill in their profile, and jump to registering them |
 | `/admin/duty`                           | `AdminDutyPage`         | Assign staff/admin to events; fires push to assignee |
 | `/admin/notifications`                  | `AdminNotificationsPage` | Compose + send a one-off Web-Push broadcast to all subscribed devices |
 | `/admin/backup`                         | `AdminBackupPage`       | Download the whole database as one CSV-per-table ZIP — see [Database backup](#database-backup) |
@@ -52,18 +54,21 @@ Write/manage routes — gated by `AdminRoute` (admin only):
 | `/admin/shop-profile`                   | `AdminShopProfilePage` | The shop's own identity: upload and size its logo, pick the training agency the app names certifications in, and record the currency and app language. Logo and agency apply at once; currency and language are compiled in, so the page says so and names the `fundive.config.ts` lines to change |
 | `/admin/cert-equivalence`               | `AdminCertEquivalencePage` | Every agency's certification ladder lined up against one agency's words — the chart the app reads a diver's certification through |
 | `/admin/terms`                          | `AdminTermsPage`        | The shop's Terms of Use: one Markdown document, versioned. Ticking **material change** bumps the version, and every diver re-accepts on their next visit |
-| `/admin/applications`                   | `AdminApplicationsPage` | Suspended accounts: reinstate one you put on hold, reopen one you closed (closing never deleted it), or close an active account |
-| `/admin/logistics`                      | `AdminLogisticsPage`    | Day-of board in four tabs: the per-guest gear checklist, rides, people and payments — see [Gear](#gear-the-pack-checklist) |
-| `/admin/dashboard`                      | `AdminDashboardPage`    | Revenue, bookings, fill rate |
+| `/admin/applications`                   | `AdminApplicationsPage` | Suspended accounts: reinstate one you put on hold, reopen one you closed (closing never deleted it), or close an active account. Each card names the profile fields still blank — see [Users](#users) |
+| `/admin/dive-sites`                     | `AdminDiveSitesPage`    | The `dive_sites` catalog: add, verify, merge and retire places — see [data-model.md](./data-model.md#dive-sites-—-the-shop-s-places) |
+| `/admin/wildlife`                       | `AdminWildlifePage`     | The wildlife taxon catalog and the proposals divers file — see [wildlife-taxa.md](./wildlife-taxa.md) |
+| `/admin/refunds`                        | `AdminRefundsPage`      | Open refund requests, and cancelled bookings still holding money — see [payments.md](./payments.md#money-left-on-a-cancelled-booking) |
+| `/admin/audits`                         | `AdminAuditsPage`       | One diver's or one registration's money history, merged from payments, credits, amendments and the audit log |
+| `/admin/dashboard`                      | `AdminDashboardPage`    | Revenue, bookings, fill rate, and the waiting-on-an-admin counts — see [Business dashboard](#business-dashboard) |
 | `/admin/history`                        | `AdminHistoryPage`      | Season-over-season comparison against a weather baseline |
-| `/admin/accounting`                     | `AdminAccountingPage`   | Fiscal-year transaction CSV export |
+| `/site-maps`                            | `SiteMapPage`           | Dive-site maps, admin-only for now and outside the admin chrome — see [dive-site-maps.md](./dive-site-maps.md) |
 
 All routes are also wrapped by `ProtectedRoute` — see
 [authentication.md](./authentication.md#role-gating).
 
 ## Event detail
 
-`/admin/events/:id` shows one dive or course. The page has:
+`/admin/events/:id` shows one event, whatever its `kind`. The page has:
 
 - **Registrants** — expandable cards per booking. Expanded view
   includes the diver's profile summary (cert, contact, sizing,
@@ -97,6 +102,12 @@ All routes are also wrapped by `ProtectedRoute` — see
     Sets `status = 'cancelled'`. The actual refund transfer happens
     out-of-band; record it by inserting a `payments` row with
     `status = 'refunded'`.
+- **Continue a course here** — courses only. Puts a diver who started
+  a course on another date on this one's roster, at no charge, for the
+  days they attend; see
+  [events-and-bookings.md § One course, several scheduled courses](./events-and-bookings.md#one-course-several-scheduled-courses).
+  A continuation's card carries a **Continuing** badge, and any booking
+  limited to some of the course's days says which.
 - **Event memos** — see below.
 
 ### Boat manifest export
@@ -217,6 +228,10 @@ answers a question the form never put. It is admin-set rather than
 inferred because "not strictly a diving course" is not a fact the kind or
 the title carries — and the last helper that guessed transport from the
 kind was wrong in both directions.
+
+Cars can be assigned to an event of any kind: the edit page offers the
+vehicle section for dives, courses and adventures alike, since a ride is a
+question about the event rather than its kind.
 
 Turning it off leaves any cars already assigned to the event in place;
 the section says how many are still there, so nothing is silently
@@ -347,6 +362,12 @@ Every memo is:
 UI: `src/components/admin/AdminNotes.tsx`, which takes a
 <span v-pre>`target={{ kind: 'event' | 'booking', id }}`</span>.
 
+Standing facts about a **person** go in `diver_notes` instead (allergies,
+accommodations — anything true every time they dive, not just on one
+event). Those hang off `profile_id`, render on the diver's card at
+`/admin/users`, and have `profile_id` / `created_by` / `created_at` frozen
+by trigger so the attribution can't be rewritten.
+
 ## Users
 
 `/admin/users` is a searchable directory:
@@ -358,6 +379,25 @@ UI: `src/components/admin/AdminNotes.tsx`, which takes a
 - Expanded state also fetches the diver's bookings + a payment summary
   (paid vs pending totals).
 - Badge next to the name shows `diver` / `admin`.
+- **Unfinished profiles name their gaps.** A diver with required fields
+  still blank gets a **Profile incomplete** chip on the collapsed card
+  (its tooltip lists them); the expanded card opens with a banner naming
+  each one ("Still missing: Date of birth, Gender"), and every required
+  row that is blank renders a **Missing** chip in place of its value
+  rather than being hidden like an empty optional field. The approvals
+  queue at `/admin/applications` shows the same list under its **Profile
+  incomplete** badge. All three read `profileGapLabels()` in
+  `src/lib/profile-completeness.ts`, the one definition of a complete
+  profile (name, date of birth, nationality, gender, contact method,
+  contact handle, and a certification or "not certified yet"). It is
+  computed from the row's own fields rather than
+  `profiles.application_submitted_at`, because that stamp never lands for
+  a diver who is legitimately uncertified and would brand a complete
+  profile incomplete forever. A gap is a prompt, never a block.
+- **The contact row is labeled by method.** The handle a diver gave is
+  shown under the method they picked (`contactMethodLabel()` in
+  `src/lib/contact-labels.ts`) — a LINE ID or a phone number as often as
+  an email address — and the account email has a row of its own.
 - **Deep link:** `/admin/users?diver=<id>` opens (and scrolls to) that
   diver's card. Every name on the Logistics board's People section —
   seated and waitlisted alike — links here, as does the name on each
@@ -365,6 +405,21 @@ UI: `src/components/admin/AdminNotes.tsx`, which takes a
   followed to sizes and contact without retyping it into the search.
   Staff see plain text instead: the directory is admin-only, so the
   link would only bounce them.
+
+## Business dashboard
+
+`/admin/dashboard` (Business performance) reads the fiscal year's
+payments and bookings into revenue, booking and fill-rate figures. Two of
+its tiles count work waiting on an admin rather than money:
+
+- **Pending new user requests** counts every profile with
+  `status = 'pending'` — the same condition as the header badge and the
+  approvals queue it links to (`countOnHoldAccounts()` in
+  `src/lib/admin-pending.ts`). It used to also require
+  `application_submitted_at`, which hid the divers who never finished
+  their profile, the ones who most need chasing.
+- **Refund requests** counts stamped requests on bookings not yet
+  cancelled, matching `/admin/refunds`.
 
 ## Revenue by staff
 
@@ -534,7 +589,7 @@ with their own test bookings.
 | Create / resolve event memos | no | no | yes |
 | Read & insert `admin_notes` (own attribution) | no | yes | yes |
 | Update / delete `admin_notes` | no | no | yes |
-| Manage `EO_*` catalog (new/edit/rooms/addons/travel/prices) | no | no | yes |
+| Manage the catalog (events / rooms / addons / travel / prices) | no | no | yes |
 | Assign duties | no | no | yes |
 | Be assigned a duty (trigger gate) | no | yes | yes |
 | Read own revenue by season | no | yes | yes |

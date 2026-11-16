@@ -9,7 +9,7 @@ own repository), what is configurable, and what is not.
 > [Fun Divers Taiwan](https://www.fundiverstw.com) (a shop that helped test the
 > app — see [About](./about.md)), so parts of this
 > are a plan, not yet shipped. See
-> [Status & roadmap](#status--roadmap).
+> [Status & roadmap](#status-roadmap).
 
 ## Philosophy: one platform, many thin deployments
 
@@ -250,6 +250,6 @@ Current state:
 - ✅ **Edge-function config injection** — the Supabase functions read a deployment's
   config at deploy time via the `FUNDIVE_CONFIG` secret (the Deno-side counterpart of
   the frontend's build-time `virtual:fundive-config`). See `docs/deployment.md`.
-- ⏳ **Generalize the catalog model.** The event catalog has been cleaned up and made
-  robust (junctions are the source of truth; no external sync). The remaining piece is the
-  larger clean-schema rebuild (unified `events` table, `EO_*`→clean renames) — post-1.0.
+- ✅ **Unified catalog model.** Dives, courses and adventures are one `events` table
+  discriminated by `kind`, the Bubble-era `EO_*` tables are renamed and cleaned, and
+  junctions are the source of truth (no external sync). See `docs/data-model.md`.

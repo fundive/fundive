@@ -59,7 +59,7 @@ Walking the fields:
 > the Contact tab says so, and every surface that would print an address simply
 > omits it — so filling them in is part of first-run setup. See
 > [deployment.md](./deployment.md) and
-> [data-model.md](./data-model.md#shop_contact).
+> [data-model.md](./data-model.md#app-owned-tables).
 
 > **Event sharing.** The in-app "share this event" button needs no toggle: it
 > copies `<urls.app>/register/<event id>`, the app's own public registration

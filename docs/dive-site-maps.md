@@ -12,7 +12,7 @@ any more.
 
 ## Why this exists
 
-The research case is in `ignore/namr-collaboration-proposal.md`. In short:
+In short:
 NODASS publishes a 200 m seafloor grid, and a depth grid stores one value per
 horizontal position, so it structurally cannot hold the overhangs, arches and
 swim-throughs divers navigate by. Sites like 龍洞 4號 are still dived from
@@ -232,8 +232,7 @@ else. A tile that appears from nowhere later is harder to notice than one that
 lights up.
 
 Both home pages render the tiles — the diver `/dashboard` and the admin
-`/admin/home`, which this change added along with pointing the admin header logo
-at it. An admin working inside the admin chrome never passes through the diver
+`/admin/home`, where the admin header logo points. An admin working inside the admin chrome never passes through the diver
 home, so gating the only entry point behind a page they don't visit made the
 feature admin-only in name and unreachable in practice.
 

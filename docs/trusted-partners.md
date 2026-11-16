@@ -14,11 +14,11 @@ website; the message is relayed server-side.
 
 ## Data model
 
-One table, `trusted_partners`. It began as a thin directory (migration
-[`20260706000000_trusted_partners.sql`](https://github.com/fundive/fundive/blob/main/supabase/migrations/20260706000000_trusted_partners.sql))
-and was later **unified** with the richer `partner_shops` registry that hosts
-Packages, keeping the superset under the `trusted_partners` name (migration
-[`20260708080000_unify_partner_tables.sql`](https://github.com/fundive/fundive/blob/main/supabase/migrations/20260708080000_unify_partner_tables.sql)):
+One table, `trusted_partners`. It began as a thin directory and was later
+**unified** with the richer `partner_shops` registry that hosts Packages,
+keeping the superset under the `trusted_partners` name; both steps predate
+the squashed baseline (`20260708090000_squashed_baseline.sql`), which
+carries the unified table:
 
 | Column | Notes |
 | --- | --- |

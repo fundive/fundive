@@ -5,7 +5,7 @@
 **One table drives the calendar:** `events`, discriminated by `kind`
 (`dive` | `course` | `adventure`). Dives and adventures carry a
 `start_date` / `end_date` envelope; courses run on an explicit list of days
-(`course_days`; see [#course_days](#course_days)). Which shape a kind uses is
+([`course_days`](#course-days)). Which shape a kind uses is
 a question you ask — `usesDateEnvelope(kind)` / `usesCourseDays(kind)` from
 `src/lib/event-kinds.ts` — never a `kind === 'dive'` test. See
 [data-model.md](./data-model.md#ask-what-a-kind-does).
@@ -94,7 +94,10 @@ keyword; a fresh event starts `false` until an admin ticks it.
 ### `course_days`
 
 A course runs on an explicit list of dates: `events.course_days`
-(a `date[]`, max 4 — DB CHECK `events_course_has_days`). Admins
+(a `date[]`, 1–4 entries — DB CHECK `events_course_has_days`, which also
+enforces that a `kind = 'course'` row has them at all; `errorMessage()`
+in `src/lib/errors.ts` turns a violation into the course-days message
+("A course needs between 1 and 4 days") rather than the generic one). Admins
 enter each day in the event form. `courseToEvents()` in
 `src/lib/events.ts` sorts + dedupes the list, groups **consecutive**
 calendar days into one continuous segment, and emits one `AppEvent`
@@ -181,6 +184,9 @@ fit somebody, a hike needs none. `packsAGearSet()` separates them on
 `kindInvolvesScuba()` — an event that dives records
 `gear: { rent: false, included: true }` and has `FULL_GEAR_SET` packed;
 an overland outing records plain `{ rent: false }` and nothing is packed.
+Deliberately a question about the kind, not about `dive_days`: that
+column is optional, and a course that leaves it null would stop packing
+sets for the students who own none.
 
 A packed set is exactly why the size question still has to be put:
 nobody chose the items, but the shop still has to pack ones that fit.
@@ -285,31 +291,45 @@ frozen against later price changes (see
 
 The form does **not** write to `bookings` directly. It invokes the
 `create-registration` Supabase Edge Function
-(`supabase/functions/create-registration/index.ts`) which atomically:
+(`supabase/functions/create-registration/handler.ts`, wired up by
+`index.ts`) which atomically:
 
-1. (Guest path only) Creates the auth user with `email_confirm: true`
+1. Resolves `event_id` against `events` and rejects an event whose last
+   day has passed (`eventHasPassed`; admins and staff bypass it) before
+   doing anything expensive.
+2. (Guest path only) Creates the auth user with `email_confirm: true`
    so a typo'd address is rejected loudly instead of silently dropped.
-2. Updates `profiles` from `profile_patch`.
-3. Inserts one row into `public.bookings` (under service-role, so RLS
+3. Updates `profiles` from `profile_patch`.
+4. Inserts one row into `public.bookings` (under service-role, so RLS
    doesn't apply at this stage):
    - `user_id`, `status: 'pending'`
-   - `event_id` → `events(id)`
+   - `event_id` — the single FK to `events`. The request body also
+     carries `event_type` (the `kind`), which the function uses for the
+     has-it-passed check and to read the right dates for the emailed copy
+     (`usesCourseDays(event_type)` picks `course_days` over the envelope)
    - `notes` — free-text field from the form
    - `created_by` — who is doing the registering, taken from the verified
      Bearer token, never from the body. See below.
    - `details` JSONB — see
-     [data-model.md § BookingDetails](./data-model.md#bookingdetails-jsonb-shape)
-     (`total`, `deposit`, and the itemized `charges` are snapshots).
-4. Inserts one `booking_discounts` row per discount the diver ticked, each
+     [data-model.md § BookingDetails](./data-model.md#bookingdetails-jsonb-shape).
+     `total` / `deposit` / `charges` are snapshots, and the function
+     **recomputes `total` and `deposit` server-side** from the event's
+     linked `prices` row (`computeBookingMoney`) rather than trusting the
+     client's figures — they are what `apply_credit_to_booking` and
+     `record_group_payment` read, so a crafted request must not be able to
+     set its own.
+5. Inserts one `booking_discounts` row per discount the diver ticked, each
    at `status: 'requested'`. The amount is never computed here and never
    comes from the request body; `booking_discounts_validate` refuses any id
    the event does not offer or the shop has retired, so a crafted list gets
    the same answer the form would have given — and a refused one does not
    fail a booking that already exists.
-5. Builds a registration PDF (`supabase/functions/_shared/pdf.ts`) and
-   sends it via Gmail SMTP to the shop (`siteConfig.app.supportEmail`) and
-   the diver — unless `suppress_email` is set (group registration; see below).
-6. Returns `{ booking_id, session? }` — `session` populated on the
+6. Builds a registration PDF (`supabase/functions/_shared/pdf.ts`) and
+   sends it via Gmail SMTP to the shop (the `shop_contact` email, read
+   through `_shared/shop-contact.ts`, falling back to the Gmail account)
+   and the diver — unless `suppress_email` is set (group registration; see
+   below).
+7. Returns `{ booking_id, session? }` — `session` populated on the
    guest path so the SPA can `setSession()` without a second
    round-trip.
 
@@ -339,12 +359,16 @@ doing it:
 | SECURITY DEFINER RPC | Falls back to `auth.uid()` — the JWT claim survives even though `current_user` is the owner |
 | service_role (the edge function) | The value supplied, already resolved from a verified Bearer token |
 
-The trigger carries one exception ahead of all three, inert until
-FunDive takes the course-continuation feature: a booking that continues
-another inherits that booking's `created_by` rather than naming the
-admin who split it, because the two rows are one registration. It reads
-`continues_booking_id` through `to_jsonb` precisely so it costs nothing
-on a `bookings` table that has no such column.
+One exception: a **course continuation** inherits the `created_by` of
+the booking it continues. It is the same registration split across two
+event rows, so naming the admin who split it would be true of the row
+and false about the registration — a diver who signed themselves up for
+a course must not read as "Added by &lt;admin&gt;" on the half they
+finish it in. The inheritance sits after the `authenticated` branch, so
+a diver who forges `continues_booking_id` to borrow somebody else's
+origin is still stamped as themselves. (The trigger reads the column
+through `to_jsonb`, a leftover from when it predated the column; it
+behaves the same.)
 
 An UPDATE never moves it: who made a booking is a fact about the past.
 Deleting a profile sets it null (`ON DELETE SET NULL`) rather than
@@ -367,16 +391,22 @@ a possibly-flaky phone connection), so it's hardened on four axes. All four are
 **belt-and-suspenders**: enforced in the form for good UX and re-checked
 server-side so nothing slips through.
 
-- **Certification-declaration gate.** A diver must either name a certification
-  level or explicitly tick **"I'm not certified yet"** before advancing — the
-  cert-card *photo* is deferrable behind an acknowledgment, but the declaration
-  isn't. Boat/deep events with a prerequisite (`events.prereq_cert_id` /
-  `req_dives`) show a warning the diver must acknowledge. The shared rules live in
-  `supabase/functions/_shared/registration-eligibility.ts` (pure `eligibilityError`),
-  used both by the form's step-gating and by `create-registration`, which returns
-  **HTTP 422** and rolls back if an ineligible diver reaches the server. Admin
-  on-behalf-of registrations bypass the gate (`target_user_id` set). This is the
-  path that previously let an under-documented diver book a boat dive.
+- **Prerequisite acknowledgment.** Personal details are optional:
+  registering costs an email and a password, and nothing rejects a booking
+  for a blank name or certification (a shop settles certification at the
+  counter). What survives is the acknowledgment. An event whose
+  prerequisite (`events.prereq_cert_id` / `req_dives`) the diver does not
+  meet on their own profile — they declared themselves uncertified, or
+  report fewer logged dives — shows a warning they must acknowledge
+  (`details.prereq_acked_at`) before advancing; free-text certification
+  levels are not rank-compared. A diver who names a level without a card
+  on file must likewise accept the bring-your-card terms
+  (`details.cert_card_ack_at`). The server-side rule lives in
+  `supabase/functions/_shared/registration-eligibility.ts` (pure
+  `eligibilityError`), which `create-registration` runs before inserting,
+  returning **HTTP 422** and rolling back if an unacknowledged mismatch
+  reaches it. Admin on-behalf-of registrations bypass the gate
+  (`target_user_id` set).
 - **Resume drafts.** `RegisterForm` autosaves its state to `localStorage` via
   `src/lib/registration-draft.ts` (key prefix `fd_reg_draft_v1`, keyed on
   event + user, 14-day expiry, debounced, skips the first render so it never
@@ -391,12 +421,14 @@ server-side so nothing slips through.
   the booking up by `event_id` and treats the duplicate as success instead of
   showing a spurious error.
 - **Ride waitlist.** When a diver requests transport but no ride seat is free
-  (`event_ride_seats` reports the fleet full — see
-  [data-model.md](./data-model.md)), they are **not** blocked: the ride option
-  stays selectable and the booking records `details.ride_waitlisted = true`. A
-  DB trigger notifies admins so they can add a car or reshuffle. Seat capacity
-  reserves the crew's seats (one per vehicle, rising to the full on-duty staff
-  count), so the number offered to divers is what's genuinely rideable.
+  (`event_ride_seats` reports the run full — see
+  [admin.md § Transport](./admin.md#transport-runs-seats-riders)), they are
+  **not** blocked: the ride option stays selectable and the booking records
+  `details.ride_waitlisted = true`, a flag the database computes rather than
+  trusting the form. A DB trigger notifies admins so they can add a car or
+  reshuffle. Seat capacity is the run's seats minus its on-duty staff, who
+  take ordinary seats, so the number offered to divers is what's genuinely
+  rideable.
 
 ### Group registrations — one consolidated PDF
 
@@ -438,7 +470,8 @@ total above the group line.
 The partial-unique index `bookings_one_active_per_user_idx`
 (`(user_id, event_id) WHERE event_id IS NOT NULL AND status <> 'cancelled'`)
 prevents a diver from double-booking the same event — Supabase returns a
-conflict and the form shows an error.
+conflict and the form shows an error. Cancelled rows are excluded, so a
+diver who cancelled can register again.
 
 ## BookingsPage — the diver's view
 
@@ -468,3 +501,46 @@ Each card shows:
 - `BookingDetails.deposit` can be missing or 0 when the event carries
   no `deposit_amount`. In that case `PaymentsPage` shows no
   "Deposit due" line for that booking.
+
+## One course, several scheduled courses
+
+A student who starts Open Water on the 10th and finishes it with the
+course three weeks later is **one course, two events**. Migration
+`20261116110000_course_continuation.sql` adds the two columns that say
+so:
+
+| Column | Meaning |
+| --- | --- |
+| `bookings.continues_booking_id` | The earlier booking this one continues (`ON DELETE SET NULL`). The earlier booking holds the money; the continuation is always zero-cost (`details.total = 0`, one stated zero `adjustment` charge line, `details.course_continuation = true`). `NULL` on a normal booking. |
+| `bookings.attend_days` | Which of the event's `course_days` this diver is actually there for. `NULL` — every ordinary booking, and every diver doing the whole course — means **all of them**. An empty array is refused (`bookings_attend_days_non_empty`): a booking that attends no days should be cancelled. |
+
+A continuation is created only by an admin, from the target course's
+page (**Continue a course here** → `CourseContinuationModal`), which
+calls the `create_course_continuation` RPC. The modal picks the diver,
+then which of their other course bookings they started, then the days
+they attend here. The RPC is where the rules live, not the form:
+admin-only, both events must be courses, the target must not be
+cancelled or be the same course, the days must belong to the target
+course's `course_days`, the diver must not already be booked on it, and
+a continuation cannot itself be continued (a third leg points at the
+original booking, so "where is the money?" stays a lookup rather than a
+walk). It optionally trims the *original* booking's `attend_days` in the
+same call — the days the student actually attended before they
+stopped — and carries the original's `gear` over, since the student
+wears the same wetsuit on the days they finish. The zero charge line's
+label is passed in so it reads in the deployment's language.
+
+On the target course's roster a continuation carries a **Continuing**
+badge, and either side of the pair shows "Attending … only" when its
+`attend_days` is set.
+
+`attend_days` is what keeps the day-level views honest. The logistics
+day board (`fetchDayBoard` in `src/lib/day-board.ts`) filters every
+booking through `bookingsOnDay()` (`src/lib/course-continuation.ts`), so
+a student booked for the last two days of a course is not counted, or
+packed for, on the first two. A `NULL` `attend_days` always answers
+"yes, present", which is what keeps every other booking correct.
+
+Capacity is deliberately unchanged: a continuing student occupies a real
+seat on the second course and counts toward it like any other
+registrant.

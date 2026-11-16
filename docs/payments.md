@@ -203,6 +203,20 @@ records an offsetting `account_credit` payment, and confirms the booking
 if that covers the deposit. It refuses a **cancelled** booking outright:
 that trip will never happen, so credit spent there would be destroyed.
 
+The diver's Payments page offers a one-tap sweep ("Use … credit on your
+balance") over their own solo bookings with a balance, oldest first
+(`sweepTargets` in `PaymentsPage`). The amount on the button is what the
+sweep will really spend, not `min(open credit, total owed)`:
+`plannedCreditApplication()` in `src/lib/credits.ts` replays the RPC
+target by target — the pool for each booking excludes credit tied to that
+booking, which the RPC refuses to spend on itself, the take is clamped to
+what is still due, and rows drain oldest-first so later targets see what
+earlier ones left. Groups the diver leads are not swept, so their
+balances are not counted either. The old figure overstated twice over: a
+diver holding credit awarded against the very booking they owed on was
+offered a sum and got nothing back. When the replay comes to zero, the
+button does not show.
+
 ## Discounts
 
 A discount is **shop-authored, offered per event, asked for by the diver and

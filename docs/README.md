@@ -17,12 +17,12 @@ dive into source.
 | [architecture.md](./architecture.md)                   | Platform-as-dependency model, `defineConfig` + `.env` surface, the `fundive` CLI, runtime boundaries, versioning contract |
 | [configuration.md](./configuration.md)                 | Making it your shop: every `fundive.config.ts` field, branding assets in `public/`, Terms of Use, credentials and worker names |
 | [i18n.md](./i18n.md)                                   | Shop-facing language: `locale.language`, the `src/i18n` message catalogs, adding strings and languages |
-| [data-model.md](./data-model.md)                       | Every table, the unified `events` model, catalog reference tables |
+| [data-model.md](./data-model.md)                       | Every table, the unified `events` model, catalog reference tables, RLS patterns, the migration history |
 | [authentication.md](./authentication.md)               | Sign-up trigger, `useAuth`, role gating, `ProtectedRoute` / `AdminRoute` |
-| [events-and-bookings.md](./events-and-bookings.md)     | Calendar rendering, register-form wizard, `bookings.details` JSONB shape |
+| [events-and-bookings.md](./events-and-bookings.md)     | Calendar rendering, register-form wizard, what `create-registration` writes, who registered whom, finishing a course on a later one |
 | [payments.md](./payments.md)                           | Money rules: owed/paid/balance math, the two ledgers, spending credit, and what each kind of cancellation does to the money. Print-ready copy: [payments.pdf](./payments.pdf) (generated — see the recipe at the top of the markdown) |
-| [admin.md](./admin.md)                                 | Admin routes, event memos, user search, role-view toggle |
-| [dive-site-maps.md](./dive-site-maps.md)               | Diver-contributed 3D seafloor maps: the implicit 1 m lattice, honest-gap surfacing, contribution model. Admin-only, not yet persisted |
+| [admin.md](./admin.md)                                 | Admin routes, event detail, transport runs, the pack checklist, event memos, the diver directory and profile gaps, the dashboard, staff revenue, backup and shutdown |
+| [dive-site-maps.md](./dive-site-maps.md)               | Diver-contributed 3D seafloor maps: the implicit 1 m lattice, honest-gap surfacing, contribution model. Admin-only for now |
 | [wildlife-taxa.md](./wildlife-taxa.md)                 | The wildlife catalog: sightings keyed on scientific name, every language's name hung off that one row, diver proposals, synonym merges |
 | [coral-surveys.md](./coral-surveys.md)                 | Crowdsourced coral monitoring against the CoralWatch Coral Health Chart: survey plus colony rows, RPC-only writes, staff moderation, the bleaching arithmetic |
 | [packages.md](./packages.md)                           | Partner-shop registration network: product tiers, add-on/room estimate, recommendation email, kickback ledger |
@@ -38,7 +38,7 @@ dive into source.
 
 - **Migrations are immutable once released.** A migration in a published tag is a
   public contract — add a forward migration, never edit an applied one. See
-  [architecture.md](./architecture.md#versioning--the-upgrade-contract) and
+  [architecture.md](./architecture.md#versioning-the-upgrade-contract) and
   [data-model.md](./data-model.md#migrations).
 - **Config over source edits.** Shop-specific values live in
   a shop's deployment repo (`fundive.config.ts`, `.env.local`, `public/`, the
