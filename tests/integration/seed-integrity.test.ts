@@ -5,7 +5,7 @@
  * surfaces to the client as `500: Database error querying schema`.
  *
  * PostgREST doesn't expose the auth schema by default, so this runs psql
- * inside the local db container (same pattern as scripts/verify-sync.sh).
+ * inside the local db container.
  */
 import { describe, it, expect } from 'vitest'
 import { execSync } from 'node:child_process'
@@ -41,7 +41,7 @@ describe('auth.users seed integrity', () => {
       throw new Error(
         `${offenderIds.length} auth.users row(s) have NULL token columns, ` +
           `which will make gotrue fail sign-in with 500. IDs: ${offenderIds.join(', ')}. ` +
-          `Run make dump-data against a patched cloud.`
+          `Fix the seed rows that insert them.`
       )
     }
     expect(offenderIds).toEqual([])

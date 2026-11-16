@@ -30,32 +30,20 @@
 # re-create existing tables. --applied-through is the same claim for a range, so
 # make it only after diffing the deployment's schema against this repo's at V.
 #
-# Usage:
-#   scripts/adopt-existing-deployment.sh --baseline 20260708090000            # dry run
-#   scripts/adopt-existing-deployment.sh --baseline 20260708090000 --apply
-#   scripts/adopt-existing-deployment.sh --baseline 20260708090000 --applied-through 20261029120000
+# Run it through the CLI, from the deployment repository, which supplies the
+# database connection from .env.local as ADOPT_DB_URL:
+#   npx fundive db adopt --baseline 20260708090000                    # dry run
+#   npx fundive db adopt --baseline 20260708090000 --apply
+#   npx fundive db adopt --baseline 20260708090000 --applied-through 20261029120000
 #
-# PREREQ: back the database up first, and `supabase link` to the project (or
-#         run it as `fundive db adopt` from a deployment, which needs neither).
-# AFTER:  `supabase db push` to apply the migrations this repo has and the
-#         deployment does not.
+# PREREQ: `npx fundive db backup`.
+# AFTER:  `npx fundive db push` applies the migrations the deployment lacks.
+# To rehearse, point SUPABASE_DB_URL at a restored backup instead.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 export PATH="$PWD/node_modules/.bin:$PATH"
 export DO_NOT_TRACK=1   # PostHog's shutdown timeout returns a spurious non-zero
-
-# The follow-up commands differ by where this runs: `fundive db adopt` from a
-# deployment repo (FUNDIVE_CLI is set) or the platform repo's npm scripts.
-if [ -n "${FUNDIVE_CLI:-}" ]; then
-  BACKUP_HINT="npx fundive db backup"
-  VERIFY_HINT="npx fundive db adopt --baseline <same> (a dry run; nothing left remote-only)"
-  PUSH_HINT="npx fundive db push"
-else
-  BACKUP_HINT="npm run db:backup-prod"
-  VERIFY_HINT="dotenv -e .env.local -- sh -c 'supabase migration list --password \"\$SUPABASE_DB_PASSWORD\"'"
-  PUSH_HINT="npm run db:push"
-fi
 
 BASELINE=""
 APPLIED_THROUGH=""
@@ -83,21 +71,16 @@ if [ -n "$APPLIED_THROUGH" ] && ! ls "supabase/migrations/${APPLIED_THROUGH}"_*.
   exit 2
 fi
 
-# Normally runs against the linked project. ADOPT_DB_URL points it at any
-# database instead — used to rehearse the whole thing against a restored
-# snapshot (or the local stack) before touching production.
-link() {
-  if [ -n "${ADOPT_DB_URL:-}" ]; then
-    supabase "$@" --db-url "$ADOPT_DB_URL"
-  else
-    dotenv -e .env.local -- sh -c "supabase $* --password \"\$SUPABASE_DB_PASSWORD\""
-  fi
-}
+if [ -z "${ADOPT_DB_URL:-}" ]; then
+  echo "error: run this as \`npx fundive db adopt\` from your deployment repository." >&2
+  exit 2
+fi
+link() { supabase "$@" --db-url "$ADOPT_DB_URL"; }
 
 echo "Reading the remote migration registry..."
 LIST_JSON="$(link migration list 2>/dev/null | grep -o '{"migrations":.*}' || true)"
 if [ -z "$LIST_JSON" ]; then
-  echo "error: could not read the migration list. Is the project linked and .env.local set?" >&2
+  echo "error: could not read the migration list. Check the database settings in .env.local." >&2
   exit 1
 fi
 
@@ -133,7 +116,7 @@ echo
 
 if [ "$APPLY" -ne 1 ]; then
   echo "Dry run. Re-run with --apply to write these changes to the registry."
-  echo "Back up the database first: $BACKUP_HINT"
+  echo "Back up first: npx fundive db backup"
   exit 0
 fi
 
@@ -149,6 +132,6 @@ link migration repair --status applied $MARK_APPLIED
 
 echo
 echo "Done. Verify with:"
-echo "  $VERIFY_HINT"
+echo "  npx fundive db verify"
 echo "Then apply the genuinely new migrations:"
-echo "  $PUSH_HINT"
+echo "  npx fundive db push"

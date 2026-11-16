@@ -1,6 +1,6 @@
 -- Local-only test users. Runs after seed.sql on every `make reset`
 -- (configured in supabase/config.toml's [db.seed] sql_paths). NEVER
--- pushed to cloud — `make push` only ships migrations from
+-- pushed to a shop's database — `fundive db push` only ships migrations from
 -- supabase/migrations/, not seed files. Lives under supabase/seeds/
 -- alongside any other test-only fixtures we add later.
 --

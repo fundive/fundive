@@ -9,7 +9,7 @@
 //
 // What it is NOT: a restorable SQL dump. There is no schema, no constraint, no
 // function and no storage object in here, and auth.users (the credentials) is
-// out of reach of the public schema by design. `make backup-prod` is the
+// out of reach of the public schema by design. `npx fundive db backup` is the
 // pg_dump for a rollback point; this is the copy a shop owner can actually
 // keep on a laptop.
 

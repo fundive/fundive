@@ -3,7 +3,7 @@ import { buildEnvProblems, REQUIRED_BUILD_ENV } from './build-env'
 
 // `.env.example` ships working local values so a fresh clone runs with no
 // setup. That is only safe because leaving them in place fails the production
-// build — otherwise `make deploy` would cheerfully ship a bundle pointing at
+// build — otherwise a deploy would cheerfully ship a bundle pointing at
 // the deployer's own laptop, with a captcha that passes every bot.
 
 const DEPLOYABLE = {

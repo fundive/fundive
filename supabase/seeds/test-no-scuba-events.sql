@@ -1,7 +1,7 @@
 -- Local-only fixtures for the Logistics board's diver / non-diver split
 -- (events.involves_scuba, 20260925100000). Runs after the other seeds on every
 -- `make reset` (supabase/config.toml's [db.seed] sql_paths). NEVER pushed to
--- cloud — `make push` only ships migrations.
+-- a shop's database — `fundive db push` only ships migrations.
 --
 -- Without this the split is invisible in dev: every seeded row defaults to
 -- diving, because the migration deliberately refuses to guess an event's
