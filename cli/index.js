@@ -10,7 +10,7 @@
 
 import { execFileSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 const platformDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -134,6 +134,38 @@ async function backupDb() {
 
 // The commit this platform copy came from, to pin a new deployment to exactly
 // it: npm records `gitHead` for a git-installed package; a clone asks git.
+// The push worker's notification text comes from the platform's i18n module,
+// which reads the shop's config through `virtual:fundive-config` — an alias the
+// app's Vite build defines and wrangler's bundler does not. So the deploy runs
+// on a generated copy of the push config that maps the alias to this
+// deployment's fundive.config.ts, with `main` made absolute because the copy
+// lives in the cache. The deployment's own wrangler.toml is not touched.
+function pushWorkerConfig() {
+  const source = ownOrPlatform('workers/push/wrangler.toml')
+  let toml = readFileSync(source, 'utf8')
+  toml = toml.replace(/^(\s*main\s*=\s*)"([^"]+)"/m,
+    (_, lead, main) => `${lead}${JSON.stringify(path.resolve(path.dirname(source), main))}`)
+  const alias = `"virtual:fundive-config" = ${JSON.stringify(path.join(deploymentDir, 'fundive.config.ts'))}`
+  toml = /^\[alias\]\s*$/m.test(toml)
+    ? toml.replace(/^\[alias\]\s*$/m, `[alias]\n${alias}`)
+    : `${toml.trimEnd()}\n\n[alias]\n${alias}\n`
+  const dir = path.join(deploymentDir, 'node_modules', '.cache', 'fundive')
+  mkdirSync(dir, { recursive: true })
+  const generated = path.join(dir, 'push-wrangler.toml')
+  writeFileSync(generated, toml)
+  return generated
+}
+
+async function deployPush() {
+  const config = pushWorkerConfig()
+  try {
+    await runStep(bin('wrangler'), ['deploy', '--config', config, ...process.argv.slice(4)])
+  } finally {
+    rmSync(config, { force: true })
+  }
+  process.exit(0)
+}
+
 function platformRef() {
   const pkg = JSON.parse(readFileSync(path.join(platformDir, 'package.json'), 'utf8'))
   if (pkg.gitHead) return pkg.gitHead
@@ -214,7 +246,7 @@ switch (command) {
   case 'build':   run(bin('vite'), ['build', '--config', viteConfig]); break
   case 'preview': run(bin('vite'), ['preview', '--config', viteConfig]); break
   case 'deploy':
-    if (sub === 'push') run(bin('wrangler'), ['deploy', '--config', ownOrPlatform('workers/push/wrangler.toml')])
+    if (sub === 'push') deployPush().catch(e => { console.error(`fundive: ${e.message}`); process.exit(1) })
     else if (!sub) deployApp()
     else usage()
     break
