@@ -32,7 +32,7 @@ public.admin_notes ────── event_id XOR booking_id  (operational memo
 public.diver_notes ────── per-diver standing facts (allergies, accommodations)
 public.admin_audit_log ── append-only changelog of admin mutations
 public.duties ─────────── staff/admin assignments per event
-public.dive_sites ─────── public catalog rendered on /map
+public.dive_sites ─────── the shop's places (events.site_id, the almanac)
 public.push_subscriptions / push_notifications_sent  (cron infra)
 ```
 
@@ -48,25 +48,26 @@ memo to either an event or a booking.
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | `profiles` | `id` (= `auth.users.id`), `role` | `role in ('diver','staff','admin')`. Row auto-created by `handle_new_user()` on signup. Personal + cert + sizing + emergency contact + gear-owned + gear sizes + `agreed_to_terms_at`. |
-| `bookings` | `id`, `user_id`, `event_id`, `status`, `details` (jsonb), `refund_requested_at` | `event_id` NOT NULL → `events(id)` (ON DELETE CASCADE). `details` shape enforced app-side by `BookingDetails` in `src/types/database.ts`. Unique per (user, event). After insert, most columns are immutable for divers — a trigger in the baseline schema makes a diver's booking tamper-resistant by design. |
+| `bookings` | `id`, `user_id`, `event_id`, `status`, `details` (jsonb), `refund_requested_at`, `group_id`, `payer_id`, `created_by`, `continues_booking_id`, `attend_days` | `event_id` is NOT NULL (`20261116120000`) → `events(id)` (ON DELETE CASCADE). `details` shape enforced app-side by `BookingDetails` in `src/types/database.ts`. One live booking per (user, event): the partial unique index `bookings_one_active_per_user_idx` skips cancelled rows. Divers cannot change a booking's details, move it to another event, or set any status but `cancelled` after insert — see [Row-Level Security](#row-level-security). `continues_booking_id` / `attend_days` carry a course finished across two scheduled courses (see [events-and-bookings.md](./events-and-bookings.md#one-course-several-scheduled-courses)). |
 | `payments` | `id`, `user_id`, `booking_id`, `amount`, `status`, `method`, `recorded_by` | Ledger entries, staff-inserted. `status in ('pending','paid','refunded')`. |
 | `diver_notes` | `id`, `profile_id`, `created_by`, `content`, `edited_*` | Per-diver standing facts (allergies, accommodations) — staff/admin can read+insert under their own attribution; admin or own-author can update/delete. `profile_id`/`created_by`/`created_at` frozen by trigger so RLS can't be sidestepped. |
-| `admin_notes` | `id`, `event_id` \| `booking_id`, `created_by`, `tag`, `content`, `resolved_*` | The operational memo table — a note pinned to one event **or** one booking (CHECK `admin_notes_target_present`: exactly one, the last XOR in the schema). Tags: `urgent` / `payment` / `gear` / `logistics` / `cert` / `medical` / `note` / `general`. Resolution flags come as a trio (all null or all set, DB-enforced). Read/insert open to staff+admin (insert requires `created_by = auth.uid()`); update/delete admin-only. See [admin.md](./admin.md#event-memos-admin_notes). |
+| `admin_notes` | `id`, `event_id` \| `booking_id`, `created_by`, `tag`, `content`, `resolved_*` | The operational memo table — a note pinned to one event **or** one booking (CHECK `admin_notes_target_present`: exactly one, the last XOR in the schema). Tags: `urgent` / `payment` / `gear` / `logistics` / `cert` / `medical` / `note` / `general`. Resolution flags come as a trio (all null or all set, DB-enforced). Read/insert open to staff+admin (insert requires `created_by = auth.uid()`); update/delete admin-only. See [admin.md](./admin.md#event-memos-admin-notes). |
 | `admin_audit_log` | `id`, `actor_id`, `action`, `target_table`, `target_id`, `before`, `after` | Append-only audit trail for admin mutations. Insert via DB triggers; reads admin-only. |
-| `duties` | `id`, `assignee_id`, `role`, `start_date`, `end_date`, `event_id` | Staff-or-admin shift assignments. Trigger enforces `assignee_id` references a profile with role in (admin, staff). |
+| `duties` | `id`, `assignee_id`, `role`, `start_date`, `end_date`, `event_id` | Staff-or-admin shift assignments; `role in ('instructor','guide','support')`. Trigger enforces `assignee_id` references a profile with role in (admin, staff). The roster is also what [staff revenue](./admin.md#revenue-by-staff) is attributed from. |
 | `vehicles` | `id`, `name`, `passenger_seats`, `active` | Transport-fleet catalog. `passenger_seats` is the car's **total physical seats**, and every one of them is rideable: there is no driver-assignment concept, so divers and on-duty staff compete for the same seats and `event_ride_seats()` simply subtracts the staff. Staff+admin read, admin write. |
-| `event_vehicles` | `id`, `vehicle_id`, `event_id`, `notes` | Which car is allocated to which event. A car may serve any number of events, at most once each (unique `(event_id, vehicle_id)`). Staff+admin read, admin write. Assigned on the logistics day view, the event's Transportation tab and the create/edit event forms. |
+| `event_vehicles` | `id`, `vehicle_id`, `event_id`, `notes` | Which car is allocated to which event, of any kind; `event_id` NOT NULL. A car may serve any number of events, at most once each (unique `(event_id, vehicle_id)`). Staff+admin read, admin write. Assigned on the logistics day view, the event's Transportation tab and the create/edit event forms. |
 | `event_ride_groups` | `(ride_day, event_id)` PK, `group_id` | Which of a day's events **travel together** — the events sharing a `group_id` form one "run" and pool their cars, divers and staff; an event with no row rides alone. `group_id` has no parent table: the group is the set of rows. Staff read, admin write, set by the Shared transport picker on `/admin/logistics`. See [admin.md](./admin.md#transport-runs-seats-riders). |
 | `packed_pieces` | `(pack_day, booking_id, item)` PK, `packed_by`, `packed_at` | The logistics board's shared pack list: a row per piece on the van, so every crew phone reads the same ticks (Realtime-published). A tick inserts, an untick deletes. Staff+admin read, insert (stamped `packed_by = auth.uid()`) and delete; divers and anon nothing. Cascades with its booking. See [admin.md](./admin.md#gear-the-pack-checklist). |
-| `dive_sites` | `id`, `name`, `lat`, `lng`, `dive_type` | Public catalog rendered on `/map`; readable by all authenticated users. |
-| `waiver_signatures` | `id`, `diver_id`, `waiver_code`, `waiver_version`, `signed_name`, `signed_at`, `event_id` | Append-only e-signature records. The waiver **catalog + global rules** live in code (`src/config/waivers.ts`), not the DB — these rows only record who signed what, when. Annual waivers leave `event_id` null; per-event waivers set it. Writes go through the `sign_waiver()` RPC (diver reads own; staff+admin read all). |
-| `event_waivers` | `id`, `event_id`, `waiver_code`, `mode` | Per-event override of a waiver's global rule: `mode` `require` adds it, `exempt` drops it for one event. `event_id` NOT NULL → `events`; one override per `(event_id, waiver_code)`. Read by any authenticated user (the registration form needs it); admin write. Edited on the admin Edit-event form. |
-| `cert_levels` | `id`, `code`, `name`, `rank`, `organization`, `padi_equivalent_id` | Reference data for the certification picker. Events point at one via `events.prereq_cert_id`, and the admin form offers **PADI levels only** — prereqs are encoded as PADI ranks, with `padi_equivalent_id` mapping an agency-specific level onto its PADI peer for the cross-agency comparison (mapping is populated; the comparison isn't wired up yet). |
-| `cancellation_policies` | `id`, `title`, `cancellation_policy` | Bubble-imported reference data linked from `events` rows via `cancel_policy`. |
+| `waivers` | `id`, `code`, `version`, `title`, `body` \| `pdf_path`, `language`, `cadence`, `applies_to`, `active` | The shop's own waiver catalog (`20260709120000`) — text forms or uploaded PDFs in the `waiver-pdfs` bucket (exactly one of `body` / `pdf_path` set). `code` + `version` are what `waiver_signatures` and `event_waivers` reference. Admin-authored at `/admin/waivers`; the repo ships no waiver content. `src/config/waivers.ts` holds only the domain types and the row mapper. |
+| `waiver_signatures` | `id`, `diver_id`, `waiver_code`, `waiver_version`, `signed_name`, `signed_at`, `event_id`, `signed_title` / `signed_body` / `signed_pdf_path`, `content_sha256` | Append-only e-signature records; each snapshots the exact waiver content it signed, with a SHA-256, so a later edit can't rewrite history (`20260711200000`). Annual waivers leave `event_id` null; per-event waivers set it. Writes go through the `sign_waiver()` RPC (server-stamps `signed_at` / `diver_id`), or `admin_record_paper_waiver()` for one signed on paper in person. Diver reads own; staff+admin read all. |
+| `event_waivers` | `id`, `event_id`, `waiver_code`, `mode` | Per-event override of a waiver's default rule: `mode` `require` adds it, `exempt` drops it for one event. `event_id` NOT NULL → `events`; one override per `(event_id, waiver_code)`. Read by any authenticated user (the registration form needs it); admin write. Edited on the admin Edit-event form. |
+| `cert_levels` | `id`, `code`, `name`, `rank`, `organization`, `padi_equivalent_id` | Reference data for the certification picker. Events point at one via `events.prereq_cert_id`, and the admin form offers **PADI levels only** — prereqs are encoded as PADI ranks, with `padi_equivalent_id` mapping an agency-specific level onto its PADI peer. The mapping canonicalizes divers' free-text levels for the dashboard (`src/lib/cert-level.ts`) and the cert-equivalence chart; registration eligibility does not rank-compare levels. |
+| `cancellation_policies` | `id`, `title`, `cancellation_policy`, `language`, `active`, `deposit_refundable` | Linked from `events.cancel_policy`; the text a diver acknowledges at registration. `deposit_refundable = false` withholds the deposit from an automatic cancellation credit (see [payments.md](./payments.md)). Admin-managed at `/admin/cancellation-policies`. |
 | `shop_contact` | `singleton`, `email`, `phone`, `address`, `maps_url`, `updated_at/_by` | The shop's own contact details. **Exactly one row** (`check (singleton)`), shipped EMPTY by 20260905120000 — a shop's address is not something core can guess, and a placeholder would be a wrong address printed on a real registration. Publicly readable (the pages that print the shop's email include ones a diver reaches before approval, and the terms-acceptance page, which runs from an emailed link with no session) and admin-updatable; no insert or delete policy exists, so the row cannot be removed. Empty strings mean "not published yet" and every surface handles that; a malformed email or map URL is refused by a check constraint. Read by the app through `ShopContactProvider`, and per request by the edge functions that mail the shop (`_shared/shop-contact.ts`). Admin-managed at `/admin/contact`. |
 | `contact_channels` | `id`, `kind`, `label`, `url`, `sort_order`, `active` | The ways a diver can reach the shop, in the order the Contact tab lists them. Ships empty: which services a shop is on is exactly what this table exists to stop core from deciding. `kind` is a closed vocabulary (`line`, `whatsapp`, `telegram`, `messenger`, `instagram`, `wechat`, `signal`, `phone`, `sms`, `other`) pinned to `CONTACT_CHANNEL_KINDS` — each carries a glyph and brand color that live in code, because shop-authored markup rendered into the page is an XSS hole; `other` takes any link with a neutral glyph. `url` holds an https link for a chat service and a **bare phone number** for `phone` / `sms` (a check constraint enforces which), and `channelHref` adds the `tel:` / `sms:` scheme. A null `label` uses the deployment's own translated wording for that service. Publicly readable, admin-written. |
 | `payment_methods` | `id`, `key`, `label`, `surcharge_percent`, `bank_name`, `bank_code`, `account_number`, `account_holder`, `swift_bic`, `pay_url`, `notes`, `collects_invoice_email`, `shows_shop_contact`, `sort_order`, `active` | How divers can pay. `key` is the stable value `bookings.details.payment_method` records, so a method can be renamed or repriced without orphaning a booking; everything else is what the register form and the emailed PDF print. Publicly readable (the register form renders before sign-in), admin-written. Admin-managed at `/admin/payment-methods`; see [payments.md § Payment methods](./payments.md#payment-methods). |
-| `trip_templates` | catalog | Reusable "what's included" / not-included / transportation / itinerary / prerequisites copy an event links to via `events.trip_template_id`; surfaces in the booking form. Renamed from `dive_travel` (`20260708050000`). |
+| `trip_templates` | `id`, `admin_title`, `included`, `not_included`, `transportation`, `itinerary`, `prerequisites` | Reusable "what's included" / not-included / transportation / itinerary / prerequisites copy an event links to via `events.trip_template_id`; surfaces in the event-detail modal and the booking form. |
+| `travel_destinations` | `id`, `admin_title`, `country`, `divetype`, `international`, … | Destination catalog. Events are tagged with these via the `event_destinations` junction (event-form picker); `divetype` drives the calendar's local-versus-trip coloring. Admin-managed at `/admin/destinations`. |
 | `scheduled_trips` | `id`, `title`, `destination`, `status`, `price`, `addon_ids`, `room_type_ids` | The shop's own curated, dated trips shown on the diver Scheduled Trips tab. Admin-managed base table (admin-only RLS); divers read published rows via `list_scheduled_trips()`. Carries `addon_ids`/`room_type_ids` (into the shop `addons`/`rooms` catalog) so divers register self-contained for a cost estimate — same flow as `packages`, minus tiers/partner. Distinct from `packages` (open-ended travel abroad) and the `events.is_trip` flag. See [packages.md](./packages.md). |
 | `scheduled_trip_registrations` | `id`, `scheduled_trip_id`, `diver_id`, `estimated_cost`, `details`, `status` | One row per diver-registration for a scheduled trip; frozen estimate snapshot in `details`. No kickback (the shop's own trip). Admin-only base table; divers create via the `register-scheduled-trip` edge fn and read their own via `list_my_scheduled_trip_registrations()`. Partial unique index keeps one live registration per diver per trip. |
 | `event_rooms` / `event_addons` / `event_destinations` / `event_discounts` / `event_nondiver_options` | junctions | FK junctions linking rooms / add-ons / destinations / offered discounts to `events` by `event_id`. Reconciled by the `set_event_relations` RPC (the single write path). |
@@ -75,15 +76,40 @@ memo to either an event or a booking.
 | `booking_discounts` | `id`, `booking_id`, `discount_id`, `status`, `amount`, `amendment_id`, `requested_*`, `decided_*` | One diver asking for one discount on one booking. **No write policy at all** — every write goes through `request_booking_discount` / `decide_booking_discount`, so no client can mint an approval. An approval stamps the `amount` and the negative `booking_amendments` row that is the actual money; `discount_id` is `ON DELETE RESTRICT` so a granted discount outlives the shop's decision to stop offering it. |
 | `push_subscriptions` | `endpoint` (unique), `user_id`, `p256dh`, `auth` | One row per device. Diver owns their rows (RLS). |
 | `push_notifications_sent` | `(user_id, event_id, kind)` composite PK | Idempotency ledger for the push cron. Service-role-only. |
-| `trusted_partners` | `id`, `name`, `country`, `location`, `website`, `contact_name`, `contact_email`, `vouch_notes`, `logo_url`, `default_kickback_rate`, `active`, `created_by` | Unified registry of vouched partner dive shops — powers **both** the diver Trusted Partners directory and the shops that host **Packages** (unified from the old thin `trusted_partners` + richer `partner_shops` by `20260708080000`). **Admin-only RLS on every verb** — divers never see `contact_email`; they read `id` / `name` / `region` (= `coalesce(location, country)`) / `blurb` (= `vouch_notes`) / `website` for active, reachable rows through the `list_trusted_partners()` RPC, and message a partner via the `contact-trusted-partner` edge function (which resolves `contact_email` server-side). `packages.trusted_partner_id` FK-references it. See [trusted-partners.md](./trusted-partners.md) and [packages.md](./packages.md). |
+| `trusted_partners` | `id`, `name`, `country`, `location`, `website`, `contact_name`, `contact_email`, `vouch_notes`, `logo_url`, `default_kickback_rate`, `active`, `created_by` | Unified registry of vouched partner dive shops — powers **both** the diver Trusted Partners directory and the shops that host **Packages** (the old thin `trusted_partners` directory and the richer `partner_shops` registry, unified before the squashed baseline). **Admin-only RLS on every verb** — divers never see `contact_email`; they read `id` / `name` / `region` (= `coalesce(location, country)`) / `blurb` (= `vouch_notes`) / `website` for active, reachable rows through the `list_trusted_partners()` RPC, and message a partner via the `contact-trusted-partner` edge function (which resolves `contact_email` server-side). `packages.trusted_partner_id` FK-references it. See [trusted-partners.md](./trusted-partners.md) and [packages.md](./packages.md). |
+
+## Other app-owned tables
+
+Documented in their own docs rather than above:
+
+| Table | Covered by |
+| --- | --- |
+| `credits` | [payments.md](./payments.md) |
+| `booking_amendments` | [payments.md](./payments.md) — admin adjustments to what a booking owes; append-only, so the client never mutates one |
+| `packages`, `package_tiers`, `package_registrations` | [packages.md](./packages.md) |
+| `notifications` | [push-notifications.md](./push-notifications.md) |
+| `taxa`, `taxon_names`, `almanac_sightings` | [wildlife-taxa.md](./wildlife-taxa.md) |
+| `dive_site_maps`, `dive_site_features`, `dive_site_soundings`, `dive_site_contributions`, `dive_site_entries` | [dive-site-maps.md](./dive-site-maps.md) |
+| `shop_profile` | [i18n.md](./i18n.md#currency-and-language-reach-the-app-through-the-build) |
+
+Not written up at length anywhere: `terms` / `terms_consent_tokens` (the
+shop-authored Terms of Use singleton and its one-time acceptance links),
+`dive_logs` / `dive_log_export_requests` (the diver logbook and its PDF
+export), `waitlist_offers` (the cron's timed offer of a freed spot),
+`staff_availability` (busy windows the duty picker reads),
+`gear_models` / `gear_model_sizes` (the shop's sizing charts),
+`event_series` (recurrence batches), `profile_value_normalizations`, and
+the abuse ledgers `signup_attempts` / `user_action_attempts` /
+`orphan_auth_users`.
 
 ## `events` table + catalog reference tables
 
 Dives, courses and adventures are ONE table, `public.events`, discriminated
-by `kind` (migrations `20260702000000`–`20260702000400` collapsed the old
-Bubble `EO_dives` / `EO_courses` pair). Bookings, duties, admin_notes,
-event_vehicles, and waiver rows all reference it by a single
-`event_id → events(id)` (no more `eo_dive_id` / `eo_course_id` XOR).
+by `kind` (the Bubble-era `EO_dives` / `EO_courses` pair was collapsed into it
+before the squashed baseline; `adventure` arrived in `20260720000000`).
+Bookings, duties, admin_notes, event_vehicles, and waiver rows all reference
+it by a single `event_id → events(id)` (no more `eo_dive_id` / `eo_course_id`
+XOR).
 
 | `events` columns | Notes |
 | --- | --- |
@@ -97,7 +123,7 @@ event_vehicles, and waiver rows all reference it by a single
 | **dive-only (form-gated):** `is_trip`, `notes`, `featured`, `is_private` | `is_trip`/`is_boat_dive` are independent `boolean not null default false` flags (see [events-and-bookings.md](./events-and-bookings.md)). The columns sit on every envelope kind; the admin form offers them on dives, under `hasDiveFlags` |
 | **non-course kinds:** `gear_rental` | free text describing the rental terms. It does not decide whether gear is offered — `gear_included` does |
 | `gear_included` (NOT NULL, default false) | shared. True when the event puts no gear question and bills no gear: the fee covers a set, or nobody scuba dives. `create-registration` re-reads it and overwrites `details.gear`, the same way it forces `details.transportation`. Whether a set is physically packed is `packsAGearSet()` — this flag **and** `kindInvolvesScuba(kind)`, so an overland outing that bundles "gear" packs none. Replaced a substring match on course titles (20260911120000), which now only pre-ticks the box on the admin form |
-| **course kinds:** `course_days` (`date[]`, max 4 — the days a course runs on; see [events-and-bookings.md](./events-and-bookings.md#course_days)), `course_name`, `included`, `schedule`, `starting_at` | discrete session days, no envelope |
+| **course kinds:** `course_days` (`date[]`, 1–4 entries — the days a course runs on; see [events-and-bookings.md](./events-and-bookings.md#course-days)), `course_name`, `included`, `schedule` | discrete session days, no envelope |
 
 `series_id` groups the batch of occurrences a recurrence rule generated
 (`event_series`); each occurrence is otherwise fully independent.
@@ -131,11 +157,10 @@ in `src/lib/dive-sites.test.ts`).
 
 The **reference tables** (`prices`, `rooms`, `addons`, `trip_templates`,
 `cancellation_policies`, `travel_destinations`) were renamed from their Bubble
-originals and cleaned (migration `20260703000000`): each now has a uuid `id`
-primary key and the import-cruft columns were dropped — read-mostly catalog
-data, admin-editable. (`dive_travel` was later renamed to `trip_templates`, and
-`travel_destinations` lost its unused `latitude` / `longitude` /
-`northeast_diving` columns — see the migration history below.)
+originals (`EO_prices`, `EO_rooms`, `Other_Addons`, `DiveTravel`, …) and
+cleaned before the squashed baseline: each has a uuid `id` primary key —
+read-mostly catalog data, admin-editable. The last imported page fields nothing
+read went in `20261029120000`.
 Rooms/add-ons/destinations link to events through the junctions `event_rooms`,
 `event_addons`, `event_destinations` (each `(event_id, <ref>_id)`), reconciled
 by the `set_event_relations` RPC. All dates are interpreted as **shop-local**
@@ -154,20 +179,31 @@ what it was like there.
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | uuid PK | |
-| `name` | text | Unique per kind, case-insensitively — `(kind, lower(name))` — so casing cannot mint a second Bat Cave |
+| `name` | text | The English name, and what every surface falls back to. Unique per kind, case-insensitively — `(kind, lower(name))` — so casing cannot mint a second Bat Cave |
+| `name_zh_tw` / `name_ja` | text | The same place in the other catalog languages, optional |
 | `kind` | text | `dive` / `adventure`: the events vocabulary narrowed to the kinds that answer `recordsSiteConditions`. A course runs from the shop and has no site of its own. The almanac's dive/adventure toggle filters on this |
 | `region` | text | Optional grouping shown beside the name, e.g. "Longdong" |
 | `notes` | text | Entry, parking, hazards — staff-facing |
+| `latitude` / `longitude` | numeric(9,6) | Optional, but both or neither |
+| `verified` | boolean | Staff have confirmed the place and its spelling. False on anything a diver added until someone checks it |
+| `created_by` | uuid → `auth.users` | Who added it |
 | `active` | boolean | `false` retires a site: its history stays, but it stops being offered |
 
 Any authenticated user reads it (the almanac's submission form is a diver
-surface); admin writes. Curated at `/admin/dive-sites`.
+surface). Since `20260827300000` a diver can add a place too, through
+`create_dive_site()` rather than an INSERT policy, so `verified` and
+`created_by` are never the author's claim: the row is live at once and
+unverified. `find_similar_dive_sites()` matches the typed name against every
+name in every language, plus the `dive_site_aliases` table (other spellings a
+place answers to, never displayed), and the form offers what it found before
+writing. Admins curate at `/admin/dive-sites`, where `verify_dive_site()` and
+`merge_dive_sites()` handle what still slips through.
 
 ## `almanac_records` — crowdsourced environmental observations
 
 Divers submit environmental and weather observations for the places the shop
 goes; staff/admin rule on each one. A record is a **site on a date**, drawn
-from the `dive_sites` catalog below, and the almanac reads them back by
+from the `dive_sites` catalog above, and the almanac reads them back by
 calendar date — a day is the unit, and every site observed that day shares a
 bucket. Only approved records reach the crowd, on `/almanac` — the page also lists a
 diver every entry they have filed, on its own **Your entries** tab, and shows
@@ -203,8 +239,8 @@ Unique constraint: `(site_id, obs_date, diver_id)` — one observation per
 `SECURITY DEFINER` RPC, so the moderation state machine can't be driven from
 the client — a diver has no way to mint an already-approved record:
 
-- `submit_almanac_record(...)` — files the caller's observation for an
-  event/date, always as `pending`. Fields are assigned outright rather than
+- `submit_almanac_record(...)` — files the caller's observation for a
+  site and date, always as `pending`. Fields are assigned outright rather than
   coalesced (the form posts the whole record, so a cleared field clears), the
   date may not be in the future, and a record staff have already ruled on
   cannot be revised.
@@ -295,18 +331,22 @@ RLS is **on** for every `public.*` table. The important patterns:
   - `public.is_admin()` — caller's profile has `role = 'admin'`
   - `public.is_staff_or_admin()` — caller's profile has `role in
     ('admin','staff')`
-- **Diver-owned rows** (`bookings`, `payments`, `push_subscriptions`):
-  users can read/insert/update/delete rows where `auth.uid() = user_id`.
+- **Diver-owned rows:** a diver reads, inserts and updates their own
+  `bookings` (`auth.uid() = user_id`; a parent account may do the same for
+  its children), reads their own `payments`, and owns their
+  `push_subscriptions`. Payments are admin-inserted.
 - **Staff+admin read** on `profiles`, `bookings`, `payments`,
-  `admin_notes`, `diver_notes` — broadened from admin-only by the
-  `staff_role` migration. Writes on those tables stay admin-only
+  `admin_notes`, `diver_notes`. Writes on those tables stay admin-only
   except `admin_notes` / `diver_notes` (staff can insert their own).
-- **`bookings` is largely immutable** for divers post-insert: the
-  trigger `bookings_diver_immutable` (in
-  `20260423130000_core_rls_and_booking_immutability.sql`) blocks
-  diver writes to most columns. Diver can flip `status` to
-  `'cancelled'` and stamp `refund_requested_at`; admins can mutate
-  anything via the `is_admin()` policy.
+- **`bookings` is largely immutable** for divers post-insert. RLS gates
+  the row, two triggers gate the columns:
+  `bookings_detail_lock_trg` (`bookings_block_diver_detail_edits`, in the
+  baseline) refuses a non-admin change to `details`, and
+  `trg_bookings_guard_diver_status` (`20260713010000`, revised since)
+  lets a diver create a booking only as `pending` / `waitlisted`, change
+  its status only to `cancelled`, and never move it to another event or
+  touch the cancellation-settlement columns. Admins can mutate anything
+  via the `is_admin()` policy.
 - **Service-role bypasses RLS.** The push cron + the
   `create-registration` edge function both use the service-role key
   for this reason — they need to write under multiple users' identities.
@@ -327,71 +367,115 @@ adds a column / constraint / policy. File naming is
 
 ### Migration history
 
-fundive ships a **single squashed baseline**,
-`20260703000000_baseline_schema.sql`, that captures the entire schema — the
-unified `events` model, every app-owned table above, all RLS policies and
-triggers, and the SECURITY DEFINER RPCs (`event_ride_seats`, `sign_waiver`,
-`event_confirmed_counts`, `set_event_relations`, …). It collapsed the long
-per-feature migration lineage the platform grew in early development, so a fresh
-database is one baseline apply, not a replay of history.
+`ls supabase/migrations/` is the source of truth; this list is a map of it.
 
-Everything after the baseline is a **forward** migration (the `ls
-supabase/migrations/` order is the source of truth):
+The lineage starts with a **single squashed baseline**,
+`20260708090000_squashed_baseline.sql`, which captures the whole schema as of
+the unified-`events` rebuild: the `events` model, the catalog tables, every
+RLS policy and trigger, the SECURITY DEFINER RPCs (`event_ride_seats`,
+`sign_waiver`, `apply_credit_to_booking`, `set_event_relations`, …) and the
+migration-seeded reference data (`cert_levels`, storage buckets). A fresh
+database is one baseline apply, not a replay of the per-feature history the
+platform grew in early development.
 
-- `20260705000000_event_ride_seats_reserve_crew.sql` — redefines
-  `event_ride_seats()` so capacity reserves the crew's seats:
-  `Σ passenger_seats − greatest(#assigned vehicles, #on-duty staff)`. One seat per
-  vehicle is held as a floor, rising to the full on-duty staff count when staff
-  outnumber the cars, so the seats offered to divers are what's genuinely
-  rideable.
-- `20260706000000_trusted_partners.sql` — the `trusted_partners` table, its
-  admin-only RLS, and the `list_trusted_partners()` RPC (email-free projection).
-  See [trusted-partners.md](./trusted-partners.md).
-- `20260707000000_dive_trip_boat_flags.sql` — adds `is_trip` and `is_boat_dive`
-  (both `boolean not null default false`) to `events`. No keyword backfill — an
-  admin ticks them per event. See [events-and-bookings.md](./events-and-bookings.md).
-- `20260707010000_notify_admins_ride_waitlist.sql` — trigger that notifies admins
-  when a booking lands on the ride waitlist (`details.ride_waitlisted = true`).
-- `20260707020000_event_ride_seats_authenticated_only.sql` — revokes the default
-  `PUBLIC`/`anon` EXECUTE on `event_ride_seats()` and re-grants only
-  `authenticated` + `service_role`, so aggregate seat counts aren't exposed to
-  unauthenticated callers (a guest's fetch fails open).
-- `20260724000000_ride_groups_shared_transport.sql` — `event_ride_groups`
-  (which events travel together on a day) and a rewritten `event_ride_seats()`
-  measured across the whole run, returning `seats / staff / capacity / claimed`.
-  Drops the old per-vehicle driver-seat reservation, which contradicted the
-  admin planner. See [admin.md](./admin.md#transport-runs-seats-riders).
-- `20260724010000_server_side_ride_waitlist.sql` — `details.ride_waitlisted` is
-  recomputed by a BEFORE trigger from `event_ride_tally()` instead of trusted
-  from the client, so a full run can't be hidden from the admins. A run with no
-  car at all counts as "capacity not configured" and is left unflagged, matching
-  `canRequestRide`.
-- `20260708020000_trip_board_definer_functions.sql` — replaces the Packages
-  diver-facing views with `list_package_board()` / `list_my_package_referrals()`
-  SECURITY DEFINER functions (email-free, kickback-free projections).
-- `20260708030000_rename_trip_board_to_packages.sql` — renames the "Trip Board"
-  feature to Packages end to end: tables `trips` → `packages`, `trip_referrals`
-  → `package_referrals`; RPCs `list_trip_board` → `list_package_board`,
-  `list_my_trip_referrals` → `list_my_package_referrals`, `express_trip_interest`
-  → `express_package_interest`; plus indexes, policies, and the set-code trigger.
-  See [packages.md](./packages.md).
-- `20260708040000_scheduled_trips.sql` — the `scheduled_trips` table (the shop's
-  own dated, in-app-bookable trips), its admin-only RLS, and the
-  `list_scheduled_trips()` SECURITY DEFINER function (published rows, carrying
-  the linked event's kind so the diver card can build a register link).
-- `20260708050000_rename_dive_travel_to_trip_templates.sql` — renames the
-  `dive_travel` reference table to `trip_templates` and `events.divetravel_id`
-  to `events.trip_template_id`.
-- `20260708060000_drop_travel_destinations_coords.sql` — drops the unused
-  `latitude` / `longitude` columns from `travel_destinations`.
-- `20260708070000_drop_travel_destinations_northeast_diving.sql` — drops the
-  unused `northeast_diving` column from `travel_destinations`.
-- `20260708080000_unify_partner_tables.sql` — merges the thin `trusted_partners`
-  directory into the richer `partner_shops` registry and renames the result back
-  to `trusted_partners` (the superset). Repoints `packages.partner_shop_id` →
-  `packages.trusted_partner_id`, rebuilds the `list_trusted_partners()` and
-  Packages definer functions against the unified table. See
-  [trusted-partners.md](./trusted-partners.md) and [packages.md](./packages.md).
+Everything after it is a forward migration:
+
+- **Travel.** `20260708200000_packages_registration` turns Packages into a
+  partner-shop registration flow with price tiers (dropping the old
+  `package_referrals` referral codes); `20260708210000_scheduled_trip_registration`
+  lets a diver register for a scheduled trip directly. See
+  [packages.md](./packages.md).
+- **Shop-authored legal text.** `20260709120000_shop_authored_waivers` moves the
+  waiver catalog out of code into `waivers` plus the `waiver-pdfs` bucket and
+  gives cancellation policies CRUD metadata; `20260710120000_shop_authored_terms`
+  does the same for the Terms of Use; `20260711200000_waiver_signature_content_snapshot`
+  binds each signature to the exact content signed; `20260731000000_waiver_in_person`
+  adds `admin_record_paper_waiver()`; `20260803000000_terms_consent_by_email`
+  adds one-time acceptance links for divers who never sign in.
+- **Booking integrity.** `20260713000000_block_credit_on_cancelled_booking`
+  and `20260713010000_guard_diver_booking_status` stop credit flowing into a
+  cancelled booking and stop a diver setting their own status;
+  `20260720030000` / `20260720040000` stop the waitlist offering spots on a
+  cancelled event and expire offers already stranded there;
+  `20260824060000_booking_created_by` records who put a diver on an event;
+  `20260827100000_event_cancel_cancels_its_bookings` makes a shop-side
+  cancellation cancel the registrations on it.
+- **Event kinds and event shape.** `20260720000000_add_adventure_event_kind`
+  (the third kind, and the worked example of the vocabularies a kind
+  touches); `20260804000000_event_series` (recurrence);
+  `20260805000000_create_events_atomically` (`create_events_with_relations()`,
+  so an event and its junction rows land in one transaction);
+  `20260806000000` / `20260810000000` drop the dead `starting_at` and
+  `second_image` columns; `20260813000000_restrict_private_events_to_participants`;
+  `20260821000000_events_has_transport`; `20260911120000_event_gear_included`;
+  `20260925100000_event_enters_water`, renamed to `involves_scuba` by
+  `20261022100000`.
+- **Money.** `20260720010000`, `20260720020000`, `20260720050000`,
+  `20260720060000` and `20260729000000` let a parent read and spend for a
+  child, net refunds out of "paid", clamp a deposit to what is owed and net a
+  booking's own credit out of a group payment; `20260723000000`,
+  `20260823000000`–`20260823040000` and `20260824050000` return a cancelled
+  booking's money as credit to whoever paid it, record where each credit
+  came from, reclaim it on restore, and let an admin record that the shop
+  keeps it; `20260824000000_payment_reference`,
+  `20260824010000_credit_settled_by` and `20260824020000_booking_cancelled_stamp`
+  attribute every money movement; `20260824030000_account_charges` and
+  `20260901000000_account_refunds` add signed account rows;
+  `20260824040000_nonrefundable_deposit` adds `deposit_refundable`;
+  `20260827400000_audit_the_money_tables` audits `payments` and `credits`;
+  `20260831130000_shop_authored_payment_methods` and
+  `20260912100000_event_discounts` add the shop's payment methods and
+  discounts. See [payments.md](./payments.md).
+- **Transport.** `20260724000000_ride_groups_shared_transport` adds
+  `event_ride_groups` and measures `event_ride_seats()` across the whole run;
+  `20260724010000_server_side_ride_waitlist` computes
+  `details.ride_waitlisted` in the database. See
+  [admin.md](./admin.md#transport-runs-seats-riders).
+- **Dive logs.** `20260726000000`, `20260730000000`, `20260801000000` and
+  `20260809000000`: a pinned trigger `search_path`, a title and arbitrary
+  dive numbers, one companion column, and wetsuit thickness.
+- **Staff and accounts.** `20260802000000_admin_manages_staff_availability`;
+  `20260811000000` adds `profiles.compensated` and `20260812000000` drops it
+  again (who is paid is inferred from the roster);
+  `20260814000000_cap_child_accounts_per_parent`;
+  `20260815000000_shared_user_action_rate_limit`;
+  `20260831120000_signup_active_by_default` (signup is no longer an
+  application); `20260910100000_normalize_profile_cert_and_nationality`;
+  `20260923100000_drop_profile_nickname`.
+- **Crowdsourced observations.** `20260818000000_almanac_records` and
+  `20260820000000_almanac_by_dive_site` (observations filed against a
+  `dive_sites` place rather than an event); `20260822000000_coral_surveys`;
+  `20260827200000` / `20260905100000` (trash, then trash bands);
+  `20260827300000_crowdsourced_dive_sites`; `20260905110000_almanac_withdraw`;
+  `20260827500000_dive_site_maps`, `20260827600000_site_maps_admin_only` and
+  `20260828000000_dive_site_entries` (see [dive-site-maps.md](./dive-site-maps.md));
+  `20260909100000`–`20260909140000` (the wildlife taxon catalog, its seed,
+  the free-text backfill, three catalog additions, and multi-name proposals —
+  see [wildlife-taxa.md](./wildlife-taxa.md)).
+- **Shop identity.** `20260905120000_shop_authored_contact` (`shop_contact`,
+  `contact_channels`); `20260910200000_shop_profile`.
+- **Logistics.** `20260928100000_packed_pieces` (the shared pack list);
+  `20261021100000_nondiver_options`.
+- **Catalog cleanup.** `20260827000000_list_every_viewable_trusted_partner`;
+  `20261029110000_image_refs_to_local_paths` and
+  `20261029120000_drop_legacy_catalog_columns` (the last imported website
+  fields).
+- **Backups.** `20260905000000_backup_table_inventory` names the tables the
+  CSV backup exports.
+- **Grants.** `20260720070000`, `20260808000000`, `20260911100000` and
+  `20260911110000` take EXECUTE on privileged functions, and every write
+  privilege, away from `anon`; `20261116130000_lock_down_adopted_grants`
+  reapplies those revokes and default privileges idempotently, for a
+  database adopted with `--applied-through` that recorded the earlier files
+  without running them (a no-op on a fresh install).
+- **Course continuation.** `20261116110000_course_continuation` adds
+  `bookings.continues_booking_id` and `attend_days` plus the
+  `create_course_continuation()` RPC that owns the rules (see
+  [events-and-bookings.md](./events-and-bookings.md#one-course-several-scheduled-courses));
+  `20261116120000_event_id_not_null` declares `event_id` NOT NULL on
+  `bookings`, `event_vehicles` and `event_waivers`, which their
+  `*_event_present` checks already enforced. Both are idempotent so an
+  adopted database runs them as no-ops.
 
 ## `BookingDetails` JSONB shape
 
@@ -424,15 +508,27 @@ interface BookingDetails {
                                     //   booking_discounts row and strips the
                                     //   key. Never present on a stored booking
   transportation?: boolean
+  ride_waitlisted?: boolean         // computed by a DB trigger, never trusted
+                                    //   from the client (see admin.md)
   payment_method?: string           // payment_methods.key the diver chose
+  credit_card_invoice_email?: string // billing address for an emailed invoice
   pay_deposit_only?: boolean        // deposit-only-at-registration flag
   nitrox_course_addon?: boolean
-  charges?: ChargeLine[]            // itemized snapshot — see below
   total?: number                    // final-charge snapshot
   deposit?: number                  // prices.deposit_amount snapshot
+  credit_applied?: number           // account credit elected at checkout,
+                                    //   for the PDF; never rewrites total
+  charges?: ChargeLine[]            // itemized snapshot — see below
   cancellation_policy_acked_at?: string  // gate for submit when policy attached
+  cert_card_ack_at?: string         // cert-card photo deferred, terms accepted
+  prereq_acked_at?: string          // unmet prerequisite acknowledged
 }
 ```
+
+A course continuation's details are written by `create_course_continuation()`,
+not the register form: the source booking's `gear`, `total` and `deposit` of
+0, one zero `adjustment` charge line, and a `course_continuation: true` marker
+the type does not declare (the app reads `continues_booking_id` instead).
 
 `discount_requests` is the one key that never survives the write. A discount
 is worth nothing until an admin approves it, so letting the frozen details
