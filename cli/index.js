@@ -10,7 +10,7 @@
 
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 
 const platformDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -105,6 +105,33 @@ async function deployFunctions() {
   process.exit(0)
 }
 
+// A logical backup of the deployment's database: roles, schema and data as
+// three files under backups/, the rollback point to take before `db push` or
+// `db adopt --apply`. The Supabase CLI can exit non-zero from its telemetry
+// shutdown after writing a complete file, so success is judged by the file.
+async function backupDb() {
+  const url = dbUrl()
+  const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19)
+  const dir = path.join(deploymentDir, 'backups')
+  mkdirSync(dir, { recursive: true })
+  for (const [label, flags] of [['roles', ['--role-only']], ['schema', []], ['data', ['--data-only']]]) {
+    const out = path.join(dir, `db_${label}_${stamp}.sql`)
+    console.log(`-> ${label}  ->  ${path.relative(deploymentDir, out)}`)
+    await new Promise((resolve) => {
+      const child = spawn(bin('supabase'), ['db', 'dump', '--db-url', url, ...flags, '-f', out],
+        { stdio: 'inherit', cwd: deploymentDir, env: { ...env, DO_NOT_TRACK: '1' } })
+      child.on('error', (e) => { console.error(`fundive: ${e.message}`); process.exit(1) })
+      child.on('exit', resolve)
+    })
+    if (!existsSync(out) || statSync(out).size === 0) {
+      console.error(`fundive: the ${label} dump wrote nothing`)
+      process.exit(1)
+    }
+  }
+  console.log('Restore order if ever needed: roles -> schema -> data')
+  process.exit(0)
+}
+
 function version() {
   const pkg = JSON.parse(readFileSync(path.join(platformDir, 'package.json'), 'utf8'))
   console.log(`fundive ${pkg.version}`)
@@ -120,6 +147,7 @@ Usage: fundive <command>
   preview             preview the production build locally
   deploy              deploy the SPA worker to your Cloudflare
   deploy push         deploy the push-notification cron worker
+  db backup           dump your database's roles, schema and data into backups/
   db push             apply the platform migrations to your Supabase
   db adopt ...        adopt a database built from another repo (see
                       scripts/adopt-existing-deployment.sh; dry run by default)
@@ -143,8 +171,10 @@ switch (command) {
     break
   case 'db':
     if (sub === 'push') run(bin('supabase'), ['db', 'push', '--workdir', platformDir, '--db-url', dbUrl()])
+    else if (sub === 'backup') backupDb().catch(e => { console.error(`fundive: ${e.message}`); process.exit(1) })
     else if (sub === 'adopt') {
       env.ADOPT_DB_URL = dbUrl()
+      env.FUNDIVE_CLI = '1'
       run('bash', [path.join(platformDir, 'scripts', 'adopt-existing-deployment.sh'), ...process.argv.slice(4)])
     }
     else if (sub === 'verify') run('bash', [path.join(platformDir, 'scripts', 'verify-sync.sh')])

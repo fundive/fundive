@@ -103,12 +103,13 @@ over the file, for CI).
 | `fundive preview` | serve the production build locally |
 | `fundive deploy` | deploy the SPA worker to your Cloudflare |
 | `fundive deploy push` | deploy the push-notification cron worker |
+| `fundive db backup` | dump your database's roles, schema and data into `backups/` (gitignore it) |
 | `fundive db push` | apply the platform's migrations to your Supabase |
 | `fundive db adopt …` | adopt a database built from another repo (dry run unless `--apply`) |
 | `fundive functions deploy` | deploy the edge functions to your Supabase |
 | `fundive version` | print the platform version |
 
-`fundive db push` and `db adopt` connect with `SUPABASE_DB_URL`, or build the
+`fundive db backup`, `db push` and `db adopt` connect with `SUPABASE_DB_URL`, or build the
 URL from `SUPABASE_POOLER_HOST`, `SUPABASE_PROJECT_REF` and
 `SUPABASE_DB_PASSWORD`.
 

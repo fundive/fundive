@@ -35,7 +35,8 @@
 #   scripts/adopt-existing-deployment.sh --baseline 20260708090000 --apply
 #   scripts/adopt-existing-deployment.sh --baseline 20260708090000 --applied-through 20261029120000
 #
-# PREREQ: `npm run db:backup-prod` first, and `supabase link` to the project.
+# PREREQ: back the database up first, and `supabase link` to the project (or
+#         run it as `fundive db adopt` from a deployment, which needs neither).
 # AFTER:  `supabase db push` to apply the migrations this repo has and the
 #         deployment does not.
 set -euo pipefail
@@ -43,6 +44,18 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export PATH="$PWD/node_modules/.bin:$PATH"
 export DO_NOT_TRACK=1   # PostHog's shutdown timeout returns a spurious non-zero
+
+# The follow-up commands differ by where this runs: `fundive db adopt` from a
+# deployment repo (FUNDIVE_CLI is set) or the platform repo's npm scripts.
+if [ -n "${FUNDIVE_CLI:-}" ]; then
+  BACKUP_HINT="npx fundive db backup"
+  VERIFY_HINT="npx fundive db adopt --baseline <same> (a dry run; nothing left remote-only)"
+  PUSH_HINT="npx fundive db push"
+else
+  BACKUP_HINT="npm run db:backup-prod"
+  VERIFY_HINT="dotenv -e .env.local -- sh -c 'supabase migration list --password \"\$SUPABASE_DB_PASSWORD\"'"
+  PUSH_HINT="npm run db:push"
+fi
 
 BASELINE=""
 APPLIED_THROUGH=""
@@ -120,7 +133,7 @@ echo
 
 if [ "$APPLY" -ne 1 ]; then
   echo "Dry run. Re-run with --apply to write these changes to the registry."
-  echo "Back up first: npm run db:backup-prod"
+  echo "Back up the database first: $BACKUP_HINT"
   exit 0
 fi
 
@@ -136,6 +149,6 @@ link migration repair --status applied $MARK_APPLIED
 
 echo
 echo "Done. Verify with:"
-echo "  dotenv -e .env.local -- sh -c 'supabase migration list --password \"\$SUPABASE_DB_PASSWORD\"'"
+echo "  $VERIFY_HINT"
 echo "Then apply the genuinely new migrations:"
-echo "  npm run db:push"
+echo "  $PUSH_HINT"
