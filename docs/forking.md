@@ -134,8 +134,8 @@ Walking the fields:
 > - `'light'` (default) — the light look: white cards floating
 >   on a navy page, red accent hairline, rising-bubbles dashboard.
 > - `'dark'` — a dark ocean look: frosted-glass panels on a deep
->   ocean-night gradient, reef-teal / mauve neon accents, monospace metadata,
->   squircle rounding, and an animated water-caustics dashboard background.
+>   ocean-night gradient, reef-teal / mauve neon accents, monospace metadata
+>   and squircle rounding.
 >
 > `src/main.tsx` stamps the choice as `data-theme` on `<html>`. The palette,
 > radius, fonts, and body background for each variant live in

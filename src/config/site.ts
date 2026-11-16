@@ -75,7 +75,7 @@ export interface SiteTheme {
    * Visual design variant, applied as `data-theme` on <html> at startup.
    *   'light' — the light look (white cards on navy). Default.
    *   'dark'  — the dark ocean look (frosted glass, reef/mauve neon,
-   *              mono metadata, squircle rounding, animated water caustics).
+   *              mono metadata, squircle rounding).
    * Optional; omit for 'light'. See docs/forking.md.
    */
   design?: 'light' | 'dark'
