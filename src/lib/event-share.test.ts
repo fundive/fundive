@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 
 const { config } = vi.hoisted(() => ({
-  config: { urls: { site: 'https://shop.test', app: 'https://app.shop.test' } },
+  config: { urls: { site: 'https://shop.test', app: 'https://app.shop.test' } as Record<string, string> },
 }))
 vi.mock('../config/site', () => ({ siteConfig: config }))
 
@@ -20,5 +20,19 @@ describe('eventShareUrl', () => {
 
   it('url-encodes the id so odd ids cannot break the path', () => {
     expect(eventShareUrl('a/b?c')).toBe('https://app.shop.test/register/a%2Fb%3Fc')
+  })
+
+  describe('with urls.eventPage set', () => {
+    afterEach(() => { delete config.urls.eventPage })
+
+    it("points at the shop's own event page instead", () => {
+      config.urls.eventPage = 'https://shop.test/events/{id}'
+      expect(eventShareUrl('abc')).toBe('https://shop.test/events/abc')
+    })
+
+    it('url-encodes the id inside the template', () => {
+      config.urls.eventPage = 'https://shop.test/events/{id}'
+      expect(eventShareUrl('a/b?c')).toBe('https://shop.test/events/a%2Fb%3Fc')
+    })
   })
 })

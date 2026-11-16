@@ -34,6 +34,11 @@ export interface SiteUrls {
   app: string
   /** External radio stream, no trailing slash. Optional — omit if unused. */
   radio?: string
+  /** Optional page for one event on the shop's own website, with `{id}` where
+   *  the event id goes, e.g. `https://www.myshop.com/events/{id}`. When set,
+   *  the share button and the Google Calendar link point there; when omitted
+   *  they point at the app's own `/register/<id>` page. */
+  eventPage?: string
 }
 
 // The list lives in languages.ts, dependency-free, because the zod schema and

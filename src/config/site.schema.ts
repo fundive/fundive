@@ -31,6 +31,7 @@ export const siteConfigSchema = z.object({
     site: origin,
     app: origin,
     radio: url.optional(),
+    eventPage: url.refine(u => u.includes('{id}'), 'must contain {id} where the event id goes').optional(),
   }),
   locale: z.object({
     timezone: z.string().min(1),

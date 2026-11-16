@@ -99,6 +99,13 @@ describe('siteConfig', () => {
     expect(() => assertValidSiteConfig(withApp('https://app.example.com'))).not.toThrow()
   })
 
+  // An eventPage without {id} would share the same page for every event.
+  it('rejects an eventPage template with no {id} placeholder', () => {
+    const withPage = (eventPage: string) => ({ ...siteConfig, urls: { ...siteConfig.urls, eventPage } })
+    expect(() => assertValidSiteConfig(withPage('https://www.example.com/events'))).toThrow(/\{id\}/)
+    expect(() => assertValidSiteConfig(withPage('https://www.example.com/events/{id}'))).not.toThrow()
+  })
+
   it('rejects a config with an out-of-range configVersion', () => {
     expect(() => assertValidSiteConfig({ ...siteConfig, configVersion: CONFIG_CONTRACT_VERSION - 1 }))
       .toThrow(/configVersion/)

@@ -27,6 +27,7 @@ Walking the fields:
 | `app.name` / `shortName` | Full shop name and a short label (used for the PWA short name and staff-facing copy). |
 | `app.description` / `logoAlt` | PWA description and logo alt text. |
 | `urls.site` / `app` / `radio` | Your marketing site, the app origin (also the share-link origin), and (optional) radio stream. No trailing slashes. |
+| `urls.eventPage` | Optional. A page per event on your own website, with `{id}` where the event id goes (`https://www.myshop.com/events/{id}`). Set it and the share button and calendar link point there instead of the app. |
 | `locale.timezone` | IANA zone, e.g. `Asia/Taipei` or `America/Los_Angeles`. |
 | `locale.currency` / `currencyLabel` | ISO code and the label shown in the UI. |
 | `locale.language` | The one language the app renders in: `'en'`, `'zh-TW'` or `'ja'`. See [i18n.md](./i18n.md). |
@@ -54,7 +55,9 @@ Walking the fields:
 > **Event sharing.** The in-app "share this event" button needs no toggle: it
 > copies `<urls.app>/register/<event id>`, the app's own public registration
 > page. That route sits outside the auth gate, so whoever the link reaches sees
-> the event and can sign up. Set `urls.app` correctly and sharing works.
+> the event and can sign up. Set `urls.app` correctly and sharing works. If
+> your website has its own page per event, set `urls.eventPage` and the link
+> goes there instead.
 
 > **Add to Google Calendar.** Also needs no toggle and no Google account of
 > your own: the button is a plain link to Google's event-template screen, which

@@ -34,6 +34,9 @@ export const siteConfig = defineConfig({
     site: 'https://www.example.com',
     app: 'https://app.example.com',
     radio: 'https://radio.example.com',
+    // Optional: your website's page for one event, `{id}` = the event id. Omit
+    // to share the app's own registration page.
+    // eventPage: 'https://www.example.com/events/{id}',
   },
 
   locale: {
