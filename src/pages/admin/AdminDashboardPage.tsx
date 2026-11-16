@@ -71,7 +71,11 @@ async function loadDashboard(): Promise<Dashboard> {
     supabase.from('payments').select('user_id, booking_id, amount, status, method, created_at').gte('created_at', startIso).lt('created_at', endIso),
     supabase.from('bookings').select('id, user_id, event_id, status, created_at, details').gte('created_at', startIso).lt('created_at', endIso),
     supabase.from('profiles').select('id, role, status, created_at, nationality, cert_level'),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending').not('application_submitted_at', 'is', null),
+    // Every pending diver — same condition as the approvals queue and the nav
+    // badge. Filtering on application_submitted_at here hid the divers who
+    // never completed their profile, which is most of the ones who need
+    // chasing. See AdminShell for the full story.
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('bookings').select('id', { count: 'exact', head: true }).not('refund_requested_at', 'is', null).neq('status', 'cancelled'),
     supabase.from('events').select(DIVE_COLS).eq('kind', 'dive').is('cancelled_at', null).gte('start_date', today),
     supabase.from('events').select(COURSE_COLS).eq('kind', 'course').is('cancelled_at', null),
@@ -95,7 +99,7 @@ async function loadDashboard(): Promise<Dashboard> {
   // Event rows we still need titles for: events referenced by bookings that
   // aren't already in the upcoming-dives / all-courses sets we loaded.
   const knownIds = new Set([...upcomingDives.map(d => d.id), ...allCourses.map(c => c.id)])
-  const refIds = [...new Set(bookings.map(b => b.event_id).filter((x): x is string => !!x && !knownIds.has(x)))]
+  const refIds = [...new Set(bookings.map(b => b.event_id).filter(x => !knownIds.has(x)))]
   const extra = refIds.length
     ? (await supabase.from('events').select(`kind, ${DIVE_COLS}, course_days, course_name`).in('id', refIds)).data as EventRowLite[] ?? []
     : []
@@ -129,9 +133,9 @@ async function loadDashboard(): Promise<Dashboard> {
   const upcomingIds = events.filter(e => e.dateKey && e.dateKey >= today).map(e => e.id)
   const confRes = upcomingIds.length
     ? await supabase.from('bookings').select('event_id').eq('status', 'confirmed').in('event_id', upcomingIds)
-    : { data: [] as Array<{ event_id: string | null }> }
+    : { data: [] as Array<{ event_id: string }> }
   const counts = new Map<string, number>()
-  for (const r of confRes.data ?? []) if (r.event_id) counts.set(r.event_id, (counts.get(r.event_id) ?? 0) + 1)
+  for (const r of confRes.data ?? []) counts.set(r.event_id, (counts.get(r.event_id) ?? 0) + 1)
   const confirmed: ConfirmedCount[] = [...counts.entries()].map(([eventId, count]) => ({ eventId, count }))
 
   return computeDashboard({ nowIso, payments, bookings, profiles, events, confirmed, certLadder, pendingApplications, pendingRefundRequests })

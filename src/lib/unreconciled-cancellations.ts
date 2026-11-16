@@ -127,7 +127,7 @@ export async function fetchUnreconciledCancellations(labels: {
 
   const bookingIds = bookings.map(b => b.id)
   const userIds = [...new Set(bookings.map(b => b.user_id).filter((x): x is string => !!x))]
-  const eventIds = [...new Set(bookings.map(b => b.event_id).filter((x): x is string => !!x))]
+  const eventIds = [...new Set(bookings.map(b => b.event_id))]
 
   const [paymentsRes, creditsRes, profilesRes, events] = await Promise.all([
     supabase.from('payments').select('booking_id, amount, status').in('booking_id', bookingIds),

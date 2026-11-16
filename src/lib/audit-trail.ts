@@ -364,7 +364,7 @@ export async function fetchDiverAuditTrail(userId: string): Promise<DiverAuditTr
   const bookings = (bookingsRes.data ?? []) as Booking[]
   const payments = (paymentsRes.data ?? []) as Payment[]
   const bookingIds = bookings.map(b => b.id)
-  const eventIds = [...new Set(bookings.map(b => b.event_id).filter((x): x is string => !!x))]
+  const eventIds = [...new Set(bookings.map(b => b.event_id))]
 
   // Booking-target log rows for this diver's bookings + profile-target log rows
   // for the diver themselves. Booking and profile ids never collide, and the

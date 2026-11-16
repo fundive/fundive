@@ -5,12 +5,15 @@ import { shopZoned } from '../../lib/dates'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../../hooks/useToast'
 import { fetchEventsForBookings, formatEventSpan } from '../../lib/events'
+import { contactMethodLabel } from '../../lib/contact-labels'
+import { profileGapLabels } from '../../lib/profile-completeness'
 import {
   CARD_ELEVATED, BTN_PRIMARY, BTN_DANGER, TEXT_MUTED, INPUT,
 } from '../../styles/tokens'
 import { t } from '../../i18n'
 
 const ap = t.admin.applications
+const cm = t.admin.completeness
 import type { AppEvent, Booking, Profile } from '../../types/database'
 
 // Every suspended account, on hold or closed, newest first, with the diver's
@@ -91,8 +94,8 @@ export function AdminApplicationsPage() {
 
     let hydrated: PendingExtras['booking'] = null
     if (first) {
-      const eventMap = await fetchEventsForBookings(first.event_id ? [first.event_id] : [])
-      const event = first.event_id ? eventMap.get(first.event_id) ?? null : null
+      const eventMap = await fetchEventsForBookings([first.event_id])
+      const event = eventMap.get(first.event_id) ?? null
       hydrated = { ...first, event }
     }
 
@@ -227,11 +230,7 @@ function AccountCard({
           <div className={`text-xs ${TEXT_MUTED}`}>
             {ap.submittedOn(format(shopZoned(new Date(profile.created_at)), 'PP'))}
           </div>
-          {!profile.application_submitted_at && (
-            <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">
-              {ap.profileIncomplete}
-            </span>
-          )}
+          <IncompleteFlag profile={profile} />
         </div>
         <span className={`text-xs ${TEXT_MUTED}`}>{expanded ? '−' : '+'}</span>
       </button>
@@ -278,10 +277,33 @@ function AccountCard({
   )
 }
 
+// "Profile incomplete" on its own left the admin to open the card and diff it
+// against the required set in their head, so the badge now names the gaps.
+// Computed from the row's own fields rather than application_submitted_at:
+// that stamp never lands for an uncertified diver, which would brand a
+// perfectly complete Discover profile as incomplete forever.
+function IncompleteFlag({ profile }: { profile: Profile }) {
+  const missing = profileGapLabels(profile)
+  if (missing.length === 0) return null
+  return (
+    <div className="mt-1 space-y-0.5">
+      <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">
+        {cm.incomplete}
+      </span>
+      <div className="text-xs text-amber-900">{cm.missingList(missing.join(', '))}</div>
+    </div>
+  )
+}
+
 function ApplicantSummary({ profile }: { profile: Profile }) {
   return (
     <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
-      <Row k={ap.email} v={profile.contact_id ?? '—'} />
+      {/* The handle the diver gave, under the method they actually picked —
+          it's a Line ID or a phone number as often as an email address. Their
+          account email is a separate row: it's always there (auth requires
+          it), and it's how the approve/reject mail reaches them. */}
+      <Row k={contactMethodLabel(profile.contact_method)} v={profile.contact_id ?? '—'} />
+      <Row k={ap.accountEmail} v={profile.email ?? '—'} />
       <Row k={ap.cert}  v={profile.cert_level ? `${profile.cert_agency ?? ''} ${profile.cert_level}`.trim() : '—'} />
       <Row k={ap.loggedDives} v={String(profile.logged_dives ?? 0)} />
       <Row k={ap.nationality} v={profile.nationality ?? '—'} />

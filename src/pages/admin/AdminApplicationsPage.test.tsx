@@ -73,7 +73,7 @@ describe('AdminApplicationsPage', () => {
   // both contact fields are filled in, so a diver who signed up and stopped
   // short never got it — and was invisible on the only screen that can approve
   // them. On the deployment where this was found it hid every pending diver.
-  it('lists a pending diver who never completed their profile', async () => {
+  it('lists an on-hold diver who never completed their profile', async () => {
     const calls: Array<{ method: string; args: unknown[] }> = []
     const builder: Record<string, unknown> = {}
     for (const m of ['select', 'eq', 'in', 'not', 'is', 'order', 'limit']) {
@@ -94,13 +94,23 @@ describe('AdminApplicationsPage', () => {
     expect(calls.some(c => c.args.some(a => a === 'application_submitted_at' && c.method === 'not'))).toBe(false)
   })
 
-  it('flags an incomplete profile rather than hiding it', async () => {
+  it('flags an incomplete profile rather than hiding it, and names the gaps', async () => {
     from.mockReturnValueOnce(mockQueryBuilder({
-      data: [{ id: 'u1', name: 'Leo', created_at: '2026-04-30T00:00:00Z', status: 'pending', application_submitted_at: null }],
+      data: [{
+        id: 'u1', name: 'Leo', created_at: '2026-04-30T00:00:00Z', status: 'pending',
+        application_submitted_at: null,
+        date_of_birth: '1990-01-01', contact_method: 'line', contact_id: 'leo-line',
+        cert_level: 'OW', nationality: null, gender: null,
+      }],
     }))
     renderPage()
     expect(await screen.findByText('Leo')).toBeInTheDocument()
     expect(screen.getByText(/profile incomplete/i)).toBeInTheDocument()
+    // The two blanks, named — and nothing the diver did fill in.
+    const gaps = screen.getByText(/still missing/i).textContent ?? ''
+    expect(gaps).toMatch(/nationality/i)
+    expect(gaps).toMatch(/gender/i)
+    expect(gaps).not.toMatch(/birth/i)
   })
 
   it('does not flag a diver who did complete their profile', async () => {
@@ -108,11 +118,70 @@ describe('AdminApplicationsPage', () => {
       data: [{
         id: 'u2', name: 'Ada', created_at: '2026-04-30T00:00:00Z', status: 'pending',
         application_submitted_at: '2026-04-30T01:00:00Z',
+        date_of_birth: '1990-01-01', nationality: 'TW', gender: 'female',
+        contact_method: 'line', contact_id: 'ada-line', cert_level: 'AOW',
       }],
     }))
     renderPage()
     expect(await screen.findByText('Ada')).toBeInTheDocument()
     expect(screen.queryByText(/profile incomplete/i)).not.toBeInTheDocument()
+  })
+
+  // The DB trigger that stamps application_submitted_at requires a cert_level,
+  // which a Discover diver will never have — driving the badge off that stamp
+  // branded them incomplete forever.
+  it('does not flag an uncertified diver who filled everything else in', async () => {
+    from.mockReturnValueOnce(mockQueryBuilder({
+      data: [{
+        id: 'u3', name: 'Nia', created_at: '2026-04-30T00:00:00Z', status: 'pending',
+        application_submitted_at: null,
+        date_of_birth: '1990-01-01', nationality: 'JP', gender: 'female',
+        contact_method: 'line', contact_id: 'nia-line', cert_level: null, uncertified: true,
+      }],
+    }))
+    renderPage()
+    expect(await screen.findByText('Nia')).toBeInTheDocument()
+    expect(screen.queryByText(/profile incomplete/i)).not.toBeInTheDocument()
+  })
+
+  // Regression: the contact handle was hard-labelled "Email", so a diver who
+  // picked Line saw their Line ID filed under Email — and their real address
+  // was nowhere on the card.
+  it('labels the contact handle with the method the diver picked', async () => {
+    from.mockReturnValueOnce(mockQueryBuilder({
+      data: [{
+        id: 'u1', name: 'Alice', created_at: '2026-04-30T00:00:00Z', status: 'pending',
+        contact_method: 'line', contact_id: 'alice-line-id', email: 'alice@example.com',
+      }],
+    }))
+    from.mockReturnValueOnce(mockQueryBuilder({ data: [] }))
+
+    renderPage()
+    fireEvent.click(await screen.findByText('Alice'))
+
+    expect(await screen.findByText('Line')).toBeInTheDocument()
+    expect(screen.getByText('alice-line-id')).toBeInTheDocument()
+    // …and the account email is its own row, whatever the preferred method.
+    expect(screen.getByText(/account email/i)).toBeInTheDocument()
+    // Twice: the collapsed row leads with it, the summary labels it.
+    expect(screen.getAllByText('alice@example.com')).toHaveLength(2)
+  })
+
+  it('falls back to a generic contact label when no method is set yet', async () => {
+    from.mockReturnValueOnce(mockQueryBuilder({
+      data: [{
+        id: 'u1', name: 'Leo', created_at: '2026-04-30T00:00:00Z', status: 'pending',
+        contact_method: null, contact_id: null, email: 'leo@example.com',
+      }],
+    }))
+    from.mockReturnValueOnce(mockQueryBuilder({ data: [] }))
+
+    renderPage()
+    fireEvent.click(await screen.findByText('Leo'))
+
+    // Exact match: the "still missing" line mentions the same words.
+    expect(await screen.findByText('Preferred contact')).toBeInTheDocument()
+    expect(screen.getAllByText('leo@example.com')).toHaveLength(2)
   })
 
   it('reinstating calls notify-application-decision and removes the row', async () => {
