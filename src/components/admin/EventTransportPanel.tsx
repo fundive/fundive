@@ -7,7 +7,7 @@ import { setBookingTransportation } from '../../lib/booking-transport'
 import { usesTripTemplate } from '../../lib/event-kinds'
 import type { AppEvent, Booking, BookingDetails, Profile } from '../../types/database'
 import { t } from '../../i18n'
-import { TEXT_DANGER } from '../../styles/tokens'
+import { TEXT_DANGER, pick } from '../../styles/tokens'
 
 const tp = t.admin.transport
 
@@ -242,7 +242,7 @@ function TransportTextEditor({ event, isAdmin }: { event: AppEvent; isAdmin: boo
               {saving ? tp.saving : tp.save}
             </button>
             {saved && <span className="text-xs text-emerald-700 font-medium">{tp.saved}</span>}
-            {error && <span className={`text-xs ${TEXT_DANGER} font-medium`}>{error}</span>}
+            {error && <span className={`text-xs ${pick(TEXT_DANGER, 'text-red-600')} font-medium`}>{error}</span>}
           </div>
         </>
       )}

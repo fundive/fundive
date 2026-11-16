@@ -7,7 +7,7 @@ import {
 } from '../../lib/cancellation-policies'
 import type { CancellationPolicy } from '../../types/database'
 import { t } from '../../i18n'
-import { TEXT_SUBTLE, TEXT_WARNING } from '../../styles/tokens'
+import { TEXT_SUBTLE, TEXT_WARNING, pick } from '../../styles/tokens'
 
 const cp = t.admin.cxlPolicies
 const wv = t.admin.waivers
@@ -89,10 +89,10 @@ export function AdminCancellationPoliciesPage() {
             <li key={p.id} className="bg-white/70 backdrop-blur-md border border-surface-200 rounded-xl p-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-medium text-brand-900 text-sm truncate">
-                  {p.title || cp.untitled}{!p.active && <span className={`ml-2 text-xs ${TEXT_SUBTLE}`}>{wv.inactive}</span>}
-                  {p.language ? <span className={`ml-2 text-xs ${TEXT_SUBTLE}`}>{p.language}</span> : null}
+                  {p.title || cp.untitled}{!p.active && <span className={`ml-2 text-xs ${pick(TEXT_SUBTLE, 'text-brand-900/60')}`}>{wv.inactive}</span>}
+                  {p.language ? <span className={`ml-2 text-xs ${pick(TEXT_SUBTLE, 'text-brand-900/60')}`}>{p.language}</span> : null}
                   {!p.deposit_refundable && (
-                    <span className={`ml-2 text-xs font-semibold ${TEXT_WARNING}`}>{cp.depositKeptBadge}</span>
+                    <span className={`ml-2 text-xs font-semibold ${pick(TEXT_WARNING, 'bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded')}`}>{cp.depositKeptBadge}</span>
                   )}
                 </p>
                 <p className="text-xs text-brand-900/70 truncate">{p.cancellation_policy}</p>
@@ -190,7 +190,7 @@ function PolicyForm({
             onChange={e => setDepositRefundable(!e.target.checked)} className="accent-brand-900 mt-0.5" />
           <span>
             {cp.depositNonRefundableLabel}
-            <span className={`block text-xs ${TEXT_SUBTLE}`}>{cp.depositNonRefundableHint}</span>
+            <span className={`block text-xs ${pick(TEXT_SUBTLE, 'text-brand-900/70')}`}>{cp.depositNonRefundableHint}</span>
           </span>
         </label>
         <label className="flex items-center gap-2 text-sm text-brand-900">

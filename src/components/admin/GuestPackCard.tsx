@@ -83,7 +83,7 @@ export function GuestPackCard({
           <span aria-hidden>✓ </span>{name}
           <span className="font-medium text-emerald-200/80"> · {pk.allPackedCount(total)}</span>
         </p>
-        <button type="button" onClick={() => setPeek(true)} aria-label={pk.showGuest(name)} className={`shrink-0 ${BTN_XS_ON_DEEP}`}>
+        <button type="button" onClick={() => setPeek(true)} aria-label={pk.showGuest(name)} className={`shrink-0 ${pick(BTN_XS_ON_DEEP, BTN_XS_GHOST)}`}>
           {pk.show}
         </button>
       </article>
@@ -172,7 +172,7 @@ export function GuestPackCard({
           </button>
           {sizesOpen && (
             <div className={`rounded-lg border p-2 space-y-2 ${DRAWER}`}>
-              {measures && <p className={`text-xs ${TEXT_MUTED}`}>{measures}</p>}
+              {measures && <p className={pick(`text-xs ${TEXT_MUTED}`, 'text-xs text-brand-100/70 font-medium')}>{measures}</p>}
               <GearSizeEditor profile={profile} packItems={pack.items} gearModels={gearModels} onProfilePatched={onProfilePatched} />
             </div>
           )}
@@ -204,7 +204,7 @@ function PieceToggle({ piece, guest, isPacked, onToggle }: {
   const noteTone = isPacked
     ? NOTE_PACKED
     : piece.sizeMissing
-      ? TEXT_WARNING
+      ? pick(TEXT_WARNING, 'text-amber-300')
       : piece.kind === 'care' ? NOTE_CARE : NOTE_PLAIN
   return (
     <button

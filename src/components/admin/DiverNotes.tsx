@@ -7,7 +7,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { Disclosure } from '../ui/Disclosure'
 import type { DiverNote, Profile } from '../../types/database'
 import { t } from '../../i18n'
-import { BTN_XS_DANGER, BTN_XS_GHOST, TEXT_DANGER } from '../../styles/tokens'
+import { BTN_XS_DANGER, BTN_XS_GHOST, TEXT_DANGER, pick } from '../../styles/tokens'
 
 const dn = t.admin.diverNotes
 
@@ -108,7 +108,7 @@ export function DiverNotes({ profileId, title = dn.title }: Props) {
   }
 
   return (
-    <Disclosure card title={title} titleClassName={`text-sm font-semibold ${TEXT_DANGER} uppercase tracking-wider`}>
+    <Disclosure card title={title} titleClassName={pick(`text-sm font-semibold ${TEXT_DANGER} uppercase tracking-wider`, 'text-sm font-semibold text-brand-700 uppercase tracking-wider')}>
       <div className="space-y-2">
         {notes.length === 0 && (
           <p className="text-xs text-brand-950 font-medium">{dn.none}</p>

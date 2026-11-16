@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { siteConfig } from '../../config/site'
 import { errorMessage } from '../../lib/errors'
 import { todayIso } from '../../lib/dates'
-import { BTN_XS_ON_AMBER, ERROR_NOTE_LIGHT } from '../../styles/tokens'
+import { BTN_XS_BASE, BTN_XS_ON_AMBER, ERROR_NOTE_LIGHT, pick } from '../../styles/tokens'
 import { EVENT_KIND_LABELS } from '../../lib/event-kind-labels'
 import {
   buildStaffRevenue,
@@ -240,7 +240,8 @@ function UnattributedBlock({ report }: { report: StaffRevenueReport }) {
         <span className="text-sm font-semibold text-amber-900 tabular-nums">{money(report.unattributed.revenue)}</span>
       </div>
       <p className="text-xs text-amber-900/80">{r.unattributedBlurb(report.unattributed.events.length)}</p>
-      <button type="button" onClick={() => setOpen(v => !v)} className={BTN_XS_ON_AMBER}>
+      <button type="button" onClick={() => setOpen(v => !v)}
+        className={pick(BTN_XS_ON_AMBER, `${BTN_XS_BASE} bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300`)}>
         {open ? r.unattributedHide : r.unattributedShow}
       </button>
       {open && (

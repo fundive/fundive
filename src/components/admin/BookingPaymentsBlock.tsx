@@ -8,7 +8,7 @@ import { bookingBalance } from '../../lib/booking-balance'
 import type { ChargeLine } from '../../lib/booking-charges'
 import type { Payment } from '../../types/database'
 import { t } from '../../i18n'
-import { BTN_XS_DANGER, TEXT_PROXY, TEXT_WARNING } from '../../styles/tokens'
+import { BTN_XS_DANGER, TEXT_PROXY, TEXT_WARNING, pick } from '../../styles/tokens'
 
 const bp = t.admin.bookingPayments
 
@@ -186,18 +186,18 @@ export function BookingPaymentsBlock({
               <div>
                 <p className="font-medium opacity-70">{t.bookings.balance}</p>
                 {bal.state === 'due' && <p className="font-semibold text-red-600">{bp.amountOwed(bal.amount.toLocaleString())}</p>}
-                {bal.state === 'credit' && <p className="font-semibold text-emerald-700">{bp.amountCredit(bal.amount.toLocaleString())}</p>}
-                {bal.state === 'settled' && <p className="font-semibold text-emerald-700">{t.bookings.settled}</p>}
+                {bal.state === 'credit' && <p className={`font-semibold ${pick('text-emerald-700', 'text-emerald-300')}`}>{bp.amountCredit(bal.amount.toLocaleString())}</p>}
+                {bal.state === 'settled' && <p className={`font-semibold ${pick('text-emerald-700', 'text-emerald-300')}`}>{t.bookings.settled}</p>}
               </div>
             </div>
             {credit > 0 && (
-              <div className="flex justify-between text-emerald-700">
+              <div className={`flex justify-between ${pick('text-emerald-700', 'text-emerald-300')}`}>
                 <span className="font-medium">{t.bookings.creditThisEvent}</span>
                 <span className="font-semibold">{credit.toLocaleString()}</span>
               </div>
             )}
             {bal.state === 'credit' && (
-              <p className="text-emerald-700">
+              <p className={pick('text-emerald-700', 'text-emerald-300')}>
                 {creditOwnerName
                   ? bp.shopOwesPayer(creditOwnerName, currency ?? siteConfig.locale.currency, bal.amount.toLocaleString())
                   : bp.shopOwesDiver(currency ?? siteConfig.locale.currency, bal.amount.toLocaleString())}

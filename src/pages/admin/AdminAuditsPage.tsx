@@ -41,6 +41,8 @@ const DANGER   = pick('text-red-700',     'text-red-300')   // deletions
 const ROW_BORDER = pick('border-surface-200', 'border-white/10')
 const PRE_BOX  = pick('bg-surface-100 text-brand-900', 'bg-black/30 text-brand-100/70')
 const LINK_MUTED = pick('text-brand-800 hover:underline', 'text-reef-300/80 hover:text-reef-200')
+// Neutral row ink; the elements already set their own weight.
+const BODY_TONE = pick(TEXT_BODY, 'text-brand-50/90')
 
 function money(n: number, cur: string): string {
   const sign = n < 0 ? '-' : ''
@@ -51,17 +53,17 @@ function money(n: number, cur: string): string {
 const KIND_META: Record<AuditKind, { label: string; tone: string }> = {
   payment_paid:     { label: au.kinds.paymentPaid,     tone: MONEY_IN },
   payment_refunded: { label: au.kinds.paymentRefunded, tone: OWES },
-  payment_voided:   { label: au.kinds.paymentVoided,   tone: `${TEXT_SUBTLE} line-through` },
+  payment_voided:   { label: au.kinds.paymentVoided,   tone: `${pick(TEXT_SUBTLE, 'text-brand-100/60')} line-through` },
   payment_pending:  { label: au.kinds.paymentPending,  tone: TEXT_MUTED },
   credit_issued:    { label: au.kinds.creditIssued,    tone: MONEY_IN },
   account_charge:   { label: au.kinds.accountCharge,  tone: OWES },
   credit_settled:   { label: au.kinds.creditSettled,   tone: TEXT_MUTED },
   amendment:        { label: au.kinds.amendment,       tone: OWES },
-  booking_insert:   { label: au.kinds.bookingCreated,  tone: TEXT_BODY },
-  booking_update:   { label: au.kinds.bookingChanged,  tone: TEXT_BODY },
+  booking_insert:   { label: au.kinds.bookingCreated,  tone: BODY_TONE },
+  booking_update:   { label: au.kinds.bookingChanged,  tone: BODY_TONE },
   booking_delete:   { label: au.kinds.bookingDeleted,  tone: DANGER },
-  profile_insert:   { label: au.kinds.profileCreated,  tone: TEXT_BODY },
-  profile_update:   { label: au.kinds.profileChanged,  tone: TEXT_BODY },
+  profile_insert:   { label: au.kinds.profileCreated,  tone: BODY_TONE },
+  profile_update:   { label: au.kinds.profileChanged,  tone: BODY_TONE },
   profile_delete:   { label: au.kinds.profileDeleted,  tone: DANGER },
 }
 
@@ -74,7 +76,7 @@ const STATUS_TONE: Record<Booking['status'], string> = {
 
 const BALANCE_TONE = {
   due:     OWES,
-  settled: TEXT_BODY,
+  settled: BODY_TONE,
   credit:  MONEY_IN,
 } as const
 

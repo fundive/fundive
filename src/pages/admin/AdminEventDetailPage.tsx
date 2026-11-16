@@ -43,7 +43,7 @@ import type { WaiverDef } from '../../config/waivers'
 import { ShareEventButton } from '../../components/ShareEventButton'
 import { AddToGoogleCalendarButton } from '../../components/AddToGoogleCalendarButton'
 import type { AppEvent, Booking, BookingAmendment, BookingDetails, BookingDiscount, Credit, Discount, DiverNote, Payment, PaymentMethod, Profile, EventKind } from '../../types/database'
-import { BTN_SECONDARY, BTN_XS_BASE, BTN_XS_GHOST, ERROR_NOTE_LIGHT, TEXT_CONTINUES, TEXT_DANGER, TEXT_ORIGIN, TEXT_PROXY, TEXT_SUCCESS, TEXT_WARNING } from '../../styles/tokens'
+import { BTN_SECONDARY, BTN_XS_BASE, BTN_XS_GHOST, ERROR_NOTE_LIGHT, TEXT_CONTINUES, TEXT_DANGER, TEXT_ORIGIN, TEXT_PROXY, TEXT_SUCCESS, TEXT_WARNING, pick } from '../../styles/tokens'
 import { t } from '../../i18n'
 
 const ed = t.admin.eventDetail
@@ -596,7 +596,7 @@ export function AdminEventDetailPage() {
             {event.price != null && ed.fromPrice(event.currency, event.price.toLocaleString())}
           </p>
         )}
-        <p className={`text-sm ${TEXT_DANGER} mt-2`}>{ed.registrantCount(activeRegistrants.length)}</p>
+        <p className={`text-sm ${pick(TEXT_DANGER, 'text-red-600')} mt-2`}>{ed.registrantCount(activeRegistrants.length)}</p>
         {event?.cancelled_at && (
           <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-red-700 bg-red-50 border border-accent rounded px-2 py-1 inline-block">
             {ed.cancelledOn(format(shopZoned(new Date(event.cancelled_at)), 'MMM d, yyyy'))}
@@ -1880,7 +1880,7 @@ function BalancesView({ registrants, currency }: { registrants: Registrant[]; cu
                 )}
               </span>
               <span className="shrink-0 text-xs font-semibold">
-                {bal.state === 'due' && <span className={`${TEXT_DANGER}`}>{ed.dueLine(currency, bal.amount.toLocaleString())}</span>}
+                {bal.state === 'due' && <span className={pick(TEXT_DANGER, 'text-red-600')}>{ed.dueLine(currency, bal.amount.toLocaleString())}</span>}
                 {bal.state === 'settled' && <span className="text-brand-900">{t.bookings.settled}</span>}
                 {bal.state === 'credit' && <span className={TEXT_SUCCESS}>{ed.creditLine(currency, bal.amount.toLocaleString())}</span>}
               </span>

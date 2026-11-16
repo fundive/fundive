@@ -58,12 +58,15 @@ const NAME_CHIP = `text-sm px-2.5 py-1 rounded-full font-medium ${
 // A non-diver — orange, so the people who are not scuba diving (they may
 // still snorkel or swim) can be counted at a glance; that count is what a
 // shop's insurer asks for.
-// Like the waitlist chip it keeps a light fill in both designs.
-const NON_DIVER_CHIP =
-  'text-sm px-2.5 py-1 rounded-full border border-orange-400 bg-orange-100 text-orange-800 font-medium'
+const NON_DIVER_CHIP = `text-sm px-2.5 py-1 rounded-full font-medium ${pick(
+  'border border-orange-400 bg-orange-100 text-orange-800',
+  'border border-orange-400/40 bg-orange-500/10 text-orange-100',
+)}`
 // No seat yet — violet, the waitlist tone everywhere on the board.
-const WAITLIST_CHIP =
-  'text-sm px-2.5 py-1 rounded-full border border-violet-400 bg-violet-100 text-violet-700 font-medium'
+const WAITLIST_CHIP = `text-sm px-2.5 py-1 rounded-full font-medium ${pick(
+  'border border-violet-400 bg-violet-100 text-violet-700',
+  'border border-violet-400/40 bg-violet-500/10 text-violet-100',
+)}`
 const DRY_INK = pick('text-orange-800', 'text-orange-300')
 
 // Pieces in the by-item view: the same three looks as on a guest's card.
@@ -716,7 +719,7 @@ export function AdminLogisticsPage() {
                   )}
                   {onDutyStaffCount > 0 && <> · {pk.staffCount(onDutyStaffCount)}</>}
                 </p>
-                {dayNonDiverCount > 0 && <p className={`text-xs ${TEXT_MUTED}`}>{lg.nonDiverHint}</p>}
+                {dayNonDiverCount > 0 && <p className={pick(`text-xs ${TEXT_MUTED}`, 'text-xs text-brand-100/70 font-medium')}>{lg.nonDiverHint}</p>}
               </div>
               {groups.map(g => {
                 const { seated, waitlisted } = partitionByWaitlist(g.rows)
@@ -865,7 +868,7 @@ function PackSummary({ pack, ready, guests }: { pack: { packed: number; total: n
         <p className={`text-lg font-bold ${done ? pick('text-emerald-900', 'text-emerald-200') : 'text-brand-900'}`}>
           {done ? pk.everythingPacked : pk.dayProgress(pack.packed, pack.total)}
         </p>
-        <p className={`text-sm font-medium ${done ? pick('text-emerald-800', 'text-emerald-200/80') : TEXT_MUTED}`}>{pk.guestsReady(ready, guests)}</p>
+        <p className={`text-sm font-medium ${done ? pick('text-emerald-800', 'text-brand-100/70') : TEXT_MUTED}`}>{pk.guestsReady(ready, guests)}</p>
       </div>
       <div
         role="progressbar"
@@ -918,7 +921,7 @@ function ItemPackList({ guests, packed, onToggle }: {
               {group.sizes.map(s => (
                 <li key={`${s.size ?? ''}|${s.sizeMissing}`} className="flex items-start gap-2">
                   {sized && (
-                    <span className={`w-16 shrink-0 pt-2 text-xs font-semibold break-words ${s.sizeMissing ? TEXT_WARNING : TEXT_MUTED}`}>
+                    <span className={`w-16 shrink-0 pt-2 text-xs font-semibold break-words ${s.sizeMissing ? TEXT_WARNING : pick(TEXT_MUTED, 'text-brand-100/80')}`}>
                       {s.size ?? pk.sizeMissing}
                     </span>
                   )}

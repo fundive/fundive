@@ -7,7 +7,7 @@ import {
 } from '../../lib/event-vehicles'
 import { fetchRidePartnerTitles } from '../../lib/ride-groups'
 import { t } from '../../i18n'
-import { TEXT_ERROR } from '../../styles/tokens'
+import { TEXT_ERROR, pick } from '../../styles/tokens'
 import type { AppEvent, EventVehicle, Vehicle } from '../../types/database'
 
 const tp = t.admin.transport
@@ -127,7 +127,7 @@ export function EventCarAssignment({ event, isAdmin, createdBy }: Props) {
             <span className="flex-1">{tp.noTransportLabel}</span>
           </label>
           <p className="text-xs text-brand-950/70 font-medium pl-6">{tp.noTransportHint}</p>
-          {transportErr && <p className={`text-xs ${TEXT_ERROR} pl-6`}>{transportErr}</p>}
+          {transportErr && <p className={`text-xs ${pick(TEXT_ERROR, 'text-red-600 font-semibold')} pl-6`}>{transportErr}</p>}
         </div>
       ) : !hasTransport && (
         <p className="text-xs text-brand-950 font-medium bg-white/70 rounded-md p-2">{tp.noTransportOn}</p>

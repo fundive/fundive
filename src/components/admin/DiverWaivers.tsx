@@ -13,7 +13,7 @@ import { Disclosure } from '../ui/Disclosure'
 import type { WaiverDef } from '../../config/waivers'
 import type { WaiverSignature } from '../../types/database'
 import { t } from '../../i18n'
-import { BTN_XS_GHOST, TEXT_DANGER, TEXT_WARNING } from '../../styles/tokens'
+import { BTN_XS_GHOST, TEXT_DANGER, TEXT_WARNING, pick } from '../../styles/tokens'
 
 const dw = t.admin.diverWaivers
 
@@ -77,10 +77,10 @@ export function DiverWaivers({ diverId, diverName }: { diverId: string; diverNam
   const now = new Date()
 
   return (
-    <Disclosure card title={dw.title} titleClassName={`text-sm font-semibold uppercase tracking-wider ${TEXT_DANGER}`}>
+    <Disclosure card title={dw.title} titleClassName={pick(`text-sm font-semibold uppercase tracking-wider ${TEXT_DANGER}`, 'text-sm font-semibold text-brand-700 uppercase tracking-wider')}>
       <p className="text-xs text-brand-950/70 font-medium">{dw.intro}</p>
       {failed ? (
-        <p className={`text-xs font-medium ${TEXT_WARNING}`}>{dw.loadFailed}</p>
+        <p className={pick(`text-xs font-medium ${TEXT_WARNING}`, 'text-xs text-amber-700 font-medium')}>{dw.loadFailed}</p>
       ) : signatures === null ? (
         <p className="text-xs text-brand-950/70 font-medium italic">{dw.loading}</p>
       ) : waivers.length === 0 ? (
@@ -103,7 +103,7 @@ export function DiverWaivers({ diverId, diverName }: { diverId: string; diverNam
           {isAdmin && !diverName && (
             // The name is stored as the signature on the record, so there is
             // nothing honest to write without one. Statuses still show.
-            <p className={`text-xs font-medium ${TEXT_WARNING}`}>{dw.needsName}</p>
+            <p className={pick(`text-xs font-medium ${TEXT_WARNING}`, 'text-xs text-amber-700 font-medium')}>{dw.needsName}</p>
           )}
         </>
       )}

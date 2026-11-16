@@ -6,7 +6,7 @@ import { useToast } from '../../hooks/useToast'
 import { GearFitLookup } from './GearFitLookup'
 import type { GearModelWithSizes } from '../../lib/gear-sizing'
 import type { Profile } from '../../types/database'
-import { TEXT_DANGER } from '../../styles/tokens'
+import { TEXT_DANGER, pick } from '../../styles/tokens'
 import { t } from '../../i18n'
 
 const gc = t.admin.gearCard
@@ -89,7 +89,7 @@ export function GearSizeEditor({ profile, packItems, gearModels, onProfilePatche
           {saving ? '…' : gc.save}
         </button>
       </div>
-      {error && <span className={`text-xs ${TEXT_DANGER}`}>{error}</span>}
+      {error && <span className={`text-xs ${pick(TEXT_DANGER, 'text-red-600')}`}>{error}</span>}
       {gearModels && gearModels.length > 0 && (
         <GearFitLookup
           measures={{

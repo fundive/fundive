@@ -9,7 +9,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useToast } from '../../hooks/useToast'
 import type { Profile } from '../../types/database'
 import { t } from '../../i18n'
-import { BTN_XS_GHOST, TEXT_DANGER, TEXT_WARNING, TEXT_SUCCESS } from '../../styles/tokens'
+import { BTN_XS_GHOST, TEXT_DANGER, TEXT_WARNING, TEXT_SUCCESS, pick } from '../../styles/tokens'
 
 const tc = t.admin.termsConsent
 
@@ -89,7 +89,7 @@ export function DiverTermsConsent({ user }: { user: Profile }) {
           <span className="block text-xs font-semibold text-brand-700 uppercase tracking-wider">
             {tc.title}
           </span>
-          <span className={`block text-xs font-medium ${current ? TEXT_SUCCESS : never ? TEXT_DANGER : TEXT_WARNING}`}>
+          <span className={`block text-xs font-medium ${current ? pick(TEXT_SUCCESS, 'text-emerald-700') : never ? pick(TEXT_DANGER, 'text-red-600') : pick(TEXT_WARNING, 'text-amber-700')}`}>
             {statusText}
           </span>
           {loaded && linkText && (

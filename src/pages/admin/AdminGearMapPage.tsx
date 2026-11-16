@@ -10,7 +10,7 @@ import { fetchGearModelsWithSizes } from '../../lib/gear-models'
 import type { GearModelWithSizes } from '../../lib/gear-sizing'
 import type { AppEvent, Profile } from '../../types/database'
 import { t } from '../../i18n'
-import { TEXT_DANGER, TEXT_PROXY } from '../../styles/tokens'
+import { TEXT_DANGER, TEXT_PROXY, pick } from '../../styles/tokens'
 
 const gm = t.admin.gearMap
 
@@ -89,11 +89,11 @@ export function AdminGearMapPage() {
             {event.title} · {formatEventSpan(event, { style: 'compact' })}
           </p>
         )}
-        <p className={`text-sm ${TEXT_DANGER} mt-2`}>
+        <p className={`text-sm ${pick(TEXT_DANGER, 'text-red-600')} mt-2`}>
           {gm.summary(seated.length, seatedToPack)}
         </p>
         {waitlisted.length > 0 && (
-          <p className={`text-sm ${TEXT_PROXY} font-medium mt-1`}>
+          <p className={`text-sm ${pick(TEXT_PROXY, 'text-violet-400')} font-medium mt-1`}>
             {gm.waitlisted(waitlisted.length, waitlistToPack)}
           </p>
         )}
@@ -106,7 +106,7 @@ export function AdminGearMapPage() {
           {seated.map(r => <DiverGearCard key={r.booking.id} row={r} onProfilePatched={patchProfile} gearModels={gearModels} />)}
           {waitlisted.length > 0 && (
             <>
-              <h2 className={`text-xs font-semibold uppercase tracking-wider ${TEXT_PROXY} pt-1`}>
+              <h2 className={`text-xs font-semibold uppercase tracking-wider ${pick(TEXT_PROXY, 'text-violet-400')} pt-1`}>
                 {gm.waitlistHeading(waitlisted.length)}
               </h2>
               {waitlisted.map(r => <DiverGearCard key={r.booking.id} row={r} onProfilePatched={patchProfile} gearModels={gearModels} />)}
