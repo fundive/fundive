@@ -8,7 +8,7 @@ import {
   type ContinuableCourse,
 } from '../../lib/course-continuation'
 import type { AppEvent, Profile } from '../../types/database'
-import { MODAL_BACKDROP, TEXT_HEADING, TEXT_BODY, INPUT, BTN_PRIMARY, BTN_XS_GHOST } from '../../styles/tokens'
+import { MODAL_BACKDROP, TEXT_HEADING, TEXT_BODY, INPUT, BTN_PRIMARY, BTN_XS_GHOST, pick } from '../../styles/tokens'
 import { t } from '../../i18n'
 
 const cn = t.admin.continuation
@@ -150,7 +150,7 @@ export function CourseContinuationModal({ event, onClose, onAdded }: {
 
         {!target && (
           <>
-            <p className="text-xs font-semibold text-brand-700 uppercase tracking-wider">{cn.pickDiver}</p>
+            <p className={`text-xs font-semibold uppercase tracking-wider ${pick('text-brand-700', 'text-reef-300')}`}>{cn.pickDiver}</p>
             <input
               type="text"
               autoFocus
@@ -187,7 +187,7 @@ export function CourseContinuationModal({ event, onClose, onAdded }: {
 
         {target && !source && (
           <>
-            <p className="text-xs font-semibold text-brand-700 uppercase tracking-wider">{cn.pickBooking}</p>
+            <p className={`text-xs font-semibold uppercase tracking-wider ${pick('text-brand-700', 'text-reef-300')}`}>{cn.pickBooking}</p>
             {courses === null && <p className={`text-sm ${TEXT_BODY}`}>…</p>}
             {courses?.length === 0 && (
               <p className="text-sm text-brand-900/80 italic">{cn.noCourseBookings(targetName)}</p>
@@ -245,7 +245,7 @@ function DayPicker({ legend, hint, days, selected, onToggle }: {
 }) {
   return (
     <fieldset className="space-y-1">
-      <legend className="text-xs font-semibold text-brand-700 uppercase tracking-wider">{legend}</legend>
+      <legend className={`text-xs font-semibold uppercase tracking-wider ${pick('text-brand-700', 'text-reef-300')}`}>{legend}</legend>
       {hint && <p className="text-xs text-brand-900/70">{hint}</p>}
       <div className="flex flex-wrap gap-2 pt-1">
         {days.map(d => (

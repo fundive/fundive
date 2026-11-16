@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { pick } from '../../styles/tokens'
 
 /**
  * A collapsible section: a click-to-expand <details> with an enlarged,
@@ -11,9 +12,7 @@ import type { ReactNode } from 'react'
  *
  * The chevron is a real glyph rather than the native <details> marker so it can
  * be sized up and rotated — the native marker is tiny and unstyleable, which is
- * exactly the "too small to click" problem this replaces. It rides on
- * text-brand-700, which the dark design remaps to reef, so the glyph reads in
- * either look.
+ * exactly the "too small to click" problem this replaces.
  */
 export function Disclosure({
   title,
@@ -38,7 +37,7 @@ export function Disclosure({
       <summary className="flex items-center gap-2 py-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
         <span
           aria-hidden
-          className="text-brand-700 text-lg leading-none transition-transform group-open:rotate-90"
+          className={`${pick('text-brand-700', 'text-reef-300')} text-lg leading-none transition-transform group-open:rotate-90`}
         >
           &#9656;
         </span>
