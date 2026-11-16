@@ -1,20 +1,16 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// TEMPLATE for a deployment's fundive.config.ts.
+// This shop's FunDive configuration. Data only: the app build, the service
+// worker and (as the FUNDIVE_CONFIG secret) the edge functions read it, and the
+// build checks it against the platform's config contract, naming any field
+// that is wrong. Every field: https://fundive.github.io/fundive/configuration
 //
-// Copy this file to `fundive.config.ts` in your deployment repo and replace every
-// value with your own. `defineConfig` gives you full type-checking + autocomplete
-// against the platform's config contract.
-//
-// Infrastructure that does NOT live here (it's per-account, not app data): your
-// Supabase + Cloudflare secrets go in .env (see .env.example), and the Worker
-// names live in wrangler.toml + workers/push/wrangler.toml.
-// See docs/architecture.md.
-// ─────────────────────────────────────────────────────────────────────────────
+// Not here: credentials (.env.local, listed in .env.example) and worker names
+// and domain (wrangler.toml, workers/push/wrangler.toml).
 
 import { defineConfig } from 'fundive/config'
 
 export const siteConfig = defineConfig({
-  // Bump only when the platform CHANGELOG says to.
+  // The platform's config contract version. An upgrade that changes the
+  // config's shape raises it, and the build names the field to update.
   configVersion: 13,
 
   identity: {
@@ -54,7 +50,7 @@ export const siteConfig = defineConfig({
     themeColor: '#0ea5e9',
     backgroundColor: '#0f172a',
     // Visual design: 'light' (default) or 'dark' (dark ocean glass).
-    // See docs/forking.md. Omit for 'light'.
+    // Omit for 'light'.
     design: 'light',
   },
 
