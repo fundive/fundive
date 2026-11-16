@@ -21,7 +21,7 @@ import nodemailer from "npm:nodemailer@6.9.14"
 import { corsOk, jsonResponse, bearerToken } from "../_shared/responses.ts"
 import { buildWaitlistConfirmedEmail } from "../_shared/waitlist-confirmed-email.ts"
 import { shopEmail } from "../_shared/shop-contact.ts"
-import { siteConfig } from "../../../fundive.config.ts"
+import { siteConfig } from "../_shared/config.ts"
 import { usesDateEnvelope } from "../../../src/lib/event-kinds.ts"
 
 interface ConfirmedBody {

@@ -32,7 +32,7 @@ import {
   estimateTotal,
   type EstimateItem,
 } from "../_shared/registration-estimate.ts"
-import { siteConfig } from "../../../fundive.config.ts"
+import { siteConfig } from "../_shared/config.ts"
 
 
 const labelOf = (r: { display_title?: string | null; admin_title?: string | null } | null, fallback: string) =>

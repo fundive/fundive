@@ -2,7 +2,7 @@
 // index.ts so it's vitest-importable (index.ts uses jsr:/npm: specifiers).
 // See event-cancellation-email.ts for the same split.
 
-import { siteConfig } from "../../../fundive.config.ts"
+import { siteConfig } from "./config.ts"
 import { t } from "./i18n.ts"
 
 /**
