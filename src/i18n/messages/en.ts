@@ -363,6 +363,9 @@ export const en = {
       `Waiting on the wildlife catalog: ${names}. Rule on it there before approving this record.`,
     approveBlockedByTaxa: 'This record names wildlife nobody has approved yet. Approve or merge it in the wildlife catalog first.',
   },
+  // The wildlife catalog, shared by the diver's picker, every reading surface
+  // and the admin page. Names live on the taxon, so this section holds only the
+  // words the app puts AROUND them.
   wildlife: {
     label: 'Wildlife sighted',
     hint: 'Search in any language, or by scientific name. Add as many as you saw.',
@@ -1058,12 +1061,12 @@ export const en = {
     diveTimeShort: (min: number) => `${min} min`,
     buddyShort: (name: string) => `w/ ${name}`,
     diveNumber: (n: number) => `Dive #${n}`,
+    newDive: 'New dive',
+    backToList: '‹ back to list',
     name: 'Dive name',
     namePlaceholder: 'e.g. Manta cleaning station (optional)',
     diveNumberField: 'Dive #',
     diveNumberHint: 'Change this to start from your existing logbook count.',
-    newDive: 'New dive',
-    backToList: '‹ back to list',
     date: 'Date',
     site: 'Site',
     type: 'Type',
@@ -1327,6 +1330,13 @@ export const en = {
     messagePlaceholder: 'Write your message…',
     sendEmail: 'Send email',
   },
+  pending: {
+    holdTitle: 'Account on hold',
+    holdBodyPrefix: 'Your account has been put on hold. To get diving again, please contact us at',
+    rejectedTitle: 'Account closed',
+    rejectedBodyPrefix: 'Your account has been closed. If you believe this is a mistake, please contact us at',
+    rejectedBodySuffix: '.',
+  },
   auth: {
     email: 'Email',
     password: 'Password',
@@ -1382,13 +1392,6 @@ export const en = {
     offline: 'Could not reach the server. Check your connection and try again.',
     profileLater: 'That is everything we need. You can add your certification and sizing later, from your profile.',
   },
-  pending: {
-    holdTitle: 'Account on hold',
-    holdBodyPrefix: 'Your account has been put on hold. To get diving again, please contact us at',
-    rejectedTitle: 'Account closed',
-    rejectedBodyPrefix: 'Your account has been closed. If you believe this is a mistake, please contact us at',
-    rejectedBodySuffix: '.',
-  },
   admin: {
     // Attribution shown next to anything an admin did to a diver's money.
     // Lives here rather than under `audits` because four accounting views name
@@ -1413,7 +1416,7 @@ export const en = {
       createDiver: { title: 'Create diver', blurb: 'Set up a diver account on someone’s behalf — fill in their details and register them for events, no self-signup needed.' },
       applications: { title: 'Suspended accounts', blurb: 'Reinstate a diver you put on hold, or reopen one you closed — closing an account never deleted it. Signing up no longer needs approval, so this fills only when an admin suspends someone.' },
       dashboard: { title: 'Business performance', blurb: 'Bookings, revenue and activity charts across the shop.' },
-      audits: { title: 'Audits', blurb: 'Trace a diver’s full payment history and every registration’s balance changes — payments, refunds, credits and adjustments in one time-ordered log.' },
+    audits: { title: 'Audits', blurb: 'Trace a diver’s full payment history and every registration’s balance changes — payments, refunds, credits and adjustments in one time-ordered log.' },
       refunds: { title: 'Refunds & cancellations', blurb: 'Refund requests waiting on you, and cancelled bookings whose money the shop still holds — hand it back, or keep it as store credit.' },
       discounts: { title: 'Discounts', blurb: 'Define the discounts the shop offers, choose which events offer them, and approve or reject what divers ask for. Nothing comes off a balance until you approve it.' },
       nondiverOptions: { title: 'Non-diver options', blurb: 'Name the ways people can join a trip without diving (snorkeler, boat passenger) and set each one’s price and deposit. Tick them on an event to offer them.' },
@@ -2140,7 +2143,6 @@ export const en = {
       noneClosed: 'No accounts are closed.',
       noNameYet: '(no name yet)',
       submittedOn: (date: string) => `joined ${date}`,
-      profileIncomplete: 'Profile incomplete',
       rejectReasonPlaceholder: 'Optional reason for closing (included in the email)',
       approve: 'Reinstate',
       reject: 'Close account',
@@ -2150,7 +2152,7 @@ export const en = {
       emailSent: ' · email sent',
       emailSkipped: ' · email skipped',
       decisionFailed: 'Decision failed',
-      email: 'Email',
+      accountEmail: 'Account email',
       cert: 'Cert',
       loggedDives: 'Logged dives',
       nationality: 'Nationality',
@@ -2161,6 +2163,13 @@ export const en = {
       firstBooking: 'First booking',
       unknownEvent: '(unknown event)',
       notes: (notes: string) => `Notes: ${notes}`,
+    },
+    // Shared by every admin surface that flags an unfinished diver profile:
+    // the approvals queue and the diver directory.
+    completeness: {
+      incomplete: 'Profile incomplete',
+      missing: 'Missing',
+      missingList: (fields: string) => `Still missing: ${fields}`,
     },
     charts: {
       noData: 'No data in range.',
@@ -2260,7 +2269,13 @@ export const en = {
         `Diver has ${currency} ${spendable} account credit — apply up to ${currency} ${cap}.`,
       applyCredit: 'Apply credit',
       diverNoteCount: (n: number) => `${n} diver note${n === 1 ? '' : 's'}`,
+      // Accessible name for the registrant card's disclosure toggle. Carries the
+      // diver's name so screen readers announce which card is being opened.
+      showDetailsFor: (name: string) => `Show details for ${name}`,
+      hideDetailsFor: (name: string) => `Hide details for ${name}`,
       waiversUnknown: 'Waivers —',
+      missingWaivers: (list: string) => `Missing: ${list}`,
+      waiversOk: 'Waivers OK',
       markWaiversInPerson: 'Mark done in person',
       markWaiversInPersonConfirm: (name: string, list: string) =>
         `Record these as signed on paper by ${name}: ${list}?\n\nOnly do this if you have the completed paper form(s) on file.`,
@@ -2270,8 +2285,6 @@ export const en = {
       // the seat is theirs either way and only the shop can tell the difference.
       waitlistConfirmEmailed: 'Confirmed — the diver has been emailed.',
       waitlistConfirmEmailFailed: 'Confirmed, but the email failed. Tell the diver yourself.',
-      missingWaivers: (list: string) => `Missing: ${list}`,
-      waiversOk: 'Waivers OK',
       paidBy: (name: string) => `Paid by ${name}`,
       leadPayer: 'Lead payer',
       addedBy: (name: string) => `Added by ${name}`,
@@ -2495,7 +2508,7 @@ export const en = {
       fullyBooked: 'Fully booked',
       nitroxRequired: 'Nitrox required',
       boatDive: 'Boat dive',
-      isTrip: 'Trip (shown under Scheduled Trips)',
+      isTrip: 'Trip (multi-day / liveaboard classification)',
       isPrivate: 'Private (hidden from public calendars)',
       gearRental: 'Gear rental info',
       sectionParticipants: 'Participants',
@@ -2507,7 +2520,6 @@ export const en = {
       gearIncludedSuggestion: 'This usually includes gear. Tick the box unless divers rent separately for it.',
       featuredImage: 'Featured image',
       featuredImagePh: '/imgs/media/….webp or Supabase Storage https://…',
-      featuredImageHint: "Expected a site path such as /imgs/media/photo.webp, or an https:// link to an image in the shop's Supabase Storage (images on other sites are blocked). Save anyway if you've pasted a different format on purpose.",
       destinations: 'Destinations',
       noDestinations: 'No destinations defined.',
       newDestination: '+ New destination',
@@ -2542,6 +2554,7 @@ export const en = {
       newAddon: '+ New add-on',
       newAddonTitle: 'New add-on',
       saveAddon: 'Save add-on',
+      featuredImageHint: "Expected a site path such as /imgs/media/photo.webp, or an https:// link to an image in the shop's Supabase Storage (images on other sites are blocked). Save anyway if you've pasted a different format on purpose.",
     },
     logistics: {
       dayTablistAria: 'Day',
@@ -3003,6 +3016,30 @@ export const en = {
       profileNotFound: 'profile not found after creation',
       accountCreated: (tail: string) => `Account created${tail}`,
     },
+    // Finishing one course across two or more scheduled courses.
+    continuation: {
+      action: 'Continue a course here',
+      title: 'Finish a course on this one',
+      intro: 'For a diver who started a course on another date and is finishing it here. They keep their original booking and pay nothing more — this only puts them on this course’s roster for the days they attend.',
+      pickDiver: 'Whose course is being continued?',
+      searchPlaceholder: 'Search by name, contact…',
+      noMatchingDivers: 'No matching divers.',
+      pickBooking: 'Which course did they start?',
+      noCourseBookings: (name: string) => `${name} has no other course booking to continue. Register them normally instead.`,
+      daysHere: 'Days they attend on this course',
+      daysThere: 'Days they attended on the original course',
+      daysThereHint: 'Untick the days they missed. Those days stop counting toward that course’s gear and headcount. Leave as-is if they attended all of them.',
+      noDaysPicked: 'Pick at least one day.',
+      submit: 'Add to this course',
+      submitting: 'Adding…',
+      added: 'Added — they now appear on this course for the days you picked.',
+      failed: 'Could not add the continuation',
+      // Roster / booking-level labels.
+      badge: 'Continuing',
+      noCharge: 'No charge — paid on the original booking',
+      partialDays: (days: string) => `Attending ${days} only`,
+      close: 'Close',
+    },
     partners: {
       newPartner: '+ New partner',
       intro: "Dive shops abroad the shop vouches for. Every active partner is listed on the diver-facing Trusted Partners tab — name, region, blurb and website. Add a contact email and divers can message that partner too; the email stays here and is never shown to them. These are also the shops that host Packages. Retire a partner (untick Active) to hide it without deleting the record.",
@@ -3450,7 +3487,7 @@ export const en = {
     prereqCertGone: 'The required certification you selected is no longer available. Choose a different level or select "None".',
     priceTierGone: 'The price tier you selected is no longer available. Pick a different one.',
     cancelPolicyGone: 'The cancellation policy you selected is no longer available. Pick a different one.',
-    courseDaysMax: 'A course can have at most 4 days.',
+    courseDaysRange: 'A course needs between 1 and 4 days.',
   },
   push: {
     unsupported: 'Push notifications are not supported on this device.',

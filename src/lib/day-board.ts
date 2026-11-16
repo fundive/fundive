@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { fetchEventsInRange } from './events'
+import { bookingsOnDay } from './course-continuation'
 import { fetchAmendmentsForBookings } from './booking-amendments'
 import { fetchVehiclesForEvents } from './event-vehicles'
 import { fetchRideGroups } from './ride-groups'
@@ -91,7 +92,11 @@ export async function fetchDayBoard(day: string): Promise<DayBoardData> {
   if (bookingsRes.error) throw new Error(`bookings for ${day}: ${bookingsRes.error.message}`)
   if (dutiesRes.error) throw new Error(`duties for ${day}: ${dutiesRes.error.message}`)
 
-  const bookings = (bookingsRes.data ?? []) as Booking[]
+  // Drop the bookings that aren't on site today: a course booking may be
+  // limited to some of its course's days when the diver is finishing a course
+  // they started on an earlier one. Everything downstream — headcount, gear,
+  // cars, balances — is a day-of view, so this belongs at the source.
+  const bookings = bookingsOnDay((bookingsRes.data ?? []) as Booking[], day)
   const duties = (dutiesRes.data ?? []) as Duty[]
 
   const addonIds = [...new Set(

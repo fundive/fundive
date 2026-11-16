@@ -90,6 +90,9 @@ export const TEXT_SUCCESS = pick('text-emerald-800', 'text-emerald-300')
 export const TEXT_PROXY   = pick('text-violet-700',  'text-violet-300')
 /** "Added by someone else" — who created a booking, when it was not the diver. */
 export const TEXT_ORIGIN  = pick('text-sky-800',     'text-sky-300')
+/** A course finished across two scheduled courses: the roster's continuation
+ *  badge and partial-days note. */
+export const TEXT_CONTINUES = pick('text-teal-800', 'text-teal-300')
 
 export const TEXT_ERROR   = `${TEXT_DANGER} font-semibold`
 

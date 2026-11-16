@@ -151,6 +151,45 @@ describe('AdminEventDetailPage', () => {
     expect(await screen.findByText(/Non-diver: Snorkeler/)).toBeInTheDocument()
   })
 
+  it('gives the diver row one real disclosure button, leaving the name selectable for copy/paste', async () => {
+    fetchEventsForBookings.mockResolvedValue(new Map([
+      ['dive_x', { id: 'dive_x', type: 'dive', title: 'Kenting', start_time: new Date().toISOString(), end_time: null, currency: 'TWD' }],
+    ]))
+    const bookings = [{
+      id: 'b1', user_id: 'u1', status: 'confirmed', created_at: '2026-04-20',
+      event_id: 'dive_x', notes: null, refund_requested_at: null,
+      details: { gear: { rent: false } },
+    }]
+    const profiles = [{
+      id: 'u1', name: 'Ada Lovelace', 
+      cert_agency: 'PADI', cert_level: 'AOW', contact_method: null, contact_id: null,
+    }]
+    from.mockImplementation((table: string) => {
+      if (table === 'bookings') return mockQueryBuilder({ data: bookings })
+      if (table === 'profiles') return mockQueryBuilder({ data: profiles })
+      return mockQueryBuilder({ data: [] })
+    })
+
+    const user = userEvent.setup()
+    renderAt('/admin/events/dive_x')
+
+    // Exactly one control toggles the card — the row itself is no longer a
+    // button, so screen readers and tests get a single unambiguous target.
+    const toggle = await screen.findByRole('button', { name: /show details for Ada Lovelace/i })
+    expect(screen.getAllByRole('button', { name: /Ada Lovelace/i })).toHaveLength(1)
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+
+    await user.click(toggle)
+    await waitFor(() => expect(screen.getByText(/PADI AOW/)).toBeInTheDocument())
+    // Label flips so the control announces what it will do next.
+    expect(screen.getByRole('button', { name: /hide details for Ada Lovelace/i })).toHaveAttribute('aria-expanded', 'true')
+
+    // Clicking the name selects text rather than collapsing the card — the
+    // whole reason the row needs a dedicated toggle.
+    await user.click(screen.getByText('Ada Lovelace'))
+    expect(screen.getByText(/PADI AOW/)).toBeInTheDocument()
+  })
+
   it('flags a registrant who is missing required waivers, and clears the flag once signed', async () => {
     fetchEventsForBookings.mockResolvedValue(new Map([
       ['dive_x', { id: 'dive_x', type: 'dive', title: 'Kenting', start_time: new Date().toISOString(), end_time: null, currency: 'TWD' }],
@@ -211,9 +250,7 @@ describe('AdminEventDetailPage', () => {
     const user = userEvent.setup()
     renderAt('/admin/events/dive_x')
     await screen.findByText('Ada Lovelace')
-    // Exact name: the whole card header is a role="button" wrapper, so its
-    // accessible name contains this button's label too.
-    await user.click(await screen.findByRole('button', { name: 'Mark done in person' }))
+    await user.click(await screen.findByRole('button', { name: /mark done in person/i }))
 
     // Each missing waiver gets recorded for this diver via the admin RPC.
     await waitFor(() => expect(
@@ -222,6 +259,32 @@ describe('AdminEventDetailPage', () => {
     expect(rpc).toHaveBeenCalledWith('admin_record_paper_waiver', expect.objectContaining({ p_diver_id: 'u1' }))
     // The badge flips to OK once recorded.
     expect(await screen.findByText(/Waivers OK/i)).toBeInTheDocument()
+  })
+
+  it('refuses to sign a waiver in person for a diver with no name on file', async () => {
+    window.confirm = vi.fn(() => true)
+    rpc.mockResolvedValue({ data: 'sig-new', error: null })
+    fetchEventsForBookings.mockResolvedValue(new Map([
+      ['dive_x', { id: 'dive_x', type: 'dive', title: 'Kenting', start_time: new Date().toISOString(), end_time: null, currency: 'TWD' }],
+    ]))
+    const bookings = [{
+      id: 'b1', user_id: 'u1', status: 'confirmed', created_at: '2026-04-20',
+      event_id: 'dive_x', notes: null, refund_requested_at: null, details: { gear: { rent: false } },
+    }]
+    const profiles = [{ id: 'u1', name: null, contact_method: null, contact_id: null }]
+    from.mockImplementation((table: string) => {
+      if (table === 'bookings') return mockQueryBuilder({ data: bookings })
+      if (table === 'profiles') return mockQueryBuilder({ data: profiles })
+      if (table === 'waivers') return mockQueryBuilder({ data: WAIVER_ROWS })
+      return mockQueryBuilder({ data: [] })
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/events/dive_x')
+    await user.click(await screen.findByRole('button', { name: /mark done in person/i }))
+
+    // The name is stored as the signature — a placeholder would attest nothing.
+    expect(window.confirm).not.toHaveBeenCalled()
+    expect(rpc.mock.calls.filter(c => c[0] === 'admin_record_paper_waiver')).toHaveLength(0)
   })
 
   it('shows an unknown ("Waivers —") badge rather than a false OK when the waiver lookup fails', async () => {
@@ -1122,9 +1185,9 @@ describe('AdminEventDetailPage', () => {
     expect(screen.getByText('Lead payer')).toBeInTheDocument()
     expect(screen.getByText(/Paid by Parent Pat/)).toBeInTheDocument()
 
-    // Expand the lead's card (its row carries the "Lead payer" badge) and
-    // record one group payment → calls the RPC.
-    await user.click(screen.getByRole('button', { name: /Lead payer/ }))
+    // Expand the lead's own card (Parent Pat's — the one badged "Lead payer")
+    // and record one group payment → calls the RPC.
+    await user.click(screen.getByRole('button', { name: /Parent Pat/ }))
     const amount = await screen.findByPlaceholderText(/amount received/i)
     await user.type(amount, '2000')
     // Two reference fields sit on the lead's card -- one per form -- so scope

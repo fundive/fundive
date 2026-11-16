@@ -3,7 +3,7 @@ import { siteConfig } from '../../config/site'
 import { PageLoading } from '../../components/ui/Spinner'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
-import { shopZoned } from '../../lib/dates'
+import { shopZoned, parseIsoDate } from '../../lib/dates'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useToast } from '../../hooks/useToast'
@@ -15,6 +15,8 @@ import { notifyWaitlistConfirmed } from '../../lib/booking-notifications'
 import { AdminNotes } from '../../components/admin/AdminNotes'
 import { EventSeriesSection } from '../../components/admin/EventSeriesSection'
 import { AdminAddDiverModal } from '../../components/admin/AdminAddDiverModal'
+import { CourseContinuationModal } from '../../components/admin/CourseContinuationModal'
+import { isCourseContinuation, attendDayKeys } from '../../lib/course-continuation'
 import { EventStaffSection } from '../../components/admin/EventStaffSection'
 import { RegisterForm } from '../../components/register/RegisterForm'
 import { shoeAsJp } from '../../lib/shoe-size'
@@ -41,7 +43,7 @@ import type { WaiverDef } from '../../config/waivers'
 import { ShareEventButton } from '../../components/ShareEventButton'
 import { AddToGoogleCalendarButton } from '../../components/AddToGoogleCalendarButton'
 import type { AppEvent, Booking, BookingAmendment, BookingDetails, BookingDiscount, Credit, Discount, DiverNote, Payment, PaymentMethod, Profile, EventKind } from '../../types/database'
-import { BTN_SECONDARY, BTN_XS_BASE, BTN_XS_GHOST, ERROR_NOTE_LIGHT, TEXT_DANGER, TEXT_ORIGIN, TEXT_PROXY, TEXT_WARNING } from '../../styles/tokens'
+import { BTN_SECONDARY, BTN_XS_BASE, BTN_XS_GHOST, ERROR_NOTE_LIGHT, TEXT_CONTINUES, TEXT_DANGER, TEXT_ORIGIN, TEXT_PROXY, TEXT_SUCCESS, TEXT_WARNING } from '../../styles/tokens'
 import { t } from '../../i18n'
 
 const ed = t.admin.eventDetail
@@ -90,6 +92,7 @@ export function AdminEventDetailPage() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Registrant | null>(null)
   const [addDiverOpen, setAddDiverOpen] = useState(false)
+  const [continuationOpen, setContinuationOpen] = useState(false)
   // ?diver=<id> deep link (from the Create-diver page) auto-opens the add-diver
   // modal preselected to that diver. Captured once, then the param is consumed
   // so a refresh — or a later manual "Add diver" — starts from a clean picker.
@@ -613,6 +616,17 @@ export function AdminEventDetailPage() {
                 >
                   {ed.addDiver}
                 </button>
+                {/* Courses only: a continuation is meaningless for a fun dive,
+                    which is one day and one price with nothing to finish. */}
+                {event.type === 'course' && !event.cancelled_at && (
+                  <button
+                    type="button"
+                    onClick={() => setContinuationOpen(true)}
+                    className="text-xs bg-emerald-900/60 hover:bg-emerald-900 text-white px-3 py-1 rounded-lg"
+                  >
+                    {t.admin.continuation.action}
+                  </button>
+                )}
                 <Link
                   to={`/admin/events/${id}/edit`}
                   className="text-xs bg-brand-900/60 hover:bg-brand-900 text-white px-3 py-1 rounded-lg"
@@ -765,6 +779,14 @@ export function AdminEventDetailPage() {
             setPreselectDiverId(null)
             setRefreshKey(k => k + 1)
           }}
+        />
+      )}
+
+      {continuationOpen && event && (
+        <CourseContinuationModal
+          event={event}
+          onClose={() => setContinuationOpen(false)}
+          onAdded={() => setRefreshKey(k => k + 1)}
         />
       )}
 
@@ -1379,6 +1401,7 @@ function RegistrantCard({ r, waiverMissing, waiverState, addonNames, roomNames, 
   const coveredByLead = !!r.payerName
   const isLeadOwn = !!r.booking.payer_id && r.booking.payer_id === r.booking.user_id
   const [expanded, setExpanded] = useState(false)
+  const diverName = r.profile?.name ?? t.admin.transport.noProfile
 
   const addedBy = r.booking.created_by && r.booking.created_by !== r.booking.user_id
     ? actorName(r.booking.created_by)
@@ -1401,7 +1424,7 @@ function RegistrantCard({ r, waiverMissing, waiverState, addonNames, roomNames, 
   const payStyles: Record<string, string> = {
     settled: 'text-brand-900 font-semibold',
     partial: 'text-red-600',
-    credit:  'text-emerald-700 font-semibold',
+    credit:  `${TEXT_SUCCESS} font-semibold`,
     none:    'text-brand-950 font-medium',
   }
 
@@ -1411,18 +1434,27 @@ function RegistrantCard({ r, waiverMissing, waiverState, addonNames, roomNames, 
           Cert / sizing / contact info moved to the expanded block so the
           scroll-length stays short on mobile. */}
       <div
-        role="button"
-        tabIndex={0}
         onClick={() => setExpanded(v => !v)}
-        onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(v => !v) }
-        }}
-        aria-expanded={expanded}
-        className="w-full text-left flex items-center gap-2 px-3 py-2 cursor-pointer focus:outline-none"
+        className="w-full text-left flex items-center gap-1.5 pl-1 pr-3 cursor-pointer"
       >
-        <span aria-hidden="true" className="text-xs text-brand-950 font-medium shrink-0">
-          {expanded ? '▾' : '▸'}
-        </span>
+        {/* The caret button — not the row — owns the disclosure semantics. The
+            name beside it is deliberately select-text so it can be copied, which
+            means tapping the row's most obvious target does nothing on a phone;
+            without a real control there was no discoverable place to tap. Sized
+            to the 44px minimum touch target, which sets the row height. The row
+            keeps its own onClick as a pointer shortcut, so the button stops
+            propagation to avoid toggling twice. */}
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); setExpanded(v => !v) }}
+          aria-expanded={expanded}
+          aria-label={expanded ? ed.hideDetailsFor(diverName) : ed.showDetailsFor(diverName)}
+          className="shrink-0 h-11 w-11 flex items-center justify-center rounded-lg text-brand-900 hover:bg-surface-100 transition-colors"
+        >
+          <span aria-hidden="true" className="text-sm leading-none">
+            {expanded ? '▾' : '▸'}
+          </span>
+        </button>
         <span className="flex-1 min-w-0 text-sm truncate">
           {/* Names stay selectable for copy/paste; clicking one places a
               caret rather than toggling the card (stopPropagation). */}
@@ -1430,7 +1462,7 @@ function RegistrantCard({ r, waiverMissing, waiverState, addonNames, roomNames, 
             className="text-brand-900 font-medium select-text cursor-text"
             onClick={e => e.stopPropagation()}
           >
-            {r.profile?.name ?? t.admin.transport.noProfile}
+            {diverName}
           </span>
           {r.diverNotes.length > 0 && (
             <span className={`ml-2 text-xs font-semibold ${TEXT_DANGER}`}>
@@ -1459,8 +1491,24 @@ function RegistrantCard({ r, waiverMissing, waiverState, addonNames, roomNames, 
                 )}
               </>
             ) : (
-              <span className="ml-2 text-xs font-semibold text-emerald-700">{ed.waiversOk}</span>
+              <span className={`ml-2 text-xs font-semibold ${TEXT_SUCCESS}`}>{ed.waiversOk}</span>
             )}
+          {/* Finishing a course started on another scheduled course: the money
+              sits on that booking, so this row must never read as unpaid. */}
+          {isCourseContinuation(r.booking) && (
+            <span className={`ml-2 text-xs font-semibold ${TEXT_CONTINUES}`} title={t.admin.continuation.noCharge}>
+              {t.admin.continuation.badge}
+            </span>
+          )}
+          {/* Set on either side of a continuation — the days this diver is
+              actually on site, when that's fewer than the course runs. */}
+          {attendDayKeys(r.booking).length > 0 && (
+            <span className={`ml-2 text-xs font-semibold ${TEXT_CONTINUES}`}>
+              {t.admin.continuation.partialDays(
+                attendDayKeys(r.booking).map(d => format(parseIsoDate(d), 'MMM d')).join(' · '),
+              )}
+            </span>
+          )}
           {coveredByLead && (
             <span className={`ml-2 text-xs font-semibold ${TEXT_PROXY}`}>{ed.paidBy(r.payerName!)}</span>
           )}
@@ -1834,7 +1882,7 @@ function BalancesView({ registrants, currency }: { registrants: Registrant[]; cu
               <span className="shrink-0 text-xs font-semibold">
                 {bal.state === 'due' && <span className={`${TEXT_DANGER}`}>{ed.dueLine(currency, bal.amount.toLocaleString())}</span>}
                 {bal.state === 'settled' && <span className="text-brand-900">{t.bookings.settled}</span>}
-                {bal.state === 'credit' && <span className="text-emerald-700">{ed.creditLine(currency, bal.amount.toLocaleString())}</span>}
+                {bal.state === 'credit' && <span className={TEXT_SUCCESS}>{ed.creditLine(currency, bal.amount.toLocaleString())}</span>}
               </span>
             </li>
           ))}
