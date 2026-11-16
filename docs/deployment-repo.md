@@ -13,11 +13,14 @@ glossed over. If you want a shop running **today**, use
 
 ```
 my-dive-shop/
-  package.json          # depends on the platform, pinned to a release tag
-  fundive.config.ts     # identity, contact, theme, locale, feature toggles
-  .env                  # infra credentials  — GITIGNORED
-  .env.example          # documents the required vars (committed)
-  .gitignore            # ignores .env and build output
+  package.json               # depends on the platform, pinned to a release tag
+  fundive.config.ts          # identity, theme, locale, feature toggles
+  public/                    # your logo, icons, favicon; laid over the platform's
+  wrangler.toml              # optional: your SPA worker's name and domain
+  workers/push/wrangler.toml # optional: your push worker's name, vars and crons
+  .env                       # infra credentials  — GITIGNORED
+  .env.example               # documents the required vars (committed)
+  .gitignore                 # ignores .env, node_modules and dist
 ```
 
 Nothing else. If you find yourself adding a `src/`, that is a signal the change
@@ -33,6 +36,40 @@ It is a filled-in template with every value replaced by a placeholder. The shape
 is checked against `SiteConfig` at build time, and `configVersion` must match the
 platform's `CONFIG_CONTRACT_VERSION` — a stale config fails the build with a
 message naming the field, rather than misbehaving at runtime.
+
+### Branding assets
+
+The app serves the platform's `public/` with yours laid over it: a file at the
+same path in your `public/` wins, anything you leave out falls back to the
+platform's. Point `assets.*` in the config at your files. The two are merged
+into `node_modules/.cache/fundive/public` when the dev server or build starts,
+so a file you add while `fundive dev` runs needs a restart.
+
+### Worker names and domains
+
+`fundive deploy` uses your `wrangler.toml` if you have one, otherwise the
+platform's (worker `fundive-app`, no custom domain). Yours names the worker and
+its route and points `main` into the platform:
+
+```toml
+name = "my-shop-app"
+main = "node_modules/fundive/src/worker.ts"
+compatibility_date = "2026-04-01"
+
+[[routes]]
+pattern = "app.myshop.com"
+custom_domain = true
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+```
+
+`fundive deploy push` does the same with `workers/push/wrangler.toml` (`main =
+"../../node_modules/fundive/workers/push/src/index.ts"`), which is where your
+push worker's name, `[vars]` and crons live. Keep a worker's name once it is
+live: a renamed push worker is a second worker, and both run the crons.
 
 ## Depending on the platform
 
@@ -56,8 +93,8 @@ Upgrading is editing that one line, then `npm install`, `npx fundive db push`,
 ## The CLI
 
 Every command runs from the deployment's directory, so the deployment's
-`fundive.config.ts` and `.env` are the ones used. The platform's `vite.config.ts`
-resolves `virtual:fundive-config` from `process.cwd()`.
+`fundive.config.ts` and `.env` are the ones used (the process environment wins
+over the file, for CI).
 
 | Command | What it does |
 | --- | --- |
@@ -65,60 +102,31 @@ resolves `virtual:fundive-config` from `process.cwd()`.
 | `fundive build` | production build, with your branding baked in |
 | `fundive preview` | serve the production build locally |
 | `fundive deploy` | deploy the SPA worker to your Cloudflare |
+| `fundive deploy push` | deploy the push-notification cron worker |
 | `fundive db push` | apply the platform's migrations to your Supabase |
-| `fundive db verify` | confirm your schema matches the pinned platform version |
+| `fundive db adopt …` | adopt a database built from another repo (dry run unless `--apply`) |
 | `fundive functions deploy` | deploy the edge functions to your Supabase |
 | `fundive version` | print the platform version |
+
+`fundive db push` and `db adopt` connect with `SUPABASE_DB_URL`, or build the
+URL from `SUPABASE_POOLER_HOST`, `SUPABASE_PROJECT_REF` and
+`SUPABASE_DB_PASSWORD`.
 
 `fundive functions deploy` also serializes your `fundive.config.ts` into the
 `FUNDIVE_CONFIG` Supabase secret. The edge functions read it through
 `supabase/functions/_shared/config.ts`, so your shop's name, currency and
 **language** are the ones used in emails and the registration PDF — not the
-platform's defaults.
+platform's defaults. Deploy functions only through this command; a plain
+`supabase functions deploy` leaves the secret as it was.
 
-## Status: what works today
+The vite, wrangler and supabase CLIs the platform drives are its runtime
+dependencies, so `npm install` in the deployment is all the tooling it needs.
+Verified by installing a packed tarball with `npm install --omit=dev` into a
+bare directory and running `fundive dev` from it.
 
-The command surface exists and works **when run from a clone of the platform
-repo**. Installed as a dependency, most of it does not yet, because the tools the
-CLI shells out to are the platform's `devDependencies` and a consumer install
-does not get them.
-
-Verified against a packed tarball installed with `npm install --omit=dev`:
-
-| Command | From a platform clone | From a deployment repo |
-| --- | --- | --- |
-| `fundive version` | works | works |
-| `fundive build` | works — bakes in the deployment's config | **fails**: `spawn vite ENOENT` |
-| `fundive dev` / `preview` / `deploy` | works | **fails**: `spawn vite` / `spawn wrangler ENOENT` |
-| `fundive db push` / `db verify` | works | **fails**: `spawn supabase ENOENT` |
-| `fundive functions deploy` | works | **fails**: needs `esbuild`, absent |
-
-### What has to change first
-
-1. **`vite`, `wrangler`, `supabase` and `esbuild` must move to
-   `dependencies`.** They are runtime requirements of the CLI, not development
-   tools of the platform. `esbuild` is not currently declared at all — it is
-   imported by `cli/load-site-config.mjs` and resolves only via `vite`'s
-   transitive tree.
-2. **The package needs a `files` allowlist.** The tarball currently ships
-   `docs/`, `tests/`, `dist/`, local agent-worktree directories, and the
-   platform's *own*
-   `fundive.config.ts` — so a deployment installs FunDive's development shop
-   config alongside its own.
-3. **`private: true` must go**, or the platform must be consumed by git URL only
-   (which is the current plan — `private` blocks registry publishing, not
-   `github:` installs).
-4. **Branding assets are not yet overridable.** `assets.*` in the config are
-   paths like `/imgs/fd_logo.png`, resolved against the *platform's* `public/`.
-   A deployment cannot yet supply its own logo or icons; `architecture.md`'s
-   `brand/` and `catalog/` directories are not implemented anywhere.
-5. **`fundive deploy` deploys only the SPA worker.** The push-notification worker
-   (`workers/push/wrangler.toml`) is a separate deploy.
-
-Until then, a shop should [fork the platform](./forking.md) and run `make deploy`
-from the fork. Same config seam, same edge-function config injection; the only
-difference is that the shop's repo contains the platform source, so upgrades are
-a merge rather than a version bump.
+The push worker's secrets (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `ADMIN_TRIGGER_SECRET`) are set once
+with `npx wrangler secret put <NAME> --config workers/push/wrangler.toml`.
 
 ## Secrets
 

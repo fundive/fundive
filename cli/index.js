@@ -4,9 +4,9 @@
 // deployment's cwd so the deployment's fundive.config.ts + .env are picked up
 // (the vite config resolves `virtual:fundive-config` from process.cwd()).
 //
-// Skeleton: the command surface is here and works from the platform repo; full
-// consumer-root resolution (serving the platform's index.html/src while reading
-// the consumer's public/brand) is a follow-up. See docs/architecture.md.
+// The deployment owns its infrastructure names: a wrangler.toml (SPA worker)
+// and workers/push/wrangler.toml (push cron) in its own repo replace the
+// platform's when present. See docs/deployment-repo.md.
 
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -14,8 +14,44 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 const platformDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const deploymentDir = process.cwd()
 const viteConfig = path.join(platformDir, 'vite.config.ts')
-const wranglerConfig = path.join(platformDir, 'wrangler.toml')
+
+// The deployment's .env.local then .env, as plain KEY=value pairs. Anything
+// already in the process environment wins, so CI secrets override the file.
+function deploymentEnv() {
+  const out = {}
+  for (const f of ['.env', '.env.local']) {
+    let text
+    try { text = readFileSync(path.join(deploymentDir, f), 'utf8') } catch { continue }
+    for (const line of text.split('\n')) {
+      const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/)
+      if (m) out[m[1]] = m[2].replace(/^(["'])(.*)\1$/, '$2')
+    }
+  }
+  return { ...out, ...process.env }
+}
+
+const env = deploymentEnv()
+
+// The deployment's own config file if it has one, else the platform's.
+function ownOrPlatform(relative) {
+  const own = path.join(deploymentDir, relative)
+  return existsSync(own) ? own : path.join(platformDir, relative)
+}
+
+// Connection string for the deployment's database: SUPABASE_DB_URL, or one
+// built from the pooler host, project ref and password the deployment's .env
+// already holds for the Supabase CLI.
+function dbUrl() {
+  if (env.SUPABASE_DB_URL) return env.SUPABASE_DB_URL
+  const { SUPABASE_POOLER_HOST: host, SUPABASE_PROJECT_REF: ref, SUPABASE_DB_PASSWORD: pw } = env
+  if (!host || !ref || !pw) {
+    console.error('fundive: set SUPABASE_DB_URL, or SUPABASE_POOLER_HOST + SUPABASE_PROJECT_REF + SUPABASE_DB_PASSWORD, in .env')
+    process.exit(1)
+  }
+  return `postgresql://postgres.${ref}:${encodeURIComponent(pw)}@${host}:5432/postgres`
+}
 
 // Prefer the platform's own installed binaries; fall back to PATH.
 function bin(name) {
@@ -24,7 +60,7 @@ function bin(name) {
 }
 
 function run(cmd, args) {
-  const child = spawn(cmd, args, { stdio: 'inherit', cwd: process.cwd(), env: process.env })
+  const child = spawn(cmd, args, { stdio: 'inherit', cwd: deploymentDir, env })
   child.on('error', (e) => { console.error(`fundive: ${e.message}`); process.exit(1) })
   child.on('exit', (code) => process.exit(code ?? 1))
 }
@@ -33,7 +69,7 @@ function run(cmd, args) {
 // aborts the whole command).
 function runStep(cmd, args) {
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, { stdio: 'inherit', cwd: process.cwd(), env: process.env })
+    const child = spawn(cmd, args, { stdio: 'inherit', cwd: deploymentDir, env })
     child.on('error', (e) => { console.error(`fundive: ${e.message}`); process.exit(1) })
     child.on('exit', (code) => { if (code) process.exit(code); resolve() })
   })
@@ -42,15 +78,16 @@ function runStep(cmd, args) {
 // The target Supabase project ref: an explicit env var wins, else the
 // deployment's .env(.local). Undefined falls through to the linked project.
 function projectRef() {
-  if (process.env.SUPABASE_PROJECT_REF) return process.env.SUPABASE_PROJECT_REF
-  for (const f of ['.env.local', '.env']) {
-    try {
-      const m = readFileSync(path.join(process.cwd(), f), 'utf8')
-        .match(/^\s*SUPABASE_PROJECT_REF\s*=\s*(.+?)\s*$/m)
-      if (m) return m[1].replace(/^["']|["']$/g, '')
-    } catch { /* no such file */ }
-  }
-  return undefined
+  return env.SUPABASE_PROJECT_REF
+}
+
+// The SPA worker. A deployment's own wrangler.toml names the worker and its
+// domain and points `main` at node_modules/fundive/src/worker.ts; without one,
+// the platform's is used with the deployment's built dist/.
+function deployApp() {
+  const own = path.join(deploymentDir, 'wrangler.toml')
+  if (existsSync(own)) run(bin('wrangler'), ['deploy', '--config', own])
+  else run(bin('wrangler'), ['deploy', '--config', path.join(platformDir, 'wrangler.toml'), '--assets', path.join(deploymentDir, 'dist')])
 }
 
 // Deploy the platform's edge functions to the deployment's project, injecting
@@ -82,7 +119,10 @@ Usage: fundive <command>
   build               production build with your branding baked in
   preview             preview the production build locally
   deploy              deploy the SPA worker to your Cloudflare
+  deploy push         deploy the push-notification cron worker
   db push             apply the platform migrations to your Supabase
+  db adopt ...        adopt a database built from another repo (see
+                      scripts/adopt-existing-deployment.sh; dry run by default)
   db verify           confirm your DB schema matches the pinned version
   functions deploy    deploy the Supabase edge functions
   version             print the platform version
@@ -96,9 +136,17 @@ switch (command) {
   case 'dev':     run(bin('vite'), ['--config', viteConfig]); break
   case 'build':   run(bin('vite'), ['build', '--config', viteConfig]); break
   case 'preview': run(bin('vite'), ['preview', '--config', viteConfig]); break
-  case 'deploy':  run(bin('wrangler'), ['deploy', '--config', wranglerConfig]); break
+  case 'deploy':
+    if (sub === 'push') run(bin('wrangler'), ['deploy', '--config', ownOrPlatform('workers/push/wrangler.toml')])
+    else if (!sub) deployApp()
+    else usage()
+    break
   case 'db':
-    if (sub === 'push') run(bin('supabase'), ['db', 'push'])
+    if (sub === 'push') run(bin('supabase'), ['db', 'push', '--workdir', platformDir, '--db-url', dbUrl()])
+    else if (sub === 'adopt') {
+      env.ADOPT_DB_URL = dbUrl()
+      run('bash', [path.join(platformDir, 'scripts', 'adopt-existing-deployment.sh'), ...process.argv.slice(4)])
+    }
     else if (sub === 'verify') run('bash', [path.join(platformDir, 'scripts', 'verify-sync.sh')])
     else usage()
     break

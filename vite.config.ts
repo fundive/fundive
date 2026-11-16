@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url'
+import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -16,6 +17,23 @@ import { buildEnvProblems } from './src/vite/build-env'
 // these all collapse to the normal defaults.
 const platformDir = path.dirname(fileURLToPath(import.meta.url))
 const deploymentDir = process.cwd()
+
+// The static files the app serves: the platform's public/ (icons, fonts, the
+// placeholder logo) with the deployment's public/ laid over it, so a shop
+// supplies only what it rebrands. Vite takes a single publicDir, so the two are
+// merged into a cache directory at startup. A file added to the deployment's
+// public/ while the dev server runs needs a restart.
+function mergedPublicDir(): string {
+  const platformPublic = path.join(platformDir, 'public')
+  const deploymentPublic = path.join(deploymentDir, 'public')
+  if (deploymentDir === platformDir) return platformPublic
+  const merged = path.join(deploymentDir, 'node_modules', '.cache', 'fundive', 'public')
+  rmSync(merged, { recursive: true, force: true })
+  mkdirSync(merged, { recursive: true })
+  cpSync(platformPublic, merged, { recursive: true })
+  if (existsSync(deploymentPublic)) cpSync(deploymentPublic, merged, { recursive: true })
+  return merged
+}
 
 // The deployment's config, read + validated from the cwd where the build runs.
 // `fundive()` bakes values into index.html; here we also need them eagerly for
@@ -72,7 +90,7 @@ export default defineConfig(async ({ command, mode }) => {
     // whatever port was free and hand out a different URL each run. Failing to
     // start beats guessing which tab is which.
     server: { port: 5273, strictPort: true },
-    publicDir: path.join(deploymentDir, 'public'),
+    publicDir: mergedPublicDir(),
     envDir: deploymentDir,
     build: { outDir: path.join(deploymentDir, 'dist'), emptyOutDir: true },
     resolve: { alias: configAlias },
