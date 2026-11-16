@@ -31,6 +31,16 @@ needing a third-party dashboard login.
 **2 High (fundive only), 2 Medium, 5 Low.** Nothing found in app-fundivers
 rises above Low.
 
+> **Correction (2026-11-16).** "fundive only" held for databases built from the
+> migrations, not for every database. A deployment whose cloud project kept
+> Supabase's stock default privileges — FunDivers production was one, although
+> app-fundivers' baseline declared locked ones — was exposed to H1 and H2 as
+> well: `anon` could EXECUTE `normalize_profile_values()`, `purge_stale_pii()`
+> and six other privileged functions there. Migration
+> `20261116130000_lock_down_adopted_grants` applies the locked grants to any
+> database, adopted or fresh, and was verified on FunDivers production. The
+> lesson: check grants against the live database, not against a local one.
+
 Both Highs are fixed, in `20260911100000` and `20260911110000`, each with an
 integration test confirmed to fail against the pre-fix database. Everything
 else is open.
