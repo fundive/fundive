@@ -5,3 +5,7 @@
 declare module 'virtual:fundive-config' {
   export const siteConfig: import('./config/site').SiteConfig
 }
+
+// The platform version this bundle was built from (package.json), defined by
+// the `fundive` Vite plugin. See src/lib/platform-version.ts.
+declare const __FUNDIVE_VERSION__: string

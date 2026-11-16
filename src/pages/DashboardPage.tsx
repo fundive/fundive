@@ -5,6 +5,7 @@ import { FeaturedEvents } from '../components/dashboard/FeaturedEvents'
 import { QuickLinks } from '../components/dashboard/QuickLinks'
 import { WelcomeBanner } from '../components/welcome/WelcomeBanner'
 import { t } from '../i18n'
+import { FUNDIVE_VERSION, RELEASE_NOTES_URL } from '../lib/platform-version'
 
 // Diver + admin landing. The ambient background depends on the design variant:
 //   • light — navy container with the rising-bubbles canvas.
@@ -51,13 +52,13 @@ export function DashboardPage({ quickLinks = false }: DashboardPageProps) {
           <img src="/fundive-logo-light.svg" alt="fundive" className="h-14 w-auto drop-shadow-lg" />
         </a>
         <a
-          href="https://github.com/fundive/fundive/releases/tag/v0.0.1"
+          href={RELEASE_NOTES_URL}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={t.dashboard.releaseNotes('v0.0.1')}
+          aria-label={t.dashboard.releaseNotes(FUNDIVE_VERSION)}
           className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wide text-white shadow transition-colors hover:bg-red-400"
         >
-          v0.0.1
+          {FUNDIVE_VERSION}
         </a>
       </div>
     </div>

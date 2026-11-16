@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { buildSync } from 'esbuild'
 import type { Plugin } from 'vite'
@@ -8,6 +9,10 @@ import type { SiteConfig } from '../config/site'
 // The `fundive/config` entry (defineConfig + types), so a deployment's config
 // can `import { defineConfig } from 'fundive/config'` and still be loaded here.
 const defineEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../config/define.ts')
+
+// The platform's own package.json, whose version every build stamps into the
+// app as __FUNDIVE_VERSION__ so the dashboard names the release it runs.
+const platformPackage = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../package.json')
 
 // The FunDive platform is consumed as a dependency: the app code imports its
 // config from the virtual module `virtual:fundive-config`, which this plugin
@@ -67,6 +72,10 @@ export function fundive(overlaid?: SiteConfig): Plugin {
   return {
     name: 'fundive:config',
     enforce: 'pre',
+    config() {
+      const { version } = JSON.parse(readFileSync(platformPackage, 'utf8')) as { version: string }
+      return { define: { __FUNDIVE_VERSION__: JSON.stringify(version) } }
+    },
     resolveId(id) {
       if (id === VIRTUAL_ID) return overlaid ? RESOLVED : file
     },
