@@ -13,7 +13,12 @@
 #      does not have — their objects stay in the database, untouched);
 #   2. marks THIS repo's baseline as `applied` WITHOUT running it (the remote
 #      already has those tables — re-running would fail);
-#   3. leaves everything else alone. A later `supabase db push` then applies only
+#   3. with --applied-through V, also marks every other local-only version up to
+#      and including V as `applied` WITHOUT running it — for a deployment that
+#      already has those changes under different version numbers (a fork that
+#      ported them, renumbered). Leave it out if the deployment only shares the
+#      baseline;
+#   4. leaves everything else alone. A later `supabase db push` then applies only
 #      the genuinely new migrations.
 #
 # It NEVER touches your schema or your data. It edits the registry table only.
@@ -22,11 +27,13 @@
 # so this works for any deployment. The baseline is the one thing you must name:
 # a script cannot tell "this file already ran under another name" from "this file
 # has never run", and guessing wrong would either skip a real migration or try to
-# re-create existing tables.
+# re-create existing tables. --applied-through is the same claim for a range, so
+# make it only after diffing the deployment's schema against this repo's at V.
 #
 # Usage:
 #   scripts/adopt-existing-deployment.sh --baseline 20260708090000            # dry run
 #   scripts/adopt-existing-deployment.sh --baseline 20260708090000 --apply
+#   scripts/adopt-existing-deployment.sh --baseline 20260708090000 --applied-through 20261029120000
 #
 # PREREQ: `npm run db:backup-prod` first, and `supabase link` to the project.
 # AFTER:  `supabase db push` to apply the migrations this repo has and the
@@ -38,10 +45,12 @@ export PATH="$PWD/node_modules/.bin:$PATH"
 export DO_NOT_TRACK=1   # PostHog's shutdown timeout returns a spurious non-zero
 
 BASELINE=""
+APPLIED_THROUGH=""
 APPLY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --baseline) BASELINE="${2:-}"; shift 2 ;;
+    --applied-through) APPLIED_THROUGH="${2:-}"; shift 2 ;;
     --apply)    APPLY=1; shift ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -54,6 +63,10 @@ if [ -z "$BASELINE" ]; then
 fi
 if ! ls "supabase/migrations/${BASELINE}"_*.sql >/dev/null 2>&1; then
   echo "error: no local migration file for baseline $BASELINE" >&2
+  exit 2
+fi
+if [ -n "$APPLIED_THROUGH" ] && ! ls "supabase/migrations/${APPLIED_THROUGH}"_*.sql >/dev/null 2>&1; then
+  echo "error: no local migration file for --applied-through $APPLIED_THROUGH" >&2
   exit 2
 fi
 
@@ -87,10 +100,22 @@ d = json.load(sys.stdin)
 print(" ".join(m["local"] for m in d["migrations"] if m["local"] and not m["remote"]))
 ')"
 
+# Local-only versions to record as applied without running: the baseline, plus
+# everything up to --applied-through. The rest is left for `db push`.
+MARK_APPLIED="$BASELINE"
+TO_PUSH=""
+for v in $LOCAL_ONLY; do
+  [ "$v" = "$BASELINE" ] && continue
+  if [ -n "$APPLIED_THROUGH" ] && [ "$v" -le "$APPLIED_THROUGH" ]; then
+    MARK_APPLIED="$MARK_APPLIED $v"
+  else
+    TO_PUSH="$TO_PUSH $v"
+  fi
+done
 echo
-echo "  remote-only (will be marked reverted): ${REMOTE_ONLY:-<none>}"
-echo "  baseline    (will be marked applied) : $BASELINE"
-echo "  local-only  (left for \`db push\`)     : $(printf '%s' "$LOCAL_ONLY" | sed "s/\b$BASELINE\b//" | xargs || true)"
+echo "  remote-only (will be marked reverted)         : ${REMOTE_ONLY:-<none>}"
+echo "  local-only  (will be marked applied, not run) : $MARK_APPLIED"
+echo "  local-only  (left for \`db push\`)             : $(echo $TO_PUSH)"
 echo
 
 if [ "$APPLY" -ne 1 ]; then
@@ -105,8 +130,9 @@ if [ -n "$REMOTE_ONLY" ]; then
   link migration repair --status reverted $REMOTE_ONLY
 fi
 
-echo "Marking $BASELINE as applied (without running it)..."
-link migration repair --status applied "$BASELINE"
+echo "Marking local-only versions as applied (without running them)..."
+# shellcheck disable=SC2086
+link migration repair --status applied $MARK_APPLIED
 
 echo
 echo "Done. Verify with:"
