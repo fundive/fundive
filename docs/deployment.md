@@ -1,32 +1,83 @@
 # Deployment
 
-Three things get deployed:
+A shop runs FunDive from its own **deployment repository**: a small repo that
+holds the shop's config, branding and infrastructure names, and installs the
+platform as a pinned dependency. Every deploy is a `npx fundive` command run in
+that repo, from a laptop or from the repo's GitHub Actions. The free tiers of
+Supabase and Cloudflare cover a small shop.
 
-1. **The SPA** — Cloudflare Worker hosting the built `dist/` assets.
-2. **The push cron** — separate Cloudflare Worker in `workers/push/`
-   running the daily reminder job. See
-   [push-notifications.md](./push-notifications.md) for that one.
-3. **Supabase Edge Functions** under `supabase/functions/` — on-demand
-   server code (PDF emailer, etc.), deployed via `supabase functions
-   deploy`.
+New to this? The [self-hosting walkthrough](./self-hosting.md) goes from nothing
+to a live app step by step. This page is the reference behind it.
 
-Database changes deploy via `supabase db push` — a separate workflow
-described below.
+Three things get deployed, plus the database schema:
 
-All four can go out from your machine with `make`, or from the GitHub
-Actions UI — see [§ Deploying from GitHub Actions](#deploying-from-github-actions).
-Both routes run the same commands against the same project; the buttons
-exist so shipping does not depend on one machine holding the credentials.
+1. **The app** — a Cloudflare Worker serving the built SPA.
+2. **The push worker** — a second Cloudflare Worker running the reminder
+   crons. Optional; see [push-notifications.md](./push-notifications.md).
+3. **The edge functions** — Supabase functions for registration, emails and
+   PDFs.
+4. **The schema** — the platform's migrations, applied to your database.
+
+## The deployment repository
+
+`npx github:fundive/fundive init my-shop` creates it, pinned to the platform
+commit it was run from:
+
+```
+my-shop/
+  package.json                # "fundive": "github:fundive/fundive#<commit or tag>"
+  fundive.config.ts           # identity, URLs, locale, design, gear: configuration.md
+  public/                     # your logo, icons and photos, laid over the platform's
+  wrangler.toml               # the app worker's name and your custom domain
+  workers/push/wrangler.toml  # the push worker's name, [vars] and crons
+  .github/workflows/          # manual Deploy and Push migrations buttons
+  .env.example                # every credential, documented (committed)
+  .env.local                  # your credentials (gitignored)
+  .gitignore
+  README.md
+```
+
+Nothing else belongs in it. If you find yourself adding a `src/`, the change is
+a config field or a platform feature: see
+[configuration.md § Changing the platform itself](./configuration.md#changing-the-platform-itself).
+
+The platform's own `public/` (icons, fonts, placeholder logo) is served with
+yours laid over it: a file at the same path in yours wins. The two are merged
+into `node_modules/.cache/fundive/public` when a build or the dev server starts.
+
+## The `fundive` CLI
+
+Run every command from the deployment repository. Each reads `.env.local` (and
+`.env`); a variable already set in the environment wins, which is how the GitHub
+Actions workflows pass their secrets.
+
+| Command | What it does |
+| --- | --- |
+| `npx fundive build` | production build into `dist/`, with your config and branding baked in |
+| `npx fundive preview` | serve that build locally |
+| `npx fundive dev` | dev server against whatever Supabase `.env.local` names |
+| `npx fundive deploy` | deploy the app worker, using your `wrangler.toml` |
+| `npx fundive deploy push` | deploy the push worker, using your `workers/push/wrangler.toml` |
+| `npx fundive functions deploy` | set the `FUNDIVE_CONFIG` secret from `fundive.config.ts`, then deploy every edge function |
+| `npx fundive db push [--dry-run]` | apply the platform's migrations to your database |
+| `npx fundive db verify` | list migrations: the platform's beside your database's |
+| `npx fundive db backup` | dump your database's roles, schema and data into `backups/` |
+| `npx fundive db adopt …` | adopt a database built from another repo ([below](#adopting-an-existing-supabase-project)) |
+| `npx fundive init <dir>` | create a deployment repository |
+| `npx fundive version` | print the platform version |
+
+The `db` commands connect with `SUPABASE_DB_URL` if set, otherwise with the
+pooler host, project ref and password from `.env.local`; no `supabase link` is
+needed. vite, wrangler and the Supabase CLI are the platform's dependencies, so
+`npm install` is all the tooling a deployment needs.
 
 ## Environment variables
 
-The single source of truth for what to fill in is
-[`.env.example`](https://github.com/fundive/fundive/blob/main/.env.example) — copy it to `.env.local` (the file every
-`make`/`npm` script reads) and fill in the values. From there, each value has a
-final destination. Putting one in the wrong place is the most common deploy
-footgun, so the table below maps each value to where it ultimately lives.
+`.env.example` lists every value; copy it to `.env.local` and fill it in. Each
+value ends up in one of three places, and putting one in the wrong place is the
+most common deploy mistake:
 
-| Value | `.env.local` (local dev + build + deploy) | Push-worker secret (`wrangler secret put`) | Edge-function secret (`supabase secrets set`) |
+| Value | `.env.local` (and the Actions secrets) | Push-worker secret (`wrangler secret put`) | Edge-function secret (`supabase secrets set`) |
 | --- | :-: | :-: | :-: |
 | `VITE_SUPABASE_URL`         | yes |     |     |
 | `VITE_SUPABASE_ANON_KEY`    | yes |     |     |
@@ -35,96 +86,55 @@ footgun, so the table below maps each value to where it ultimately lives.
 | `VITE_PUSH_WORKER_URL` *(optional)* | yes |     |     |
 | `SUPABASE_PROJECT_REF`      | yes |     |     |
 | `SUPABASE_DB_PASSWORD`      | yes |     |     |
-| `SUPABASE_ACCESS_TOKEN`     | yes |     |     |
 | `SUPABASE_POOLER_HOST`      | yes |     |     |
-| `CLOUDFLARE_API_TOKEN`      | yes (`make deploy`) |     |     |
-| `CLOUDFLARE_ACCOUNT_ID`     | yes (`make deploy`) |     |     |
-| `VAPID_PUBLIC_KEY` *(push worker — same value as `VITE_VAPID_PUBLIC_KEY`, without the `VITE_` prefix)* |     | yes |     |
+| `SUPABASE_ACCESS_TOKEN`     | yes |     |     |
+| `CLOUDFLARE_API_TOKEN`      | yes |     |     |
+| `CLOUDFLARE_ACCOUNT_ID`     | yes |     |     |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |     | yes |     |
+| `VAPID_PUBLIC_KEY` *(same value as `VITE_VAPID_PUBLIC_KEY`)* |     | yes |     |
 | `VAPID_PRIVATE_KEY`         |     | yes |     |
-| `SUPABASE_SERVICE_ROLE_KEY` *(push worker)* |     | yes |     |
 | `ADMIN_TRIGGER_SECRET` / `BROADCAST_WEBHOOK_URL` *(optional)* |     | yes |     |
 | `GMAIL_USER` / `GMAIL_APP_PASSWORD` |     |     | yes |
 | `TURNSTILE_SECRET`          |     |     | yes |
 
-`VAPID_SUBJECT`, `ALLOWED_ORIGINS`, `TIMEZONE`, and `CURRENCY` are **non-secret**
-push-worker config and live in `workers/push/wrangler.toml [vars]`, not in any
-env file.
+Where to find them:
 
-### `.env.local` — local dev, build, and deploy
+| Value | Where |
+| --- | --- |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Supabase → Project Settings → API (Project URL, `anon` `public` key) |
+| `SUPABASE_PROJECT_REF` | Supabase → Project Settings → General (Reference ID) |
+| `SUPABASE_DB_PASSWORD` | the password you set when creating the project |
+| `SUPABASE_POOLER_HOST` | Supabase → **Connect** (top of the project page) → the Session pooler connection string; its host part, e.g. `aws-0-ap-east-1.pooler.supabase.com` |
+| `SUPABASE_ACCESS_TOKEN` | Supabase → account menu → Access Tokens |
+| `VITE_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET` | Cloudflare → Turnstile → your widget |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare → My Profile → API Tokens → "Edit Cloudflare Workers" template |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare → Workers & Pages, right-hand side |
 
-Read by Vite (`make dev`), by the `make` targets that talk to your linked
-Supabase project, and by `make deploy` (which wraps every wrangler/supabase call
-in `dotenv -e .env.local`). It carries every value in `.env.example`; the
-sections below explain which of those get *redistributed* to a secret store at
-deploy time.
+The `VITE_*` values are baked into the bundle at build time, so a build carries
+whatever `.env.local` held. The build refuses a localhost Supabase URL and
+Cloudflare's always-pass test captcha key rather than ship an app that cannot
+work.
 
-| Var | Where used | Notes |
-| --- | --- | --- |
-| `VITE_SUPABASE_URL`        | `src/lib/supabase.ts` | Cloud project URL; local is `http://127.0.0.1:64421` |
-| `VITE_SUPABASE_ANON_KEY`   | `src/lib/supabase.ts` | Public; ships to the browser |
-| `VITE_TURNSTILE_SITE_KEY`  | Turnstile widget      | **Required** — the build fails without it. Gates both `/signup` and guest `/register` |
-| `VITE_VAPID_PUBLIC_KEY`    | `src/lib/push.ts`     | Push toggle is hidden if unset |
-| `SUPABASE_PROJECT_REF`     | `make link`, `make push` | e.g. `abcdefghij` |
-| `SUPABASE_DB_PASSWORD`     | `make push`, `make pull` | DB password for migrations |
-| `SUPABASE_ACCESS_TOKEN`    | Supabase CLI auth     | Personal access token |
-| `SUPABASE_POOLER_HOST`     | `make verify` (`scripts/verify-sync.sh`) | e.g. `aws-0-ap-east-1.pooler.supabase.com` |
-| `CLOUDFLARE_API_TOKEN`     | `make deploy` (wrangler) | Only needed for local deploys |
-| `CLOUDFLARE_ACCOUNT_ID`    | `make deploy` (wrangler) | Only needed for local deploys |
+`VAPID_SUBJECT`, `ALLOWED_ORIGINS`, `TIMEZONE` and `CURRENCY` are non-secret
+push-worker settings in `workers/push/wrangler.toml [vars]`.
 
-> The build inlines `VITE_*` at build time, so `make deploy` produces a bundle
-> pointing at whatever `.env.local` holds — make sure those are your **cloud**
-> values (not a local `127.0.0.1` stack) before deploying.
-
-### Cloudflare push-worker secrets
-
-Set via `wrangler secret put` from inside `workers/push/`; they never appear in
-env files at deploy time. See
-[push-notifications.md § Configure the worker](./push-notifications.md#4-configure-the-worker)
-for the full list. The SPA Worker (`fundive-app`) has no Worker-level secrets —
-all of its config is baked into the bundle at build time via `VITE_*`.
-
-### Supabase Edge Function secrets
-
-Set via `supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" …`.
-`create-registration` uses `GMAIL_USER`, `GMAIL_APP_PASSWORD`, and
-`TURNSTILE_SECRET`. See [§ Supabase Edge Functions](#supabase-edge-functions).
-
-
-## Workers
-
-Two Cloudflare Workers are deployed separately:
-
-| Worker | Config | Make target |
-| --- | --- | --- |
-| `fundive-app`   | `./wrangler.toml`              | `make deploy-app` |
-| `fundive-push`  | `./workers/push/wrangler.toml` | `make deploy-push` |
-
-`make deploy` runs both worker deploys in sequence from your machine, reading
-the `CLOUDFLARE_*` creds and `VITE_*` build vars from `.env.local` — no
-`wrangler login`. Use `make deploy-app` or `make deploy-push` to ship only one,
-or the **Deploy** workflow in GitHub Actions with a `target`
-([below](#deploying-from-github-actions)). Each target first checks the Cloudflare creds are present and
-fails fast with a clear message if not.
-
-> An experimental `fundive` CLI (`npx fundive deploy`) also exists for the future
-> thin-deployment model in [architecture.md](./architecture.md). It's a skeleton
-> (SPA only) — prefer `make deploy`.
-
-### `fundive-app` (SPA)
-
-`make deploy-app` first checks the Cloudflare creds are present, then:
+## The app worker
 
 ```sh
-npm run build                                       # tsc -b && vite build (VITE_* from .env.local)
-. ./.env.local && npx wrangler deploy                # CLOUDFLARE_API_TOKEN/ACCOUNT_ID authenticate wrangler
+npx fundive build
+npx fundive deploy
 ```
 
-`wrangler.toml` at the repo root:
+Your `wrangler.toml` names the worker and points it into the platform:
 
 ```toml
 name = "fundive-app"
-main = "src/worker.ts"
+main = "node_modules/fundive/src/worker.ts"
 compatibility_date = "2026-04-01"
+
+# [[routes]]
+# pattern = "app.myshop.com"
+# custom_domain = true
 
 [assets]
 directory = "./dist"
@@ -132,267 +142,159 @@ binding = "ASSETS"
 not_found_handling = "single-page-application"
 ```
 
-`src/worker.ts` serves the built assets and falls back to `index.html` for
-unknown paths so client-side routes don't 404 on reload. Auth is the
-`CLOUDFLARE_API_TOKEN` from `.env.local` — no `wrangler login` needed.
+The worker serves the built assets and falls back to `index.html` so
+client-side routes survive a reload. It has no secrets of its own. Choose the
+name before the first deploy and keep it: a renamed worker is a second worker,
+and the domain stays bound to the first.
 
-### `fundive-push` (cron sender)
-
-`make deploy-push` runs `wrangler deploy` from `workers/push/` (config:
-`workers/push/wrangler.toml`, `main = "src/index.ts"`), sourcing the same
-`.env.local` creds so it authenticates non-interactively. The target installs
-deps on first run. The worker's own runtime secrets are set separately via
-`wrangler secret put` — see
-[push-notifications.md § Configure the worker](./push-notifications.md#4-configure-the-worker).
-
-## Supabase Edge Functions
-
-Each directory under `supabase/functions/` is one deployable function
-(Deno 2 runtime). Shared code lives under `supabase/functions/_shared/`
-and is imported relatively. `make deploy-functions` runs `supabase
-functions deploy` (no name → ships every function in the directory)
-against the linked project.
-
-### Shop config in the functions
-
-Edge functions read shop config through one seam, `_shared/config.ts`. It
-returns the deployment's config when the `FUNDIVE_CONFIG` secret is set
-(the resolved `fundive.config.ts`, serialized to JSON), and otherwise
-falls back to the platform default — so local `functions serve` and the
-vitest handler tests work unchanged. This is the Deno-side counterpart of
-the frontend's build-time `virtual:fundive-config`: the browser bundle bakes
-config in at build, the edge runtime reads it from env at deploy.
-
-`npx fundive functions deploy` wires this up from a deployment repo: it
-resolves the deployment's config, `supabase secrets set FUNDIVE_CONFIG=<json>`,
-then `supabase functions deploy --workdir <platform>` (so Supabase finds the
-platform's functions even though the deployment repo has none of its own).
-Running `make deploy-functions` from inside the platform repo still works and
-uses the platform default (no `FUNDIVE_CONFIG` set).
-
-### `create-registration`
-
-Single atomic endpoint behind the registration form (`RegisterFormBody`).
-Either the body has `email` + `password` (guest flow → creates the
-account with `email_confirm: true`, bypassing the click-to-confirm
-gate) or the caller's Bearer JWT identifies an authed user. Either
-way, the function then UPDATEs the profile, INSERTs the booking,
-builds a PDF (via `_shared/pdf.ts`), and emails it via Gmail SMTP to
-both the shop (`siteConfig.app.supportEmail`) and the diver. Returns `{ booking_id, session }`; `session` is
-populated only on the guest path so the client can `setSession`
-immediately. If the booking insert fails on the guest path the
-just-created auth user is deleted to keep retries clean.
-
-Required secrets (`supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" …`):
-
-| Secret | What it is |
-| --- | --- |
-| `GMAIL_USER`          | Gmail account that sends the mail |
-| `GMAIL_APP_PASSWORD`  | Gmail [app password](https://support.google.com/accounts/answer/185833) — not the normal password |
-| `TURNSTILE_SECRET`    | Cloudflare Turnstile secret key, paired with `VITE_TURNSTILE_SITE_KEY`. Required by **`create-registration`** and **`create-account`**; both return 500 without it rather than accept an unverifiable token. Cloudflare's always-pass test secret `1x0000000000000000000000000000000AA` covers local dev |
-
-`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` are
-auto-injected by the edge runtime.
-
-Deploy:
+## The push worker
 
 ```sh
-make deploy-functions      # ships every function under supabase/functions/
-supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" \
+npx fundive deploy push
+```
+
+`workers/push/wrangler.toml` names it, sets the crons, and holds its
+non-secret `[vars]`; its secrets are set once and survive every deploy:
+
+```sh
+npx wrangler secret put VAPID_PRIVATE_KEY --config workers/push/wrangler.toml
+```
+
+The full list and the VAPID key setup are in
+[push-notifications.md](./push-notifications.md). Never run two push workers
+for one shop: both would run the crons and every reminder would go out twice.
+
+## The edge functions
+
+```sh
+npx fundive functions deploy
+npx supabase secrets set --project-ref <your-project-ref> \
   GMAIL_USER=<shop-gmail-account> \
   GMAIL_APP_PASSWORD=<app-password> \
   TURNSTILE_SECRET=<turnstile-secret-key>
 ```
 
-Local testing:
+`functions deploy` serializes your `fundive.config.ts` into the
+`FUNDIVE_CONFIG` Supabase secret, then deploys every function from the
+platform. The functions read shop config only through that secret (the seam is
+`supabase/functions/_shared/config.ts`), so your shop name, currency, language
+and app URL are the ones in emails and on the registration PDF. Always deploy
+functions this way: a bare `supabase functions deploy` leaves the secret as it
+was, and without it the functions use the platform's placeholder shop.
+
+The secrets set with `supabase secrets set` are set once and survive deploys:
+
+| Secret | What it is |
+| --- | --- |
+| `GMAIL_USER` | Gmail account that sends the mail |
+| `GMAIL_APP_PASSWORD` | Gmail [app password](https://support.google.com/accounts/answer/185833), not the account password |
+| `TURNSTILE_SECRET` | Cloudflare Turnstile secret key, paired with `VITE_TURNSTILE_SITE_KEY`. `create-registration` and `create-account` return 500 without it rather than accept an unverifiable token |
+
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ANON_KEY` are injected
+by the edge runtime.
+
+## The schema
+
+The platform's migrations live in the platform, and `db push` applies the ones
+your database lacks:
 
 ```sh
-supabase functions serve create-registration --env-file .env.local
-# ...then in another shell, curl with a registration body.
+npx fundive db verify            # what the platform has, what your database has
+npx fundive db push --dry-run    # what a push would apply
+npx fundive db backup            # a rollback point
+npx fundive db push
 ```
 
-## Supabase schema workflow
+Migrations are forward-only. Push the schema before deploying code that needs
+it: an upgrade's new column must exist before the app that reads it goes out.
 
-Migrations are **forward-only**. Flow for a schema change:
+## GitHub Actions
 
-```sh
-# 1. Write a new migration file under supabase/migrations/
-#    Name format: YYYYMMDDHHMMSS_<slug>.sql
+The deployment repository ships two **manual** workflows (Actions → pick one →
+Run workflow). Nothing deploys because a commit landed.
 
-# 2. Apply locally and test
-make reset              # or `make diff` to preview drift, then `make reset`
-make test               # integration suite exercises the new schema
+| Workflow | Does | Inputs |
+| --- | --- | --- |
+| **Deploy** | `fundive build` + `fundive deploy`, `fundive deploy push`, `fundive functions deploy` | `target`: all / spa / push-worker / edge-functions |
+| **Push migrations** | `fundive db verify`, then `fundive db push` | `dry_run`, **on by default** |
 
-# 3. Push to cloud
-make push               # applies to the linked project
+They are separate buttons on purpose: schema first, looked at, then the code
+that expects it. Both run only from `main` and declare `environment:
+production`, so reviewers or wait timers set in Settings → Environments apply.
 
-# 4. Verify the cloud matches
-make verify             # schema migration list + row-count parity check
-```
-
-`scripts/verify-sync.sh` does a two-step check:
-
-1. `supabase migration list --linked` — confirms local + cloud agree on
-   applied migrations.
-2. Row-count parity per table across `public` + `auth` schemas — catches
-   missing or extra data rows.
-
-### Linking a fresh checkout
-
-```sh
-make link     # runs `supabase link --project-ref "$SUPABASE_PROJECT_REF"`
-make pull     # generates a baseline migration from cloud (one-time if cloud drifted)
-```
-
-### Pulling data down for local dev
-
-```sh
-make dump-data    # writes cloud data into supabase/seed.sql
-make reset        # rebuilds local from migrations + seed
-```
-
-## Deploying from GitHub Actions
-
-Two manual workflows, both **`workflow_dispatch` only** — nothing ships
-because a commit landed. Actions → pick the workflow → *Run workflow*. A
-fork gets both; they do nothing until the fork sets its own secrets.
-
-| Workflow | File | Does | Inputs |
-| --- | --- | --- | --- |
-| **Deploy** | `.github/workflows/deploy.yml` | `make deploy` from a clean checkout: SPA Worker, push cron Worker, edge functions | `target` (all / spa / push-worker / edge-functions), `skip_checks` |
-| **Push Supabase migrations** | `.github/workflows/supabase-push.yml` | `make push` against the linked project | `dry_run` (**default on**) |
-
-They are deliberately two buttons. Schema goes first, gets looked at, and
-then the code that expects it ships — one press that did both would make
-"the column exists" and "the code needs the column" the same event, which
-is the ordering that takes a site down.
-
-**The migration push dry-runs by default.** The run prints
-`supabase migration list` (local against cloud) and then
-`supabase db push --dry-run`, applying nothing. Reading that list is the
-review step a local `make push` does not have. Untick `dry_run` to apply.
-Migrations are forward-only and immutable once pushed — there is no undo
-in this workflow, or anywhere else.
-
-**Deploy runs the checks first.** Lint, `tsc -b` and the unit project run
-before any deploy job, because the commit at the top of `main` is not
-necessarily the commit the tab was opened on. `skip_checks` exists for a
-rollback that has to go out now; it shows in the run so nobody has to
-wonder later.
-
-Both refuse to run from anything but `main`, and both declare
-`environment: production`, so whatever reviewers or wait timers a fork
-sets in Settings → Environments apply to them. Every action is SHA-pinned.
-
-### Repository secrets
-
-Settings → Secrets and variables → Actions. Same values as `.env.local`,
-which stays the source of truth for a local `make deploy`:
+Repository secrets (Settings → Secrets and variables → Actions), the same
+values as `.env.local`:
 
 | Secret | Used by |
 | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Deploy (spa, push-worker) |
-| `CLOUDFLARE_ACCOUNT_ID` | Deploy (spa, push-worker) |
-| `VITE_SUPABASE_URL` | Deploy (spa) |
-| `VITE_SUPABASE_ANON_KEY` | Deploy (spa) |
-| `VITE_TURNSTILE_SITE_KEY` | Deploy (spa) — **the build fails without it** |
-| `VITE_VAPID_PUBLIC_KEY` | Deploy (spa); optional, push UI hides itself |
-| `VITE_PUSH_WORKER_URL` | Deploy (spa); optional |
-| `SUPABASE_ACCESS_TOKEN` | Deploy (edge-functions), Push migrations |
-| `SUPABASE_PROJECT_REF` | Deploy (edge-functions), Push migrations |
-| `SUPABASE_DB_PASSWORD` | Push migrations |
+| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | Deploy (spa, push-worker) |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_TURNSTILE_SITE_KEY` | Deploy (spa); the build fails without them |
+| `VITE_VAPID_PUBLIC_KEY`, `VITE_PUSH_WORKER_URL` | Deploy (spa); optional |
+| `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` | Deploy (edge-functions) |
+| `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`, `SUPABASE_POOLER_HOST` | Push migrations |
 
-Nothing else belongs in GitHub. `VAPID_PRIVATE_KEY`, the service-role key
-and every other runtime secret stay on Cloudflare (`wrangler secret put`)
-and on Supabase (`supabase secrets set`) — the workflows deploy code, they
-never rotate a runtime secret.
+Runtime secrets (the VAPID private key, the service-role key, Gmail, Turnstile)
+stay on Cloudflare and Supabase; the workflows deploy code and never touch them.
 
-## Release checklist
+## Upgrading
 
-Small feature or bug fix:
+`package.json` pins the platform to a commit or a release tag. To upgrade:
 
-1. Run `make test` locally — unit + integration.
-2. If the change touches the schema: `make reset` first, then
-   `make test`, then `make push` after review — or the **Push Supabase
-   migrations** workflow, dry run first.
-3. `make deploy` — ships both workers (SPA + push cron) and the edge
-   functions. Use `make deploy-app` or `make deploy-push` if you're
-   touching only one, or the **Deploy** workflow with a `target`.
-4. `make verify` — confirm cloud schema + row counts match local
-   expectations post-deploy.
+1. Move the pin (`"fundive": "github:fundive/fundive#<new commit or tag>"`),
+   then `npm install` and commit `package.json` and `package-lock.json`.
+2. `npx fundive build` — a config whose shape changed fails here, naming the
+   field to update.
+3. `npx fundive db push --dry-run`, then `npx fundive db push`.
+4. `npx fundive functions deploy`, `npx fundive deploy push`,
+   `npx fundive deploy` (or the Deploy workflow with `all`).
 
 ## Rollback
 
-- **Frontend:** `wrangler deployments list` shows history;
-  `wrangler rollback <deployment-id>` reverts the SPA.
-- **Push worker:** same flow inside `workers/push/`.
-- **DB:** there is no automatic down-migration — write a **forward**
-  migration that undoes the change, then `make push`. Do not edit or
-  delete an applied migration file. Recovery from truly bad migrations
-  is a restore from Supabase's point-in-time backup (dashboard →
-  Database → Backups).
+- **App or push worker:** `npx wrangler deployments list` shows history and
+  `npx wrangler rollback <deployment-id>` reverts (add
+  `--config workers/push/wrangler.toml` for the push worker). Or move the pin
+  back and deploy again.
+- **Edge functions:** move the pin back and `npx fundive functions deploy`.
+- **Schema:** there is no down-migration. A schema problem is fixed by a
+  forward migration in the platform; a disaster is a restore from
+  `npx fundive db backup` or Supabase's backups (dashboard → Database →
+  Backups).
 
 ## Adopting an existing Supabase project
 
-If your deployment's database was built from a *different* repo — a shop's own
-fork, before it started tracking the platform — the schema is already right but
-the migration registry disagrees, and `supabase db push` refuses:
+If your database was built from a *different* repo — a shop's own copy of the
+app before it moved to a deployment repo — the schema may already be right
+while the migration registry (`supabase_migrations.schema_migrations`) lists
+that repo's files, and `db push` refuses:
 
 ```
 Remote migration versions not found in local migrations directory.
 ```
 
-The registry (`supabase_migrations.schema_migrations`) lists migration files this
-repo does not have, and does not list this repo's squashed baseline. Nothing is
-wrong with your data. Fix the registry, not the schema:
+Fix the registry, not the schema:
 
 ```sh
-npm run db:backup-prod                                   # always, first
-scripts/adopt-existing-deployment.sh --baseline <version>          # dry run
-scripts/adopt-existing-deployment.sh --baseline <version> --apply
-npm run db:push                                          # applies only what's new
+npx fundive db backup                                           # always, first
+npx fundive db adopt --baseline <version>                       # dry run
+npx fundive db adopt --baseline <version> --apply
+npx fundive db push                                             # applies only what's new
 ```
 
-`<version>` is this repo's squashed baseline — the timestamp of the first file in
-`supabase/migrations/`. The script:
+`<version>` is the platform's squashed baseline, the first file in its
+`supabase/migrations/`. Adoption:
 
-1. reads `supabase migration list` and computes the **remote-only** versions,
-   then marks them `reverted` (their objects stay in the database, untouched);
-2. marks your baseline `applied` **without running it** — the tables already
-   exist, and re-creating them would fail;
-3. touches nothing else. `db push` then applies only the genuinely new files.
+1. marks every version your database has and the platform does not as
+   `reverted` (their objects stay in the database, untouched);
+2. marks the baseline `applied` **without running it**;
+3. with `--applied-through <version>`, also marks every other platform version
+   up to that one as applied without running it — for a database that already
+   has those changes under different version numbers. Make that claim only
+   after diffing your schema against the platform's at that version;
+4. leaves the rest for `db push`.
 
-It edits the registry table only: never your schema, never your data.
+It edits the registry only, never your schema or data. Rehearse it against a
+restored backup first by pointing `SUPABASE_DB_URL` at the restored copy.
 
-Rehearse it against a restored snapshot before you point it at production:
-
-```sh
-ADOPT_DB_URL=postgresql://postgres:postgres@127.0.0.1:64422/postgres \
-  scripts/adopt-existing-deployment.sh --baseline <version> --apply
-```
-
-**One thing the script cannot decide for you.** Migrations that existed only in
-the old repo leave their database objects behind — triggers, functions, columns
-nothing in this repo references any more. They keep working; they are simply no
-longer tracked. Review what the reverted migrations created and, if you no longer
-want those objects, write a forward migration that drops them.
-
-## Continuous integration
-
-`.github/workflows/ci.yml` gates every push and PR to `main` with four parallel
-jobs: `eslint`, `tsc -b`, the `unit` vitest project, and `deno check` over the
-edge functions.
-
-The Deno job exists because `supabase/functions/` is in **no** tsconfig — `tsc`
-never looks at it. It type-checks every edge module whose import graph is free of
-`npm:` / `jsr:` specifiers (resolving those drags in the whole frontend
-dependency tree and reports errors from unrelated `@types`). The taint set is
-computed, not hardcoded, and the job fails if fewer than ten modules qualify — so
-a refactor cannot quietly reduce it to checking nothing.
-
-Integration and security suites are **not** in CI: they need the local Supabase
-stack. Run them with `make test`.
-
-Nothing deploys from CI. The two workflows that touch a live project —
-`deploy.yml` and `supabase-push.yml` — are manual only; see
-[§ Deploying from GitHub Actions](#deploying-from-github-actions).
+Objects that only the old repo's migrations created stay behind, working but
+untracked. Review them and, if you no longer want them, remove them with a
+forward migration.

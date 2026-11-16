@@ -31,9 +31,8 @@ npm install
 cp .env.example .env.local
 ```
 
-There is nothing to fill in. Every deployment value in that file is a
-placeholder none of the local commands read, and the three the app actually
-needs come already set to local values:
+There is nothing to fill in. The three values the app needs come already set
+to local ones:
 
 ```sh
 VITE_SUPABASE_URL=http://127.0.0.1:64421
@@ -117,18 +116,12 @@ running:
 supabase functions serve create-registration --env-file .env.local
 ```
 
-Add to `.env.local` first:
-
-```sh
-TURNSTILE_SECRET=1x0000000000000000000000000000000AA
-GMAIL_USER=you@example.com
-GMAIL_APP_PASSWORD=whatever
-```
-
-The Gmail values are only read when a function actually sends; with the local
-stack up, mail is captured by Mailpit rather than delivered, so they need not be
-real. See [deployment.md](./deployment.md#edge-functions) for the full list of
-function secrets.
+`.env.local` already carries what the functions read: Cloudflare's always-pass
+`TURNSTILE_SECRET` and placeholder Gmail values. The Gmail values are only read
+when a function actually sends; with the local stack up, mail is captured by
+Mailpit rather than delivered, so they need not be real. See
+[deployment.md § The edge functions](./deployment.md#the-edge-functions) for the
+secrets a live shop sets.
 
 Push notifications need VAPID keys and a deployed Cloudflare Worker; they stay
 off locally, which is deliberate — see [push-notifications.md](./push-notifications.md).
@@ -158,11 +151,55 @@ make test      # the full gate         make lint    # eslint only
 reason about: it drops the database, replays every migration, and re-seeds the
 three test accounts. It never touches anything remote.
 
+## Writing a migration
+
+Schema changes are platform changes: every shop gets them with
+`npx fundive db push` after moving its pin. Migrations are **forward-only**,
+and a released one is never edited, because shops' databases record each
+version they have applied.
+
+```sh
+# 1. Add supabase/migrations/YYYYMMDDHHMMSS_<slug>.sql
+make reset    # 2. replay every migration + seed locally (or `make diff` first)
+make test     # 3. the integration suite exercises the new schema
+```
+
+Write each migration so it is safe on a database that was adopted from
+another repo as well as a fresh one (`if not exists` guards, `create or
+replace`), and revoke from `anon` explicitly: see
+[deployment.md § Adopting an existing Supabase project](./deployment.md#adopting-an-existing-supabase-project).
+
+## Trying the deployment flow locally
+
+`npx fundive` from a deployment repository is how shops build and deploy. To
+exercise it against your checkout, create one with `node cli/index.js init
+../my-shop`, point its `fundive` dependency at this checkout
+(`npm pkg set dependencies.fundive=file:../fundive` in `../my-shop`, then
+`npm install`), and run the commands from there. For a check that matches a
+real install, `npm pack` this repo and depend on the tarball instead: a `file:`
+link also exposes the platform's dev dependencies, which a real install does
+not have.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` gates every push and pull request to `main` with
+four parallel jobs: `eslint`, `tsc -b`, the `unit` vitest project, and
+`deno check` over the edge functions.
+
+The Deno job exists because `supabase/functions/` is in **no** tsconfig — `tsc`
+never looks at it. It type-checks every edge module whose import graph is free
+of `npm:` / `jsr:` specifiers, and fails if fewer than ten modules qualify, so a
+refactor cannot quietly reduce it to checking nothing.
+
+The integration, scenario and security suites are **not** in CI: they need the
+local Supabase stack. Run them with `make test` (or `make preflight`) before
+pushing. Nothing deploys from this repository; shops deploy from theirs.
+
 ## Where to go next
 
 - [architecture.md](./architecture.md) — how the platform and a deployment
   relate, and where the customization boundary sits.
-- [forking.md](./forking.md) — making a clone yours: `fundive.config.ts`,
+- [configuration.md](./configuration.md) — making a deployment yours: `fundive.config.ts`,
   branding assets, Terms of Use.
 - [data-model.md](./data-model.md) — the unified `events` table and everything
   hanging off it.

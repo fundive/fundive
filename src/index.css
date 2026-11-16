@@ -19,7 +19,7 @@
  *     and turns the body into a deep ocean-night gradient.
  * The structural surface differences (white card vs frosted glass, dark ink vs
  * light ink) are chosen by the token seam — see src/styles/tokens.ts. See
- * docs/forking.md.
+ * docs/configuration.md.
  * ───────────────────────────────────────────────────────────────────────── */
 @theme {
   --color-brand-50:  var(--color-blue-50);

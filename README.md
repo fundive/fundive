@@ -13,9 +13,8 @@ and your customers' data, with no per-seat fee.
 > field-test the app in real shop operations as a way to give back to the
 > community. See [About](#about).
 
-> **Status: v0.1.0 — first public release.** This is the initial fork-and-deploy
-> release: clone it, point it at your own Supabase + Cloudflare, brand it, and run
-> it. It's pre-1.0, so anything may change between minor versions — treat every
+> **Status: pre-1.0.** A shop runs it from its own small deployment repository,
+> pointed at its own Supabase + Cloudflare, branded by one config file. It's pre-1.0, so anything may change between minor versions — treat every
 > upgrade as potentially breaking until 1.0. Issues and PRs welcome — see
 > [Contributing](#contributing).
 
@@ -110,17 +109,23 @@ Cloudflare's always-pass test captcha key. Going live means replacing them; see
 
 ## Make it yours
 
-FunDive is built to be forked per shop. Two things make a clone *yours*:
+A shop does not fork FunDive. It creates its own small **deployment
+repository**, which pins a FunDive version and holds only what is the shop's:
 
-1. **Edit [`fundive.config.ts`](fundive.config.ts)** — shop name, contact info,
-   URLs, timezone, currency, theme colors, feature toggles, and gear list. It's
-   pure data read by the app, the service worker, the build, and the edge
-   functions. (`fundive.config.example.ts` is a blank template.)
-2. **Replace the branding assets in [`public/`](public/)** — logo, favicons, app
-   icons, and social/OG image. A straight clone otherwise renders the reference
-   shop's marks. The asset paths are listed under `assets` in `fundive.config.ts`.
+```sh
+npx github:fundive/fundive init my-shop
+```
 
-See [`docs/forking.md`](docs/forking.md) for the field-by-field walkthrough.
+1. **`fundive.config.ts`** — shop name, URLs, timezone, currency, language,
+   design, feature toggles, gear list and prices. Pure data, read by the app,
+   the service worker, the build and the edge functions.
+2. **`public/`** — your logo, favicons, app icons and photos, laid over the
+   platform's. The asset paths are listed under `assets` in the config.
+3. **`.env.local` and two `wrangler.toml` files** — your credentials, and your
+   Cloudflare worker names and domain.
+
+Upgrading is moving the pin. See [`docs/configuration.md`](docs/configuration.md)
+for the field-by-field walkthrough.
 
 ## Self-hosting: launch your shop's app
 
@@ -128,8 +133,8 @@ New to this and not a developer? **[docs/self-hosting.md](docs/self-hosting.md)*
 is a step-by-step walkthrough that takes you from nothing to a live booking app —
 mostly creating accounts and clicking buttons, with a couple of copy-paste
 commands. The free tiers of GitHub, Supabase, and Cloudflare cover a small shop,
-so you can launch for **$0**. The developer-oriented reference below and in
-[`docs/deployment.md`](docs/deployment.md) covers the same ground in less detail.
+so you can launch for **$0**. [`docs/deployment.md`](docs/deployment.md) is the
+reference behind it.
 
 Closing the shop, or moving on? **[docs/shutdown.md](docs/shutdown.md)** is the
 same walkthrough in reverse — settle what is outstanding, take your records out
@@ -138,16 +143,19 @@ leaves nothing stranded.
 
 ## Deployment
 
-FunDive deploys to Cloudflare Workers (an SPA worker + a push-cron worker) with a
-Supabase project as the backend. First, point the app at **your own** Supabase
-project — apply the baseline migration with `make push` — and your own Cloudflare
-account.
+A shop deploys from its deployment repository with the `fundive` CLI: the app
+and push-notification workers to its own Cloudflare account, the edge functions
+and migrations to its own Supabase project.
 
-Deploy both workers from your machine with `make deploy`, which builds and ships
-them using the `CLOUDFLARE_*` + `VITE_*` values in `.env.local` (no
-`wrangler login` needed). See
-[`docs/deployment.md`](docs/deployment.md) for the required environment variables
-and the full flow.
+```sh
+npx fundive db push           # the platform's migrations, into your database
+npx fundive functions deploy  # edge functions, with your config
+npx fundive build && npx fundive deploy
+```
+
+The repository also carries manual GitHub Actions buttons for the same steps.
+See [`docs/deployment.md`](docs/deployment.md) for every value, secret and
+command.
 
 ## Documentation
 

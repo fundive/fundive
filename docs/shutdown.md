@@ -137,7 +137,7 @@ Shutting down is not the only option, and the cheap ones are worth knowing:
   dashboard.
 - **Take the app offline but keep the data** — delete the Cloudflare Workers
   (steps 2–3) and leave Supabase alone. Nothing is lost, and redeploying later
-  is one `make deploy`.
+  is one `npx fundive deploy` (and `npx fundive deploy push`).
 - **Keep a copy without keeping a service** — take the CSV backup and the
   storage files (Part 2), then delete everything. You can read your history
   forever; you just can't run the app on it.

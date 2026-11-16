@@ -97,4 +97,4 @@ than deleting, so historical intros keep their referent.
 Nothing about a partner is shop-config — partners are data a shop enters. But the
 relay reads two config fields through the edge `_shared/config.ts` seam:
 `siteConfig.app.supportEmail` (the CC inbox) and `siteConfig.app.name` (the From
-name). Both come from `fundive.config.ts` — see [forking.md](./forking.md).
+name). Both come from `fundive.config.ts` — see [configuration.md](./configuration.md).

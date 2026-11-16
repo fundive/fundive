@@ -56,7 +56,7 @@ the admin `EventForm` (dive-only):
 - **`is_trip`** — a per-event admin classification marking the dive as a trip.
   This is a deliberate admin choice per event — distinct from the calendar's
   *cosmetic* trip coloring, which is keyword-driven via `business.tripKeywords`
-  (see [forking.md](./forking.md)). The diver-facing **Scheduled Trips** page
+  (see [configuration.md](./configuration.md)). The diver-facing **Scheduled Trips** page
   (`src/pages/ScheduledTripsPage.tsx`) is now backed by its own admin-curated
   `scheduled_trips` table (via `list_scheduled_trips()`), **not** derived from
   this flag — see [data-model.md](./data-model.md). Also distinct from
@@ -225,7 +225,7 @@ size for it and records `gear: { rent: false }` rather than
 logistics board packs nothing for them.
 
 The booking records the choice as `details.nondiver_option = { id, label }`
-and the base charge line reads "Non-diver: <label>". `create-registration`
+and the base charge line reads `Non-diver: <label>`. `create-registration`
 checks the option is offered on that event and still active — refusing the
 booking (422) otherwise, rather than quietly pricing the person as a diver —
 and takes the price, deposit and label from the catalog, never from the
@@ -262,7 +262,7 @@ Gear prices come from `business.gearPrices` in `fundive.config.ts`; the nitrox
 fee is `business.nitroxCourseFee`, read through `NITROX_COURSE_FEE` in
 `src/lib/booking-charges.ts` (shared by both register forms and the display-time
 recompute). Both are shop-config fields, not literals — see
-[forking.md](./forking.md). The surcharge comes off the chosen `payment_methods`
+[configuration.md](./configuration.md). The surcharge comes off the chosen `payment_methods`
 row instead, since it varies per method — see
 [payments.md § Payment methods](./payments.md#payment-methods). Gear is
 à-la-carte only — there is no full-set package. **Transport** is a per-event

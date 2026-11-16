@@ -76,7 +76,7 @@ export interface SiteTheme {
    *   'light' — the light look (white cards on navy). Default.
    *   'dark'  — the dark ocean look (frosted glass, reef/mauve neon,
    *              mono metadata, squircle rounding).
-   * Optional; omit for 'light'. See docs/forking.md.
+   * Optional; omit for 'light'. See docs/configuration.md.
    */
   design?: 'light' | 'dark'
 }

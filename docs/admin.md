@@ -315,7 +315,7 @@ asked for rubber. A shop that stocks a style without renting it — say felt
 soles on the rack and rubber ones only ever brought from home — leaves
 that style out of `gearPrices`. Divers still record owning a pair, and the
 style never reaches a pack list because nobody can book it. See
-[forking.md](./forking.md) for how the catalog declares styles.
+[configuration.md](./configuration.md) for how the catalog declares styles.
 
 ## Reading the board with no signal
 

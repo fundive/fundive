@@ -12,7 +12,7 @@ export default defineConfig({
     nav: [
       { text: 'About', link: '/about' },
       { text: 'Self-hosting', link: '/self-hosting' },
-      { text: 'Forking', link: '/forking' },
+      { text: 'Configuration', link: '/configuration' },
       { text: 'Deployment', link: '/deployment' },
     ],
     search: { provider: 'local' },
@@ -23,9 +23,8 @@ export default defineConfig({
           { text: 'Overview', link: '/' },
           { text: 'About', link: '/about' },
           { text: 'Self-hosting walkthrough', link: '/self-hosting' },
-          { text: 'Forking for your shop', link: '/forking' },
+          { text: 'Making it your shop', link: '/configuration' },
           { text: 'Deployment', link: '/deployment' },
-          { text: 'Deployment repo', link: '/deployment-repo' },
         ],
       },
       {

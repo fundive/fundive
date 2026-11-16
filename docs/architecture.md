@@ -30,8 +30,8 @@ catalog data — and depends on a pinned version of the platform.
         ▼                  ▼                  ▼
  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
  │ shop-a/site │    │ shop-b/site │    │ shop-c/site │   deployment repos
- │ .env        │    │ .env        │    │ .env        │   only config + assets
- │ brand/      │    │ brand/      │    │ brand/      │   never platform code
+ │ config      │    │ config      │    │ config      │   only config + assets
+ │ public/     │    │ public/     │    │ public/     │   never platform code
  └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
@@ -42,36 +42,26 @@ every design decision below.
 
 ## The deployment repository
 
-A deployer's repo is small and contains no platform source. It looks like:
+A deployer's repo is small and contains no platform source.
+`npx github:fundive/fundive init my-shop` creates it from the platform's
+`template/`:
 
 ```
 my-dive-shop/
-  package.json          # depends on the platform (see below)
-  .env                  # infra credentials + secrets  — GITIGNORED
-  .env.example          # documents required vars (committed)
-  fundive.config.ts     # branding, theme, feature toggles
-  brand/                # PLANNED: logo.svg, favicon.ico, hero images, …
-  catalog/              # PLANNED: seed data for dive sites / courses / prices
-  .github/workflows/    # CI that runs the platform CLI with their secrets
-  .gitignore            # ignores .env and build output
+  package.json                # depends on the platform, pinned to a commit or tag
+  fundive.config.ts           # identity, URLs, locale, design, feature toggles, gear
+  public/                     # logo, icons, photos — laid over the platform's public/
+  wrangler.toml               # the app worker's name and domain
+  workers/push/wrangler.toml  # the push worker's name, vars and crons
+  .github/workflows/          # manual Deploy and Push-migrations buttons
+  .env.example                # documents the credentials (committed)
+  .env.local                  # the credentials themselves — GITIGNORED
 ```
-
-`brand/` and `catalog/` are not read by anything yet. Today `assets.*` in the
-config resolve against the platform's own `public/`.
 
 ### Consuming the platform (git dependency)
 
-::: warning Not finished yet
-The command surface below exists and works from a clone of the platform repo, but
-a deployment repo that installs `fundive` as a dependency cannot run most of it
-today — the CLI shells out to `vite` / `wrangler` / `supabase`, which are the
-platform's `devDependencies`. `brand/` and `catalog/` are not implemented either.
-[deployment-repo.md](./deployment-repo.md) lists exactly what works, what fails,
-and what has to change. Until then, [fork the platform](./forking.md).
-:::
-
-Deployments pin the platform as a **git dependency** on a release tag — no npm
-registry involved:
+Deployments pin the platform as a **git dependency** — no npm registry
+involved:
 
 ```jsonc
 // package.json
@@ -79,79 +69,77 @@ registry involved:
   "name": "my-dive-shop",
   "private": true,
   "dependencies": {
-    "fundive": "github:fundive/fundive#v0.1.0"
+    "fundive": "github:fundive/fundive#<commit or tag>"
   }
 }
 ```
 
-`npm install` fetches the tagged source and runs the platform's `prepare` step to
-build it locally. The platform exposes a CLI via its `bin` entry, so the
-deployment drives everything through it:
+The toolchain the platform drives (vite, wrangler, the Supabase CLI) is among
+its runtime dependencies, so `npm install` is the whole setup. The platform
+exposes a CLI through its `bin` entry, and the deployment drives everything
+through it:
 
 ```sh
-npx fundive dev         # local dev server against a local Supabase stack
-npx fundive db push     # apply the platform's migrations to THEIR Supabase
-npx fundive build       # production build with their branding baked in
-npx fundive deploy      # deploy SPA worker + push worker to THEIR Cloudflare
-npx fundive db verify   # confirm their DB schema matches the pinned version
+npx fundive build             # production build with their config and branding baked in
+npx fundive deploy            # the app worker, named by their wrangler.toml
+npx fundive deploy push       # the push worker, named by their workers/push/wrangler.toml
+npx fundive functions deploy  # the edge functions, with their config as FUNDIVE_CONFIG
+npx fundive db push           # the platform's migrations, into THEIR Supabase
 ```
 
-Pinning to a tag (`#v0.1.0`) — not a branch — is required: it makes a deployment
-reproducible and upgrades deliberate. Upgrading means editing that one line to
-`#v0.2.0`, running `npm install`, then `db push` and `deploy`.
+Pinning a commit or tag — not a branch — makes a deployment reproducible and
+upgrades deliberate: move the pin, `npm install`, `db push`, deploy.
+[deployment.md](./deployment.md) is the full reference.
 
 ## Configuration surface
 
-Everything a deployer can change without forking lives in three places: their
-`.env`, their `fundive.config.ts`, and their `brand/` + `catalog/` directories.
+Everything a deployer can change lives in their deployment repository: their
+`.env.local`, their `fundive.config.ts`, their `public/` files, and their two
+`wrangler.toml` files.
 
 | Concern | Where | Example |
 | --- | --- | --- |
-| App identity | `fundive.config.ts` | name, tagline, support email |
-| Theme | `fundive.config.ts` | brand colors, light/dark defaults |
-| Branding assets | `brand/` | `logo.svg`, `favicon.ico`, hero images |
-| Feature toggles | `fundive.config.ts` | enable/disable ride logistics, packages, … |
-| Supabase | `.env` | project ref, URL, anon key, service-role key, DB password |
-| Cloudflare | `.env` | account id, worker names, custom domain, API token |
-| Web Push | `.env` | VAPID public/private keys |
-| Email | `.env` | SMTP host/user/pass for registration mail |
-| Catalog data | `catalog/` (or admin UI) | their dive sites, courses, prices, rooms |
+| App identity | `fundive.config.ts` | shop name, tagline, URLs |
+| Design | `fundive.config.ts` | light or dark, PWA colors |
+| Branding assets | `public/` | logo, favicon, app icons, event photos |
+| Feature toggles | `fundive.config.ts` | push, broadcast, radio |
+| Supabase | `.env.local` | project ref, URL, anon key, DB password, access token |
+| Cloudflare | `.env.local` + `wrangler.toml` | account id and API token; worker names and custom domain |
+| Web Push | `wrangler secret put` + `workers/push/wrangler.toml` | VAPID keys; subject, origins, timezone |
+| Email | `supabase secrets set` | Gmail account + app password for registration mail |
+| Contact details, Terms, catalog | the admin UI | email, phone, Terms of Use, dive sites, courses, prices, rooms |
 
-### `fundive.config.ts` (illustrative shape)
+### `fundive.config.ts` (abridged)
 
 ```ts
-import { defineConfig } from "fundive/config";
+import { defineConfig } from 'fundive/config'
 
-export default defineConfig({
-  app: {
-    name: "Acme Divers",
-    tagline: "Diving the east coast since 2009",
-    supportEmail: "hello@acmedivers.example",
-  },
-  theme: {
-    colors: { primary: "#0a6", accent: "#fc3" },
-  },
-  features: {
-    rideLogistics: true,
-    tripBoard: false,
-    familyLeadPayer: true,
-  },
-});
+export const siteConfig = defineConfig({
+  configVersion: 13,
+  identity: { shopName: 'Acme Divers', shortName: 'Acme', tagline: '', /* … */ },
+  urls: { site: 'https://www.acmedivers.example', app: 'https://app.acmedivers.example' },
+  locale: { timezone: 'America/Los_Angeles', currency: 'USD', language: 'en', units: 'imperial' },
+  theme: { themeColor: '#0ea5e9', backgroundColor: '#0f172a', design: 'light' },
+  features: { radio: false, push: true, broadcast: true },
+  // assets, business (gear, prices, boat manifest), weatherRegion …
+})
 ```
 
+Every field: [configuration.md](./configuration.md).
+
 Branding is resolved at **build time**: the platform's Vite build reads the
-deployment's config and `brand/` directory through a virtual module / path alias
-pointing at the deployment's working directory, and bakes the result into the
-bundle. (Vite inlines env and assets at build time, so each deployer builds their
-own bundle in their own CI — there is no shared prebuilt artifact, and secrets
+deployment's config through a virtual module, lays the deployment's `public/`
+over its own, and bakes the result into the bundle. (Vite inlines env and assets at build time,
+so each deployer builds their own bundle in their own CI — there is no shared prebuilt artifact, and secrets
 never leave the deployment's environment.)
 
 ## The customization boundary
 
 This is the most important line to hold, because it's what keeps upgrades cheap.
 
-- **Config (no fork):** name, logo, colors, which optional features are on,
-  infrastructure credentials, and your own catalog data. Covered above.
+- **Deployment repo (no fork):** name, logo, design, which optional features
+  are on, infrastructure names and credentials. Covered above. Catalog data
+  (events, prices, dive sites) is entered in the running app.
 - **Contribute upstream:** new features, layout changes, copy changes, new
   fields, bug fixes. These belong in this repository so every deployer benefits
   and so they survive upgrades. Open a PR (see
@@ -207,8 +195,7 @@ triggers) and ships it as forward-only migrations. It does **not** own any
 deployer's data.
 
 - A deployer's **catalog** — dive sites, courses, prices, rooms, add-ons — lives
-  in *their* Supabase project. They populate it through the admin UI or by
-  committing a seed under `catalog/` in their deployment repo.
+  in *their* Supabase project. They populate it through the admin UI.
 - Operational data (users, bookings, payments) is likewise theirs alone.
 
 This is also the data-residency story: each operator's customer data lives only
@@ -232,30 +219,34 @@ upgrade as potentially breaking until 1.0.
 
 ## Security
 
-- **Secrets never live in this repository.** All credentials (Supabase keys, VAPID
-  private key, Cloudflare token, SMTP password) live in the deployment's `.env`
-  and CI secret store, which is `.gitignore`d. The platform ships only `.example`
-  files documenting the variables.
+- **Secrets never live in a repository.** Deploy credentials live in the
+  deployment's gitignored `.env.local` and its CI secret store; runtime secrets
+  (VAPID private key, service-role key, Gmail app password) live on Cloudflare
+  and Supabase. The platform and the template ship only `.example` files
+  documenting them.
 - **The service-role key is used only server-side** (the push worker and edge
   function), never in the browser bundle.
 - **Authorization is enforced in the database** via RLS, not in client code.
 
 ## Status & roadmap
 
-This architecture is the target. Current state:
+Current state:
 
 - ✅ Platform repo established: license, governance, versioning.
 - ✅ **Config seam** — `fundive.config.ts` with the `defineConfig({ app, theme,
   features, … })` contract (`fundive/config`), the `.env.example` contract, and
   build-time injection via `virtual:fundive-config` (the `fundive/vite` plugin).
-- ✅ **`fundive` CLI skeleton** — `dev / build / preview / deploy / db push|verify
-  / functions deploy`, wired through `package.json` `bin`.
+- ✅ **`fundive` CLI** — `init / dev / build / preview / deploy [push] /
+  functions deploy / db push|verify|backup|adopt`, wired through `package.json`
+  `bin`, installable as a dependency (verified from a packed tarball with
+  `npm install --omit=dev`).
 - ✅ **Application ported** from the first deployment, already config-driven, with
   a secrets/branding scrub at the boundary. All ~1,140 unit tests pass against a
   neutral default config.
 - ✅ **Consumer-root build** — `vite.config` serves the platform's `index.html`/`src`
-  while taking `public/`, env, and `dist` from the deployment's cwd, so a separate
-  deployment repo builds its own branded bundle via the platform CLI.
+  while taking env and `dist` from the deployment's cwd and laying its `public/`
+  over the platform's, so a separate deployment repo builds its own branded
+  bundle via the platform CLI. FunDivers TW runs this way.
 - ✅ **Edge-function config injection** — the Supabase functions read a deployment's
   config at deploy time via the `FUNDIVE_CONFIG` secret (the Deno-side counterpart of
   the frontend's build-time `virtual:fundive-config`). See `docs/deployment.md`.

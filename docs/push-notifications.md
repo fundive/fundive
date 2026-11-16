@@ -34,8 +34,8 @@ npx web-push generate-vapid-keys
 You get a public + private key. The **public** key ships with the
 client and is *also* set on the worker — it appears under two names:
 
-- `VITE_VAPID_PUBLIC_KEY` — in `.env.local` and the GitHub Actions secret
-  of the same name. The `VITE_` prefix is what exposes it to the browser
+- `VITE_VAPID_PUBLIC_KEY` — in your deployment's `.env.local` and the
+  GitHub Actions secret of the same name. The `VITE_` prefix is what exposes it to the browser
   bundle.
 - `VAPID_PUBLIC_KEY` — same value, set on the push worker via
   `wrangler secret put`.
@@ -43,42 +43,44 @@ client and is *also* set on the worker — it appears under two names:
 The **private** key (`VAPID_PRIVATE_KEY`) lives only on the push worker
 — never in the SPA, never in GitHub.
 
-### 2. Apply the migration
+### 2. The tables
 
-```sh
-npm run db:push
-```
+They ship with the platform's migrations, so `npx fundive db push` has already
+created them.
 
 ### 3. Configure the client env
 
-Add to `.env.local`:
+Add to your deployment's `.env.local`, plus the push worker's address once you
+know it (step 5 prints it):
 
 ```sh
 VITE_VAPID_PUBLIC_KEY=<public-key-from-step-1>
+VITE_PUSH_WORKER_URL=https://fundive-push.<your-subdomain>.workers.dev
 ```
 
-Rebuild and deploy the frontend as usual (`npm run deploy`).
+Rebuild and deploy the app as usual (`npx fundive build && npx fundive deploy`).
 
 ### 4. Configure the worker
+
+Its name, crons and non-secret settings are in your deployment's
+`workers/push/wrangler.toml`: set `VAPID_SUBJECT` to a real `mailto:`,
+`ALLOWED_ORIGINS` to your app's address, and `TIMEZONE` / `CURRENCY` to your
+shop's. The secrets are set once, from your deployment repository:
+
+```sh
+npx wrangler secret put SUPABASE_URL              --config workers/push/wrangler.toml
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config workers/push/wrangler.toml
+npx wrangler secret put VAPID_PUBLIC_KEY          --config workers/push/wrangler.toml
+npx wrangler secret put VAPID_PRIVATE_KEY         --config workers/push/wrangler.toml
+npx wrangler secret put ADMIN_TRIGGER_SECRET      --config workers/push/wrangler.toml   # for /run manual trigger
+```
+
+To work on the worker itself, in a platform checkout: create
+`workers/push/.dev.vars` from `.dev.vars.example` and run
 
 ```sh
 cd workers/push
 npm install
-
-# Secrets (production):
-npx wrangler secret put SUPABASE_URL
-npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
-npx wrangler secret put VAPID_PUBLIC_KEY
-npx wrangler secret put VAPID_PRIVATE_KEY
-npx wrangler secret put ADMIN_TRIGGER_SECRET   # for /run manual trigger
-
-# VAPID_SUBJECT is set in wrangler.toml [vars]; edit to a real mailto.
-```
-
-For local development create `workers/push/.dev.vars` from
-`.dev.vars.example` and run:
-
-```sh
 npm run dev           # starts wrangler dev --test-scheduled
 # then in another terminal:
 curl "http://localhost:8787/__scheduled?cron=0+2+*+*+*"
@@ -87,7 +89,7 @@ curl "http://localhost:8787/__scheduled?cron=0+2+*+*+*"
 ### 5. Deploy the worker
 
 ```sh
-make deploy-push        # or: make deploy (to ship both workers together)
+npx fundive deploy push
 ```
 
 The cron fires at `0 2 * * *` UTC (= 10:00 Asia/Taipei) — edit
@@ -144,9 +146,8 @@ Make.com flow, etc.) — leaving it unset just skips the relay and
 `webhook` returns `null` in the response.
 
 ```sh
-cd workers/push
-npx wrangler secret put SUPABASE_ANON_KEY
-npx wrangler secret put BROADCAST_WEBHOOK_URL   # optional
+npx wrangler secret put SUPABASE_ANON_KEY     --config workers/push/wrangler.toml
+npx wrangler secret put BROADCAST_WEBHOOK_URL --config workers/push/wrangler.toml   # optional
 ```
 
 ## Per-event status push (`/admin-event-broadcast`)

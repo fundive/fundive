@@ -317,7 +317,7 @@ RLS is **on** for every `public.*` table. The important patterns:
 
 ## Migrations
 
-Forward-only. **Never edit a migration that has been `make push`'d.**
+Forward-only. **Never edit a migration that has been released.**
 Applied migrations are locked — the registry in `supabase_migrations`
 will refuse the push if a checksum changed.
 

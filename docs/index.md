@@ -15,13 +15,13 @@ hero:
 
 features:
   - title: Set up your own shop
-    details: A non-technical, step-by-step guide that takes you from fork to a live booking app — mostly clicking, a couple of copy-paste commands.
+    details: A non-technical, step-by-step guide that takes you from nothing to a live booking app — mostly clicking, a few copy-paste commands.
     link: /self-hosting
-  - title: Fork & make it yours
-    details: One config file plus your branding turns a clone into your shop. No app code to touch.
-    link: /forking
+  - title: Make it yours
+    details: Your shop gets its own small repository — one config file plus your logo and photos. No app code to touch, and upgrades are a version bump.
+    link: /configuration
   - title: Deploy it
-    details: Cloudflare Workers for the app, Supabase for the data, published from a GitHub Actions workflow.
+    details: Cloudflare Workers for the app, Supabase for the data, shipped with one command or a GitHub Actions button. Free tiers cover a small shop.
     link: /deployment
   - title: Close it down
     details: Leaving? Settle up, export your records as spreadsheets, and switch every service off in the right order.
