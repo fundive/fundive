@@ -1,0 +1,15 @@
+# The worker that serves your app. Rename it before the first deploy if you
+# like; once it is live, keep the name (a new name is a second worker).
+name = "fundive-app"
+main = "node_modules/fundive/src/worker.ts"
+compatibility_date = "2026-04-01"
+
+# Your own domain, once you have one on Cloudflare:
+# [[routes]]
+# pattern = "app.myshop.com"
+# custom_domain = true
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"

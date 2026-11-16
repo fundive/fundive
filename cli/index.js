@@ -8,9 +8,9 @@
 // and workers/push/wrangler.toml (push cron) in its own repo replace the
 // platform's when present. See docs/deployment-repo.md.
 
-import { spawn } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 const platformDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -132,6 +132,54 @@ async function backupDb() {
   process.exit(0)
 }
 
+// The commit this platform copy came from, to pin a new deployment to exactly
+// it: npm records `gitHead` for a git-installed package; a clone asks git.
+function platformRef() {
+  const pkg = JSON.parse(readFileSync(path.join(platformDir, 'package.json'), 'utf8'))
+  if (pkg.gitHead) return pkg.gitHead
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: platformDir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  } catch {
+    return `v${pkg.version}`
+  }
+}
+
+// Creates a deployment repository from template/. Files that npm would strip
+// or that would act on the platform repo itself are stored without their dot.
+const TEMPLATE_RENAMES = { 'gitignore': '.gitignore', 'env.example': '.env.example', 'github': '.github' }
+
+function init(dir) {
+  if (!dir) {
+    console.error('fundive: name the directory to create, e.g. `fundive init my-shop`')
+    process.exit(1)
+  }
+  const target = path.resolve(deploymentDir, dir)
+  if (existsSync(target) && readdirSync(target).length > 0) {
+    console.error(`fundive: ${dir} already exists and is not empty`)
+    process.exit(1)
+  }
+  const template = path.join(platformDir, 'template')
+  mkdirSync(target, { recursive: true })
+  for (const name of readdirSync(template)) {
+    cpSync(path.join(template, name), path.join(target, TEMPLATE_RENAMES[name] ?? name), { recursive: true })
+  }
+  cpSync(path.join(platformDir, 'fundive.config.example.ts'), path.join(target, 'fundive.config.ts'))
+  mkdirSync(path.join(target, 'public'), { recursive: true })
+  const pkgPath = path.join(target, 'package.json')
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+  pkg.name = path.basename(target)
+  pkg.dependencies.fundive = `github:fundive/fundive#${platformRef()}`
+  writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n')
+  console.log(`Created ${dir}, pinned to fundive ${pkg.dependencies.fundive.split('#')[1]}. Next:
+
+  cd ${dir}
+  npm install
+  cp .env.example .env.local    # then fill it in
+
+and follow https://fundive.github.io/fundive/self-hosting`)
+  process.exit(0)
+}
+
 function version() {
   const pkg = JSON.parse(readFileSync(path.join(platformDir, 'package.json'), 'utf8'))
   console.log(`fundive ${pkg.version}`)
@@ -142,20 +190,21 @@ function usage() {
 
 Usage: fundive <command>
 
-  dev                 start the dev server (local Supabase stack)
-  build               production build with your branding baked in
-  preview             preview the production build locally
+  init <dir>          create a deployment repository for your shop
+  dev                 dev server (against whatever Supabase .env.local names)
+  build               production build with your config and branding baked in
+  preview             serve the production build locally
   deploy              deploy the SPA worker to your Cloudflare
   deploy push         deploy the push-notification cron worker
+  functions deploy    set FUNDIVE_CONFIG and deploy the edge functions
+  db push [--dry-run] apply the platform's migrations to your database
+  db verify           list migrations: the platform's against your database's
   db backup           dump your database's roles, schema and data into backups/
-  db push             apply the platform migrations to your Supabase
-  db adopt ...        adopt a database built from another repo (see
-                      scripts/adopt-existing-deployment.sh; dry run by default)
-  db verify           confirm your DB schema matches the pinned version
-  functions deploy    deploy the Supabase edge functions
+  db adopt ...        adopt a database built from another repo (dry run unless --apply)
   version             print the platform version
 
-Run from a deployment repo; your fundive.config.ts and .env are used.`)
+Run from your deployment repository; its fundive.config.ts, public/,
+wrangler.toml files and .env.local are the ones used.`)
 }
 
 const [command, sub] = process.argv.slice(2)
@@ -170,20 +219,20 @@ switch (command) {
     else usage()
     break
   case 'db':
-    if (sub === 'push') run(bin('supabase'), ['db', 'push', '--workdir', platformDir, '--db-url', dbUrl()])
+    if (sub === 'push') run(bin('supabase'), ['db', 'push', '--workdir', platformDir, '--db-url', dbUrl(), ...process.argv.slice(4)])
     else if (sub === 'backup') backupDb().catch(e => { console.error(`fundive: ${e.message}`); process.exit(1) })
     else if (sub === 'adopt') {
       env.ADOPT_DB_URL = dbUrl()
-      env.FUNDIVE_CLI = '1'
       run('bash', [path.join(platformDir, 'scripts', 'adopt-existing-deployment.sh'), ...process.argv.slice(4)])
     }
-    else if (sub === 'verify') run('bash', [path.join(platformDir, 'scripts', 'verify-sync.sh')])
+    else if (sub === 'verify') run(bin('supabase'), ['migration', 'list', '--workdir', platformDir, '--db-url', dbUrl()])
     else usage()
     break
   case 'functions':
     if (sub === 'deploy') deployFunctions().catch(e => { console.error(`fundive: ${e.message}`); process.exit(1) })
     else usage()
     break
+  case 'init':    init(sub); break
   case 'version': case '--version': case '-v': version(); break
   default: usage(); if (command && command !== 'help' && command !== '--help') process.exit(1)
 }

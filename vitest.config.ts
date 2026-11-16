@@ -52,6 +52,7 @@ export default defineConfig({
             'src/**/*.test.{ts,tsx}',
             'workers/**/*.test.ts',
             'supabase/functions/**/*.test.ts',
+            'cli/**/*.test.ts',
           ],
           css: false,
         },

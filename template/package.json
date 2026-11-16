@@ -1,0 +1,8 @@
+{
+  "name": "my-dive-shop",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "fundive": "github:fundive/fundive#main"
+  }
+}

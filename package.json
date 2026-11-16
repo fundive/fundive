@@ -12,6 +12,7 @@
   },
   "files": [
     "cli",
+    "!cli/**/*.test.ts",
     "index.html",
     "vite.config.ts",
     "tsconfig.json",
@@ -34,6 +35,7 @@
     "wrangler.toml",
     "scripts",
     "fundive.config.ts",
+    "template",
     "fundive.config.example.ts",
     "LICENSE",
     "README.md"
@@ -41,7 +43,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "deploy": "npm run build && dotenv -e .env.local -- wrangler deploy",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "preview": "vite preview",
@@ -53,13 +54,7 @@
     "db:stop": "supabase stop",
     "db:status": "supabase status",
     "db:reset": "supabase db reset",
-    "db:diff": "supabase db diff",
-    "db:link": "dotenv -e .env.local -- sh -c 'supabase link --project-ref \"$SUPABASE_PROJECT_REF\" --password \"$SUPABASE_DB_PASSWORD\"'",
-    "db:pull": "dotenv -e .env.local -- sh -c 'supabase db pull --password \"$SUPABASE_DB_PASSWORD\"'",
-    "db:push": "dotenv -e .env.local -- sh -c 'supabase db push --password \"$SUPABASE_DB_PASSWORD\"'",
-    "db:dump-data": "dotenv -e .env.local -- sh -c 'supabase db dump --data-only --schema auth,public --exclude public.DiveTravel --exclude public.cancellation_policies --exclude public.cert_levels --exclude public.dive_sites --password \"$SUPABASE_DB_PASSWORD\" -f supabase/seed.sql'",
-    "db:backup-prod": "bash scripts/backup-prod.sh",
-    "functions:deploy": "dotenv -e .env.local -- sh -c 'supabase functions deploy --project-ref \"$SUPABASE_PROJECT_REF\"'"
+    "db:diff": "supabase db diff"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -100,7 +95,6 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.185.4",
     "@vitest/coverage-v8": "^4.1.11",
-    "dotenv-cli": "^11.0.0",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
