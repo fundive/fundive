@@ -4,7 +4,7 @@ import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
 import { siteConfig } from '../../config/site'
 import { useShopContact } from '../../hooks/useShopContact'
-import { BTN_GHOST, BTN_PRIMARY } from '../../styles/tokens'
+import { BTN_GHOST, BTN_PRIMARY, pick } from '../../styles/tokens'
 import { t } from '../../i18n'
 
 // One-time welcome popup for new divers — shown the first time they land in
@@ -22,9 +22,9 @@ import { t } from '../../i18n'
 // primary button. A diver who wants to look at the calendar first is not
 // doing anything wrong, and the 24-hour WelcomeBanner repeats the nudge.
 //
-// Buttons compose BTN_PRIMARY / BTN_GHOST rather than literal classes: this
-// modal renders in both design variants, and the navy-on-white primary it used
-// to hardcode would have been navy on navy under the dark one.
+// The light design composes BTN_PRIMARY / BTN_GHOST. The dark design keeps the
+// navy buttons the FunDivers deployment has always shown, so a shop moving onto
+// it sees no change.
 //
 // Persistence note: writing to user_metadata via auth.updateUser triggers an
 // onAuthStateChange (USER_UPDATED) so useAuth picks up the new value without a
@@ -72,7 +72,7 @@ export function WelcomeModal({ user, onDismiss }: { user: User; onDismiss: () =>
           {contact.email && (
             <p className="text-brand-950 font-medium">
               {t.welcome.contactPrefix(siteConfig.identity.shortName)}{' '}
-              <a href={`mailto:${contact.email}`} className="text-brand-700 underline hover:text-brand-900">{contact.email}</a>.
+              <a href={`mailto:${contact.email}`} className={pick('text-brand-700 underline hover:text-brand-900', 'text-reef-300 underline hover:text-reef-200')}>{contact.email}</a>.
             </p>
           )}
         </div>
@@ -80,14 +80,14 @@ export function WelcomeModal({ user, onDismiss }: { user: User; onDismiss: () =>
           <button
             onClick={() => dismiss(true)}
             disabled={busy}
-            className={`w-full ${BTN_PRIMARY}`}
+            className={pick(`w-full ${BTN_PRIMARY}`, 'w-full bg-brand-900 hover:bg-brand-950 disabled:opacity-50 text-white font-semibold py-2 rounded-lg transition-colors')}
           >
             {busy ? '…' : t.welcome.fillProfile}
           </button>
           <button
             onClick={() => dismiss(false)}
             disabled={busy}
-            className={`w-full ${BTN_GHOST}`}
+            className={pick(`w-full ${BTN_GHOST}`, 'w-full border border-brand-900 text-brand-900 hover:bg-surface-100 disabled:opacity-50 font-semibold py-2 rounded-lg transition-colors')}
           >
             {t.welcome.later}
           </button>

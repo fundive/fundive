@@ -14,7 +14,7 @@ import { discountValueLabel, fetchDiscountsForEvent } from '../../lib/discounts'
 import { ParticipantChoice } from './ParticipantChoice'
 import { DIVER, fetchNondiverOptionsForBooking, fetchNondiverOptionsForEvent, participantPricing } from '../../lib/nondiver-options'
 import { t } from '../../i18n'
-import { BTN_GHOST, BTN_XS_ON_AMBER, INPUT_REGISTER, TEXT_DANGER, TEXT_SUCCESS } from '../../styles/tokens'
+import { BTN_GHOST, BTN_XS_GHOST, BTN_XS_ON_AMBER, INPUT_REGISTER, TEXT_DANGER, TEXT_SUCCESS, pick } from '../../styles/tokens'
 import { buildCharges, NITROX_COURSE_FEE } from '../../lib/booking-charges'
 import { surchargeRateFor, paymentMethodLabel } from '../../lib/payment-method-format'
 import { fetchActivePaymentMethods } from '../../lib/payment-methods'
@@ -1626,7 +1626,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
         <WhatHappensNext waitlisted={waitlisted} />
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
           {onRegisterAnother && (
-            <button onClick={() => onRegisterAnother(bookedRow)} className={`${BTN_GHOST} text-sm`}>
+            <button onClick={() => onRegisterAnother(bookedRow)} className={pick(`${BTN_GHOST} text-sm`, 'border border-surface-300 text-brand-900 hover:bg-surface-100 text-sm font-semibold py-2 px-5 rounded-lg transition-colors')}>
               {t.register.done.registerAnother}
             </button>
           )}
@@ -1669,9 +1669,9 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
       </header>
 
       {showResumeBanner && savedDraft && (
-        <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 space-y-2">
-          <p className="text-sm text-amber-900 font-semibold">{t.register.resume.title}</p>
-          <p className="text-xs text-amber-900">
+        <div className={`${pick('bg-amber-50 border-amber-300', 'bg-accent/15 border-accent')} border rounded-lg p-3 space-y-2`}>
+          <p className={`text-sm ${pick('text-amber-900', 'text-brand-900')} font-semibold`}>{t.register.resume.title}</p>
+          <p className={`text-xs ${pick('text-amber-900', 'text-brand-900')}`}>
             {t.register.resume.body}
           </p>
           <div className="flex gap-2">
@@ -1685,7 +1685,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
             <button
               type="button"
               onClick={discardDraft}
-              className={BTN_XS_ON_AMBER}
+              className={pick(BTN_XS_ON_AMBER, BTN_XS_GHOST)}
             >
               {t.register.resume.startFresh}
             </button>
@@ -2389,7 +2389,7 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
             </div>
             {creditNow > 0 && (
               <div className="border-t border-surface-200 pt-1 mt-1 space-y-0.5">
-                <div className="flex justify-between text-emerald-700">
+                <div className={`flex justify-between ${pick('text-emerald-700', 'text-emerald-300')}`}>
                   <span>{t.register.payment.accountCredit}</span>
                   <span>{t.register.payment.minus(event.currency, creditDeducted.toLocaleString())}</span>
                 </div>
@@ -2418,8 +2418,8 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
           </div>
 
           {creditTargets.length > 0 && (
-            <div className="bg-emerald-50 border border-emerald-400 rounded-lg p-3 space-y-2">
-              <label className="flex items-start gap-2 text-sm text-emerald-900 font-medium">
+            <div className={`${pick('bg-emerald-50 border-emerald-400', 'bg-emerald-400/15 border-emerald-400/50')} border rounded-lg p-3 space-y-2`}>
+              <label className={`flex items-start gap-2 text-sm ${pick('text-emerald-900', 'text-brand-950')} font-medium`}>
                 <input
                   type="checkbox"
                   checked={useAccountCredit}
@@ -2427,24 +2427,24 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
                   className="accent-brand-900 mt-1"
                 />
                 <span className="flex-1">
-                  <span className="block font-semibold text-emerald-900">
+                  <span className={`block font-semibold ${pick('text-emerald-900', 'text-brand-900')}`}>
                     {creditTargets.length === 1
                       ? (creditTargets[0].name
                           ? t.register.payment.useCreditFor(creditTargets[0].name, event.currency, creditTargets[0].amount.toLocaleString())
                           : t.register.payment.useCredit(event.currency, creditTargets[0].amount.toLocaleString()))
                       : t.register.payment.useCreditGroup}
                   </span>
-                  <span className="block text-xs text-emerald-900/80">
+                  <span className={`block text-xs ${pick('text-emerald-900/80', 'text-brand-900/80')}`}>
                     {t.register.payment.useCreditDetail}
                   </span>
                 </span>
               </label>
               {creditTargets.length > 1 && useAccountCredit && (
-                <ul className="text-xs text-emerald-900/90 font-medium pl-6 space-y-0.5">
+                <ul className={`text-xs ${pick('text-emerald-900/90', 'text-brand-900/90')} font-medium pl-6 space-y-0.5`}>
                   {creditTargets.map(ct => (
                     <li key={ct.id} className="flex justify-between gap-3">
                       <span>{ct.name ?? t.register.payment.creditYou}</span>
-                      <span className="text-emerald-800">{t.register.payment.minus(event.currency, ct.amount.toLocaleString())}</span>
+                      <span className={pick('text-emerald-800', 'text-emerald-300')}>{t.register.payment.minus(event.currency, ct.amount.toLocaleString())}</span>
                     </li>
                   ))}
                 </ul>
@@ -2520,8 +2520,8 @@ function RegisterFormBodyInner({ event, profile, userId, onSubmitSuccess, onCanc
           )}
 
           {waiverEligible && missingW && missingW.length > 0 && (
-            <div className="text-xs text-amber-900 font-medium bg-amber-50 border border-amber-300 rounded-lg p-3 space-y-2" aria-label={t.register.waivers.ariaOutstanding}>
-              <p className="font-semibold text-amber-900">
+            <div className={`text-xs font-medium ${pick('text-amber-900 bg-amber-50 border-amber-300', 'text-brand-950 bg-amber-400/10 border-amber-400/40')} border rounded-lg p-3 space-y-2`} aria-label={t.register.waivers.ariaOutstanding}>
+              <p className={`font-semibold ${pick('text-amber-900', 'text-amber-300')}`}>
                 {t.register.waivers.toSignBefore(event.type)}
               </p>
               <p>{t.register.waivers.stillBookSolo}</p>

@@ -21,7 +21,7 @@ import { ChargeBreakdown } from '../components/ChargeBreakdown'
 import type { AppEvent, Booking, BookingAmendment, BookingDetails, Payment, WaitlistOffer } from '../types/database'
 import {
   CARD, BTN_GHOST, BTN_DANGER, TEXT_HEADING, TEXT_BODY, TEXT_MUTED, TEXT_SUBTLE, TEXT_ERROR, PAGE_BODY,
-  TEXT_WARNING,
+  TEXT_WARNING, pick,
 } from '../styles/tokens'
 import { t } from '../i18n'
 import { EVENT_KIND_LABELS } from '../lib/event-kind-labels'
@@ -344,7 +344,7 @@ function Card({
           {row.status === 'cancelled' && row.cancellation_settled_at && row.feeKept > 0 && (
             <div className={`flex justify-between ${TEXT_BODY}`}>
               <span>{t.bookings.cancellationFeeKept}</span>
-              <span className={`${TEXT_WARNING} font-semibold`}>{currency} {row.feeKept.toLocaleString()}</span>
+              <span className={`${pick(TEXT_WARNING, 'text-amber-800')} font-semibold`}>{currency} {row.feeKept.toLocaleString()}</span>
             </div>
           )}
           {total > 0 && (

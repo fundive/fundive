@@ -84,7 +84,7 @@ export const TEXT_LINK    = pick('text-brand-800 font-semibold hover:underline',
 // is a different case — that surface stays pale in both looks, so it keeps the
 // raw dark ink from the same hue and must NOT use these.
 export const TEXT_DANGER  = pick('text-red-700',     'text-red-300')
-export const TEXT_WARNING = pick('text-amber-800',   'text-amber-300')
+export const TEXT_WARNING = pick('text-amber-800',   'text-amber-300 font-semibold')
 export const TEXT_SUCCESS = pick('text-emerald-800', 'text-emerald-300')
 /** "Covered by someone else" — the payer/proxy marker on a booking row. */
 export const TEXT_PROXY   = pick('text-violet-700',  'text-violet-300')

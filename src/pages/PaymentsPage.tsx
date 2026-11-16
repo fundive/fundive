@@ -20,7 +20,7 @@ import { ChargeBreakdown, type AmendmentLine } from '../components/ChargeBreakdo
 import type { AppEvent, Booking, BookingDetails, BookingDiscount, Credit, Discount, Payment } from '../types/database'
 import {
   CARD, BTN_GHOST, BTN_PRIMARY, TEXT_HEADING, TEXT_BODY, TEXT_MUTED, TEXT_SUBTLE, TEXT_ERROR, PAGE_BODY,
-  TEXT_WARNING,
+  TEXT_WARNING, pick,
 } from '../styles/tokens'
 import { t } from '../i18n'
 
@@ -636,7 +636,7 @@ function LineCard({
           {isCancelled && booking.cancellation_settled_at && !!feeKept && feeKept > 0 && (
             <div className={`flex justify-between ${TEXT_BODY}`}>
               <span>{t.bookings.cancellationFeeKept}</span>
-              <span className={`${TEXT_WARNING} font-semibold`}>{currency} {feeKept.toLocaleString()}</span>
+              <span className={`${pick(TEXT_WARNING, 'text-amber-800')} font-semibold`}>{currency} {feeKept.toLocaleString()}</span>
             </div>
           )}
           {total > 0 && (

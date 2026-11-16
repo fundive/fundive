@@ -23,7 +23,7 @@ import { ShoeSizeField } from '../components/ShoeSizeField'
 import { HeightField, WeightField } from '../components/MeasureField'
 import { PasswordInput } from '../components/PasswordInput'
 import { t } from '../i18n'
-import { BTN_DANGER, TEXT_DANGER } from '../styles/tokens'
+import { BTN_DANGER, TEXT_DANGER, pick } from '../styles/tokens'
 
 // Schema intentionally matches what the HTML form emits (strings for text +
 // number inputs, booleans for checkboxes). Numeric/enum coercion happens in
@@ -588,7 +588,7 @@ export function NotificationsToggle() {
       <p className="text-xs text-brand-950 font-medium">
         {t.profile.notifications.remindersDetail}
       </p>
-      {error && <p className={`${TEXT_DANGER} text-xs`}>{error}</p>}
+      {error && <p className={`${pick(TEXT_DANGER, 'text-red-600')} text-xs`}>{error}</p>}
     </section>
   )
 }
@@ -649,7 +649,7 @@ export function ChangePasswordSection({ email }: { email: string }) {
             value={confirm} onChange={e => setConfirm(e.target.value)} className={inputClass}
           />
         </Field>
-        {error && <p className={`${TEXT_DANGER} text-xs`}>{error}</p>}
+        {error && <p className={`${pick(TEXT_DANGER, 'text-red-600')} text-xs`}>{error}</p>}
         <button
           type="submit"
           disabled={busy || !current || !password || !confirm}
@@ -775,7 +775,7 @@ export function CertCardSection({ userId, onPathChange }: {
           </button>
         )}
       </div>
-      {error && <p className={`${TEXT_DANGER} text-xs`}>{error}</p>}
+      {error && <p className={`${pick(TEXT_DANGER, 'text-red-600')} text-xs`}>{error}</p>}
     </section>
   )
 }
@@ -891,7 +891,7 @@ export function NitroxCardSection({ userId, onPathChange }: {
           </button>
         )}
       </div>
-      {error && <p className={`${TEXT_DANGER} text-xs`}>{error}</p>}
+      {error && <p className={`${pick(TEXT_DANGER, 'text-red-600')} text-xs`}>{error}</p>}
     </section>
   )
 }
@@ -1003,7 +1003,7 @@ export function DeepCardSection({ userId, onPathChange }: {
           </button>
         )}
       </div>
-      {error && <p className={`${TEXT_DANGER} text-xs`}>{error}</p>}
+      {error && <p className={`${pick(TEXT_DANGER, 'text-red-600')} text-xs`}>{error}</p>}
     </section>
   )
 }

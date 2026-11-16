@@ -11,7 +11,7 @@ import { MultiRegisterForm } from '../components/register/MultiRegisterForm'
 import { ShareEventButton } from '../components/ShareEventButton'
 import { AddToGoogleCalendarButton } from '../components/AddToGoogleCalendarButton'
 import { siteConfig } from '../config/site'
-import { ACTION_BAR, ACTION_BAR_CLEARANCE, BTN_XS_ON_DEEP, MODAL_BACKDROP, MODAL_PANEL, TEXT_BODY, TEXT_HEADING } from '../styles/tokens'
+import { ACTION_BAR, ACTION_BAR_CLEARANCE, BTN_XS_GHOST, BTN_XS_ON_DEEP, MODAL_BACKDROP, MODAL_PANEL, TEXT_BODY, TEXT_HEADING, pick } from '../styles/tokens'
 import { canSelfCancel } from '../lib/booking-status'
 import { netPaidByBooking } from '../lib/payments'
 import { t } from '../i18n'
@@ -219,7 +219,7 @@ export function CalendarPage() {
               <button
                 type="button"
                 onClick={exitMulti}
-                className={BTN_XS_ON_DEEP}
+                className={pick(BTN_XS_ON_DEEP, BTN_XS_GHOST)}
               >
                 {t.common.cancel}
               </button>
@@ -238,7 +238,7 @@ export function CalendarPage() {
 
       {selected && (
         <div className={`${MODAL_BACKDROP} flex items-start justify-center px-4 pt-8 pb-4 overflow-y-auto`} onClick={() => setSelected(null)}>
-          <div className={`${MODAL_PANEL} w-full max-w-lg p-6 space-y-4`} onClick={e => e.stopPropagation()}>
+          <div className={`${pick(MODAL_PANEL, 'glass glow-mauve rounded-2xl')} w-full max-w-lg p-6 space-y-4`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <span className={`text-xs px-2 py-1 rounded-full text-white ${EVENT_KIND_DOT[selected.type]}`}>
                 {EVENT_KIND_LABELS[selected.type]}
@@ -246,7 +246,7 @@ export function CalendarPage() {
               <button onClick={() => setSelected(null)} className={`${CP.modalClose} text-xl leading-none`}>×</button>
             </div>
             <h2 className={`${TEXT_HEADING} text-xl`}>{selected.title}</h2>
-            <div className={`text-sm ${TEXT_BODY} space-y-1`}>
+            <div className={`text-sm ${pick(TEXT_BODY, 'text-brand-100/90 font-medium')} space-y-1`}>
               <p>{formatEventSpan(selected, { style: 'long' })}</p>
               {selected.price != null && (
                 <p>💰 {t.calendar.priceFrom(`${selected.currency} ${selected.price.toLocaleString()}`)}</p>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import type { User } from '@supabase/supabase-js'
 import { siteConfig } from '../../config/site'
 import { t } from '../../i18n'
-import { CARD_ELEVATED, TEXT_HEADING, TEXT_BODY, TEXT_LINK } from '../../styles/tokens'
+import { CARD_ELEVATED, TEXT_HEADING, TEXT_BODY, TEXT_LINK, pick } from '../../styles/tokens'
 
 // 24-hour follow-up to the WelcomeModal. Once the modal is dismissed
 // (welcomed_at stamped), this banner shows on the dashboard for the
@@ -30,14 +30,14 @@ export function WelcomeBanner({ user }: { user: User }) {
   if (!shouldShow) return null
 
   return (
-    <div className={`${CARD_ELEVATED} p-4 flex items-center gap-3`}>
+    <div className={`${CARD_ELEVATED} p-4 flex items-center gap-3 shadow-lg`}>
       <img src={siteConfig.assets.logo} alt="" aria-hidden="true" className="w-12 h-auto shrink-0" />
       <div className="text-sm">
-        <p className={TEXT_HEADING}>{t.welcome.bannerTitle(siteConfig.identity.shortName)}</p>
-        <p className={`${TEXT_BODY} text-xs mt-0.5`}>
+        <p className={pick(TEXT_HEADING, 'font-semibold text-white')}>{t.welcome.bannerTitle(siteConfig.identity.shortName)}</p>
+        <p className={`${pick(TEXT_BODY, 'text-brand-100/80 font-medium')} text-xs mt-0.5`}>
           {t.welcome.bannerBody}
         </p>
-        <Link to="/profile" className={`inline-block mt-1 text-xs ${TEXT_LINK}`}>
+        <Link to="/profile" className={`inline-block mt-1 text-xs ${pick(TEXT_LINK, 'font-semibold text-reef-300 hover:text-reef-200 underline')}`}>
           {t.welcome.bannerAction}
         </Link>
       </div>

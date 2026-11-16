@@ -13,7 +13,7 @@ import { PersonIcon } from '../icons/PersonIcon'
 import { NotificationBell } from '../NotificationBell'
 import { t } from '../../i18n'
 import {
-  PAGE, NAV_BAR, NAV_BOTTOM, BTN_LIGHT, BTN_XS_ON_DEEP,
+  PAGE, NAV_BAR, NAV_BOTTOM, BTN_LIGHT, BTN_XS_GHOST, BTN_XS_ON_DEEP, pick,
   ON_DEEP_SUBTLE, ON_DEEP_BODY,
 } from '../../styles/tokens'
 
@@ -94,7 +94,7 @@ export function AppShell() {
           ) : (
             <span className={`text-sm ${ON_DEEP_BODY}`}>{personName(profile?.name)}</span>
           )}
-          <button onClick={handleSignOut} className={BTN_XS_ON_DEEP}>
+          <button onClick={handleSignOut} className={pick(BTN_XS_ON_DEEP, BTN_XS_GHOST)}>
             {t.common.signOut}
           </button>
         </div>
@@ -117,7 +117,7 @@ export function AppShell() {
             to={to}
             className={({ isActive }) =>
               `flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg text-xs transition-colors ${
-                isActive ? 'text-white font-semibold' : `${ON_DEEP_SUBTLE} hover:text-white`
+                isActive ? pick('text-white font-semibold', 'text-reef-300 font-semibold') : `${ON_DEEP_SUBTLE} hover:text-white`
               }`
             }
           >

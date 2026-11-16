@@ -21,7 +21,7 @@ import { TextField } from './TextField'
 import { HeightField, WeightField } from '../MeasureField'
 import { MeasureRow } from './MeasureRow'
 import { numOrNullStr } from '../../lib/units'
-import { INPUT_REGISTER } from '../../styles/tokens'
+import { INPUT_REGISTER, pick } from '../../styles/tokens'
 import { ShoeSizeField } from '../ShoeSizeField'
 import type { WaiverDef } from '../../config/waivers'
 import type { AppEvent, Booking, BookingDetails, Database, NondiverOption, PaymentMethod, Profile } from '../../types/database'
@@ -736,7 +736,7 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
                     <p className="text-sm font-semibold text-brand-900">
                       {ev.title}
                       {targetLabel && (
-                        <span className="ml-2 text-xs text-brand-700">{t.register.multi.forLabel(targetLabel)}</span>
+                        <span className={`ml-2 text-xs ${pick('text-brand-700', 'text-brand-300')}`}>{t.register.multi.forLabel(targetLabel)}</span>
                       )}
                     </p>
                     {gearPacksASet && (
@@ -928,15 +928,15 @@ export function MultiRegisterForm({ events, profile, userId, onClose, onAllBooke
             </p>
 
             {leadMissingW.length > 0 && (
-              <div className="text-xs text-amber-900 font-medium bg-amber-50 border border-amber-300 rounded-lg p-3 space-y-2" aria-label={t.register.waivers.ariaOutstanding}>
-                <p className="font-semibold text-amber-900">{t.register.multi.waiversToSign}</p>
+              <div className={`text-xs font-medium ${pick('text-amber-900 bg-amber-50 border-amber-300', 'text-brand-950 bg-amber-400/10 border-amber-400/40')} border rounded-lg p-3 space-y-2`} aria-label={t.register.waivers.ariaOutstanding}>
+                <p className={`font-semibold ${pick('text-amber-900', 'text-amber-300')}`}>{t.register.multi.waiversToSign}</p>
                 <p>{t.register.multi.waiversStillBook}</p>
                 <ul className="space-y-1">
                   {leadMissingW.map(entry => (
                     <li key={`${entry.def.code}:${entry.event?.id ?? 'annual'}`} className="flex items-center justify-between gap-2">
                       <span className="min-w-0 truncate">
                         {entry.def.title}
-                        {entry.event && <span className="text-amber-900/70"> · {entry.event.title}</span>}
+                        {entry.event && <span className={pick('text-amber-900/70', 'text-brand-900/70')}> · {entry.event.title}</span>}
                       </span>
                       <button
                         type="button"
@@ -1030,8 +1030,8 @@ function PaymentInstructionsBlock({ method }: { method: PaymentMethod }) {
         <p className="font-semibold text-brand-900">{instr.title}</p>
         {instr.lines.map((line, i) => <p key={i}>{line}</p>)}
       </div>
-      <div className="text-xs text-amber-900 font-medium bg-amber-50 border border-amber-300 rounded-lg p-3 space-y-1">
-        <p className="font-semibold text-amber-900">{reminder.title}</p>
+      <div className={`text-xs font-medium ${pick('text-amber-900 bg-amber-50 border-amber-300', 'text-brand-950 bg-amber-400/10 border-amber-400/40')} border rounded-lg p-3 space-y-1`}>
+        <p className={`font-semibold ${pick('text-amber-900', 'text-brand-900')}`}>{reminder.title}</p>
         {reminder.lines.map((line, i) => <p key={i}>{line}</p>)}
       </div>
     </>

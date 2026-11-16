@@ -6,7 +6,7 @@ import { DateField } from '../DateField'
 import { siteConfig } from '../../config/site'
 import { t } from '../../i18n'
 import type { PackageTierItem, EOAddon, EORoom } from '../../types/database'
-import { BTN_PRIMARY, BTN_SECONDARY, ERROR_NOTE_LIGHT, INPUT, INPUT_LABEL, MODAL_BACKDROP, MODAL_PANEL, TEXT_BODY, TEXT_HEADING, TEXT_MUTED, TEXT_SUBTLE } from '../../styles/tokens'
+import { BTN_PRIMARY, BTN_SECONDARY, ERROR_NOTE, ERROR_NOTE_LIGHT, INPUT, INPUT_LABEL, MODAL_BACKDROP, MODAL_PANEL, TEXT_BODY, TEXT_HEADING, TEXT_MUTED, TEXT_SUBTLE, pick } from '../../styles/tokens'
 
 // Shared registration wizard for the two estimate-and-notify flows: partner-shop
 // Packages (tiers + a diver-picked date range) and the shop's own Scheduled Trips
@@ -184,10 +184,10 @@ export function RegisterWizard(props: Props) {
               </p>
             </div>
             <button type="button" onClick={onClose} aria-label={t.register.close}
-              className={`${TEXT_MUTED} hover:text-red-500 text-xl leading-none`}>×</button>
+              className={pick(`${TEXT_MUTED} hover:text-red-500 text-xl leading-none`, 'text-brand-50 hover:text-red-300 text-xl leading-none')}>×</button>
           </div>
 
-          {error && <p className={ERROR_NOTE_LIGHT}>{error}</p>}
+          {error && <p className={pick(ERROR_NOTE_LIGHT, ERROR_NOTE)}>{error}</p>}
 
           {kind === 'tier' && tiers && (
             <fieldset className="space-y-2">
